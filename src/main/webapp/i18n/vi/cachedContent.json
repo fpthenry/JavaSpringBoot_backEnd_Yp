@@ -1,0 +1,27 @@
+{
+  "javaSpringBootBackEndApp": {
+    "cachedContent": {
+      "home": {
+        "title": "Cached Contents",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Cached Content",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Cached Content",
+        "search": "Tìm Cached Content",
+        "notFound": "No Cached Contents found"
+      },
+      "created": "Một Cached Content mới được tạo với định danh {{ param }}",
+      "updated": "Một Cached Content cập nhật với định danh {{ param }}",
+      "deleted": "Một Cached Content đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Cached Content {{ id }}?"
+      },
+      "detail": {
+        "title": "Cached Content"
+      },
+      "id": "ID",
+      "termSlug": "Term Slug",
+      "expired": "Expired",
+      "content": "Content"
+    }
+  }
+}

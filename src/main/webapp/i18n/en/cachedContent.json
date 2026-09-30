@@ -1,0 +1,27 @@
+{
+  "javaSpringBootBackEndApp": {
+    "cachedContent": {
+      "home": {
+        "title": "Cached Contents",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Cached Content",
+        "createOrEditLabel": "Create or edit a Cached Content",
+        "search": "Search for Cached Content",
+        "notFound": "No Cached Contents found"
+      },
+      "created": "A new Cached Content is created with identifier {{ param }}",
+      "updated": "A Cached Content is updated with identifier {{ param }}",
+      "deleted": "A Cached Content is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Cached Content {{ id }}?"
+      },
+      "detail": {
+        "title": "Cached Content"
+      },
+      "id": "ID",
+      "termSlug": "Term Slug",
+      "expired": "Expired",
+      "content": "Content"
+    }
+  }
+}

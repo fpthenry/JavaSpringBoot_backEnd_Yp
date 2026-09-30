@@ -1,0 +1,31 @@
+{
+  "javaSpringBootBackEndApp": {
+    "articleCategory": {
+      "home": {
+        "title": "Article Categories",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Article Category",
+        "createOrEditLabel": "Create or edit a Article Category",
+        "search": "Search for Article Category",
+        "notFound": "No Article Categories found"
+      },
+      "created": "A new Article Category is created with identifier {{ param }}",
+      "updated": "A Article Category is updated with identifier {{ param }}",
+      "deleted": "A Article Category is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Article Category {{ id }}?"
+      },
+      "detail": {
+        "title": "Article Category"
+      },
+      "id": "ID",
+      "name": "Name",
+      "slug": "Slug",
+      "description": "Description",
+      "count": "Count",
+      "children": "Children",
+      "parent": "Parent",
+      "articles": "Articles"
+    }
+  }
+}

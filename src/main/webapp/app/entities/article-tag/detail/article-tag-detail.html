@@ -1,0 +1,51 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (articleTag(); as articleTagRef) {
+      <div>
+        <h2 data-cy="articleTagDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.articleTag.detail.title">Article Tag</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ articleTagRef.id }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleTag.name">Name</span></dt>
+          <dd>
+            <span>{{ articleTagRef.name }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleTag.slug">Slug</span></dt>
+          <dd>
+            <span>{{ articleTagRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleTag.count">Count</span></dt>
+          <dd>
+            <span>{{ articleTagRef.count }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleTag.articles">Articles</span></dt>
+          <dd>
+            @for (articles of articleTagRef.articleses; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/article', articles.id, 'view']">{{ articles?.id }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/article-tag', articleTagRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

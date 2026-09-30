@@ -1,0 +1,140 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
+      <h2
+        id="jhi-redirect-rule-heading"
+        data-cy="RedirectRuleCreateUpdateHeading"
+        jhiTranslate="javaSpringBootBackEndApp.redirectRule.home.createOrEditLabel"
+      >
+        Create or edit a Redirect Rule
+      </h2>
+
+      <div>
+        <jhi-alert-error />
+
+        @if (editForm.controls.id.value !== null) {
+          <div class="mb-3">
+            <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
+            <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
+          </div>
+        }
+
+        <div class="mb-3">
+          <label class="form-label" for="field_sourceId" jhiTranslate="javaSpringBootBackEndApp.redirectRule.sourceId">Source Id</label>
+          <input type="number" class="form-control" name="sourceId" id="field_sourceId" data-cy="sourceId" formControlName="sourceId" />
+        </div>
+
+        @let sourceSlugRef = editForm.get('sourceSlug')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_sourceSlug" jhiTranslate="javaSpringBootBackEndApp.redirectRule.sourceSlug"
+            >Source Slug</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            name="sourceSlug"
+            id="field_sourceSlug"
+            data-cy="sourceSlug"
+            formControlName="sourceSlug"
+          />
+          @if (sourceSlugRef.invalid && (sourceSlugRef.dirty || sourceSlugRef.touched)) {
+            <div>
+              @if (sourceSlugRef.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
+              }
+              @if (sourceSlugRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '500' }"
+                  >This field cannot be longer than 500 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="field_destinationId" jhiTranslate="javaSpringBootBackEndApp.redirectRule.destinationId"
+            >Destination Id</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            name="destinationId"
+            id="field_destinationId"
+            data-cy="destinationId"
+            formControlName="destinationId"
+          />
+        </div>
+
+        @let destinationSlugRef = editForm.get('destinationSlug')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_destinationSlug" jhiTranslate="javaSpringBootBackEndApp.redirectRule.destinationSlug"
+            >Destination Slug</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            name="destinationSlug"
+            id="field_destinationSlug"
+            data-cy="destinationSlug"
+            formControlName="destinationSlug"
+          />
+          @if (destinationSlugRef.invalid && (destinationSlugRef.dirty || destinationSlugRef.touched)) {
+            <div>
+              @if (destinationSlugRef.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
+              }
+              @if (destinationSlugRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '500' }"
+                  >This field cannot be longer than 500 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let objectTypeRef = editForm.get('objectType')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_objectType" jhiTranslate="javaSpringBootBackEndApp.redirectRule.objectType"
+            >Object Type</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            name="objectType"
+            id="field_objectType"
+            data-cy="objectType"
+            formControlName="objectType"
+          />
+          @if (objectTypeRef.invalid && (objectTypeRef.dirty || objectTypeRef.touched)) {
+            <div>
+              @if (objectTypeRef.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
+              }
+              @if (objectTypeRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '50' }"
+                  >This field cannot be longer than 50 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div>
+        <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-secondary" (click)="previousState()">
+          <fa-icon icon="ban" />&nbsp;<span jhiTranslate="entity.action.cancel">Cancel</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.invalid || isSaving()"
+          class="btn btn-primary"
+        >
+          <fa-icon icon="save" />&nbsp;<span jhiTranslate="entity.action.save">Save</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

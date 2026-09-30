@@ -1,0 +1,33 @@
+{
+  "javaSpringBootBackEndApp": {
+    "listingImage": {
+      "home": {
+        "title": "Listing Images",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Listing Image",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Listing Image",
+        "search": "Tìm Listing Image",
+        "notFound": "No Listing Images found"
+      },
+      "created": "Một Listing Image mới được tạo với định danh {{ param }}",
+      "updated": "Một Listing Image cập nhật với định danh {{ param }}",
+      "deleted": "Một Listing Image đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Listing Image {{ id }}?"
+      },
+      "detail": {
+        "title": "Listing Image"
+      },
+      "id": "ID",
+      "imageUrl": "Image Url",
+      "thumbnailUrl": "Thumbnail Url",
+      "altText": "Alt Text",
+      "displayOrder": "Display Order",
+      "isFeatured": "Is Featured",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "listing": "Listing",
+      "gallery": "Gallery"
+    }
+  }
+}

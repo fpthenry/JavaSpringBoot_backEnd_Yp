@@ -1,0 +1,55 @@
+{
+  "javaSpringBootBackEndApp": {
+    "listing": {
+      "home": {
+        "title": "Listings",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Listing",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Listing",
+        "search": "Tìm Listing",
+        "notFound": "No Listings found"
+      },
+      "created": "Một Listing mới được tạo với định danh {{ param }}",
+      "updated": "Một Listing cập nhật với định danh {{ param }}",
+      "deleted": "Một Listing đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Listing {{ id }}?"
+      },
+      "detail": {
+        "title": "Listing"
+      },
+      "id": "ID",
+      "title": "Title",
+      "slug": "Slug",
+      "content": "Content",
+      "status": "Status",
+      "email": "Email",
+      "telephone": "Telephone",
+      "mobile": "Mobile",
+      "website": "Website",
+      "fax": "Fax",
+      "taxCode": "Tax Code",
+      "nameAlias": "Name Alias",
+      "nameEn": "Name En",
+      "representative": "Representative",
+      "mainIndustry": "Main Industry",
+      "managedBy": "Managed By",
+      "businessType": "Business Type",
+      "statusYp": "Status Yp",
+      "foundedDate": "Founded Date",
+      "licenseModifiedDate": "License Modified Date",
+      "address": "Address",
+      "addressAlternative": "Address Alternative",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "apiId": "Api Id",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "images": "Images",
+      "galleries": "Galleries",
+      "author": "Author",
+      "categories": "Categories",
+      "locations": "Locations"
+    }
+  }
+}

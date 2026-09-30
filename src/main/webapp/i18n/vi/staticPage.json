@@ -1,0 +1,35 @@
+{
+  "javaSpringBootBackEndApp": {
+    "staticPage": {
+      "home": {
+        "title": "Static Pages",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Static Page",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Static Page",
+        "search": "Tìm Static Page",
+        "notFound": "No Static Pages found"
+      },
+      "created": "Một Static Page mới được tạo với định danh {{ param }}",
+      "updated": "Một Static Page cập nhật với định danh {{ param }}",
+      "deleted": "Một Static Page đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Static Page {{ id }}?"
+      },
+      "detail": {
+        "title": "Static Page"
+      },
+      "id": "ID",
+      "title": "Title",
+      "slug": "Slug",
+      "content": "Content",
+      "status": "Status",
+      "template": "Template",
+      "menuOrder": "Menu Order",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "children": "Children",
+      "author": "Author",
+      "parent": "Parent"
+    }
+  }
+}

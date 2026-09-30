@@ -1,0 +1,55 @@
+{
+  "javaSpringBootBackEndApp": {
+    "listing": {
+      "home": {
+        "title": "Listings",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Listing",
+        "createOrEditLabel": "Create or edit a Listing",
+        "search": "Search for Listing",
+        "notFound": "No Listings found"
+      },
+      "created": "A new Listing is created with identifier {{ param }}",
+      "updated": "A Listing is updated with identifier {{ param }}",
+      "deleted": "A Listing is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Listing {{ id }}?"
+      },
+      "detail": {
+        "title": "Listing"
+      },
+      "id": "ID",
+      "title": "Title",
+      "slug": "Slug",
+      "content": "Content",
+      "status": "Status",
+      "email": "Email",
+      "telephone": "Telephone",
+      "mobile": "Mobile",
+      "website": "Website",
+      "fax": "Fax",
+      "taxCode": "Tax Code",
+      "nameAlias": "Name Alias",
+      "nameEn": "Name En",
+      "representative": "Representative",
+      "mainIndustry": "Main Industry",
+      "managedBy": "Managed By",
+      "businessType": "Business Type",
+      "statusYp": "Status Yp",
+      "foundedDate": "Founded Date",
+      "licenseModifiedDate": "License Modified Date",
+      "address": "Address",
+      "addressAlternative": "Address Alternative",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "apiId": "Api Id",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "images": "Images",
+      "galleries": "Galleries",
+      "author": "Author",
+      "categories": "Categories",
+      "locations": "Locations"
+    }
+  }
+}

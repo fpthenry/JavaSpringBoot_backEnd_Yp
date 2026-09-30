@@ -1,0 +1,191 @@
+<div>
+  <h2 id="page-heading" data-cy="StaticPageHeading">
+    <span jhiTranslate="javaSpringBootBackEndApp.staticPage.home.title">Static Pages</span>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading()">
+        <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.staticPage.home.refreshListLabel">Refresh list</span>
+      </button>
+
+      <button
+        id="jh-create-entity"
+        data-cy="entityCreateButton"
+        class="btn btn-primary jh-create-entity create-static-page"
+        [routerLink]="['/static-page/new']"
+      >
+        <fa-icon icon="plus" />
+        <span class="hidden-sm-down" jhiTranslate="javaSpringBootBackEndApp.staticPage.home.createLabel">Create a new Static Page</span>
+      </button>
+    </div>
+  </h2>
+
+  <jhi-alert-error />
+
+  <jhi-alert />
+
+  <form name="searchForm" class="row row-cols-sm-auto align-items-center">
+    <div class="col-sm-12">
+      <div class="input-group w-100 mt-3">
+        <label class="visually-hidden" for="currentSearch" jhiTranslate="javaSpringBootBackEndApp.staticPage.home.search"
+          >Search for Static Page</label
+        >
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="currentSearch"
+          id="currentSearch"
+          name="currentSearch"
+          placeholder="{{ 'javaSpringBootBackEndApp.staticPage.home.search' | translate }}"
+        />
+
+        <button class="btn btn-info" (click)="search(currentSearch())">
+          <fa-icon icon="search" />
+        </button>
+
+        @if (currentSearch()) {
+          <button class="btn btn-danger" (click)="search('')">
+            <fa-icon icon="trash-alt" />
+          </button>
+        }
+      </div>
+    </div>
+  </form>
+
+  @if (staticPages().length === 0) {
+    <div class="alert alert-warning" id="no-result">
+      <span jhiTranslate="javaSpringBootBackEndApp.staticPage.home.notFound">No Static Pages found</span>
+    </div>
+  } @else {
+    <div class="table-responsive table-entities" id="entities">
+      <table class="table table-striped" aria-describedby="page-heading">
+        <thead>
+          <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
+            <th scope="col" jhiSortBy="id">
+              <div class="d-flex">
+                <span jhiTranslate="global.field.id">ID</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="title">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.title">Title</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="slug">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.slug">Slug</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="content">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.content">Content</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="status">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.status">Status</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="template">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.template">Template</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="menuOrder">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.menuOrder">Menu Order</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="createdAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.createdAt">Created At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="updatedAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.updatedAt">Updated At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="author.login">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.author">Author</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="parent.title">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.staticPage.parent">Parent</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (staticPage of staticPages(); track trackId(staticPage)) {
+            <tr data-cy="entityTable">
+              <td>
+                <a [routerLink]="['/static-page', staticPage.id, 'view']">{{ staticPage.id }}</a>
+              </td>
+              <td>{{ staticPage.title }}</td>
+              <td>{{ staticPage.slug }}</td>
+              <td>{{ staticPage.content }}</td>
+              <td>{{ staticPage.status }}</td>
+              <td>{{ staticPage.template }}</td>
+              <td>{{ staticPage.menuOrder }}</td>
+              <td>{{ staticPage.createdAt | formatMediumDatetime }}</td>
+              <td>{{ staticPage.updatedAt | formatMediumDatetime }}</td>
+              <td>
+                {{ staticPage.author?.login }}
+              </td>
+              <td>
+                @if (staticPage.parent) {
+                  <div>
+                    <a [routerLink]="['/static-page', staticPage.parent.id, 'view']">{{ staticPage.parent.title }}</a>
+                  </div>
+                }
+              </td>
+              <td class="text-end">
+                <div class="btn-group">
+                  <a [routerLink]="['/static-page', staticPage.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">
+                    <fa-icon icon="eye" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
+                  </a>
+
+                  <a [routerLink]="['/static-page', staticPage.id, 'edit']" class="btn btn-primary btn-sm" data-cy="entityEditButton">
+                    <fa-icon icon="pencil-alt" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
+                  </a>
+
+                  <button type="submit" (click)="delete(staticPage)" class="btn btn-danger btn-sm" data-cy="entityDeleteButton">
+                    <fa-icon icon="times" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

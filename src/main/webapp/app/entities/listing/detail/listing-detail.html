@@ -1,0 +1,156 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (listing(); as listingRef) {
+      <div>
+        <h2 data-cy="listingDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.listing.detail.title">Listing</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ listingRef.id }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.title">Title</span></dt>
+          <dd>
+            <span>{{ listingRef.title }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.slug">Slug</span></dt>
+          <dd>
+            <span>{{ listingRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.content">Content</span></dt>
+          <dd>
+            <span>{{ listingRef.content }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.status">Status</span></dt>
+          <dd>
+            <span>{{ listingRef.status }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.email">Email</span></dt>
+          <dd>
+            <span>{{ listingRef.email }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.telephone">Telephone</span></dt>
+          <dd>
+            <span>{{ listingRef.telephone }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.mobile">Mobile</span></dt>
+          <dd>
+            <span>{{ listingRef.mobile }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.website">Website</span></dt>
+          <dd>
+            <span>{{ listingRef.website }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.fax">Fax</span></dt>
+          <dd>
+            <span>{{ listingRef.fax }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.taxCode">Tax Code</span></dt>
+          <dd>
+            <span>{{ listingRef.taxCode }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.nameAlias">Name Alias</span></dt>
+          <dd>
+            <span>{{ listingRef.nameAlias }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.nameEn">Name En</span></dt>
+          <dd>
+            <span>{{ listingRef.nameEn }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.representative">Representative</span></dt>
+          <dd>
+            <span>{{ listingRef.representative }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.mainIndustry">Main Industry</span></dt>
+          <dd>
+            <span>{{ listingRef.mainIndustry }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.managedBy">Managed By</span></dt>
+          <dd>
+            <span>{{ listingRef.managedBy }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.businessType">Business Type</span></dt>
+          <dd>
+            <span>{{ listingRef.businessType }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.statusYp">Status Yp</span></dt>
+          <dd>
+            <span>{{ listingRef.statusYp }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.foundedDate">Founded Date</span></dt>
+          <dd>
+            <span>{{ listingRef.foundedDate | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.licenseModifiedDate">License Modified Date</span></dt>
+          <dd>
+            <span>{{ listingRef.licenseModifiedDate | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.address">Address</span></dt>
+          <dd>
+            <span>{{ listingRef.address }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.addressAlternative">Address Alternative</span></dt>
+          <dd>
+            <span>{{ listingRef.addressAlternative }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.latitude">Latitude</span></dt>
+          <dd>
+            <span>{{ listingRef.latitude }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.longitude">Longitude</span></dt>
+          <dd>
+            <span>{{ listingRef.longitude }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.apiId">Api Id</span></dt>
+          <dd>
+            <span>{{ listingRef.apiId }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.createdAt">Created At</span></dt>
+          <dd>
+            <span>{{ listingRef.createdAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.updatedAt">Updated At</span></dt>
+          <dd>
+            <span>{{ listingRef.updatedAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.author">Author</span></dt>
+          <dd>
+            <span>{{ listingRef.author?.login }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.categories">Categories</span></dt>
+          <dd>
+            @for (categories of listingRef.categorieses; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/category', categories.id, 'view']">{{ categories?.name }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.locations">Locations</span></dt>
+          <dd>
+            @for (locations of listingRef.locationses; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/location', locations.id, 'view']">{{ locations?.name }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/listing', listingRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

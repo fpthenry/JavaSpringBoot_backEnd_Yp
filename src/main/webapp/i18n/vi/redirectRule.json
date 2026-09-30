@@ -1,0 +1,29 @@
+{
+  "javaSpringBootBackEndApp": {
+    "redirectRule": {
+      "home": {
+        "title": "Redirect Rules",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Redirect Rule",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Redirect Rule",
+        "search": "Tìm Redirect Rule",
+        "notFound": "No Redirect Rules found"
+      },
+      "created": "Một Redirect Rule mới được tạo với định danh {{ param }}",
+      "updated": "Một Redirect Rule cập nhật với định danh {{ param }}",
+      "deleted": "Một Redirect Rule đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Redirect Rule {{ id }}?"
+      },
+      "detail": {
+        "title": "Redirect Rule"
+      },
+      "id": "ID",
+      "sourceId": "Source Id",
+      "sourceSlug": "Source Slug",
+      "destinationId": "Destination Id",
+      "destinationSlug": "Destination Slug",
+      "objectType": "Object Type"
+    }
+  }
+}

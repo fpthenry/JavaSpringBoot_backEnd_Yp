@@ -1,0 +1,66 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (gallery(); as galleryRef) {
+      <div>
+        <h2 data-cy="galleryDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.gallery.detail.title">Gallery</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ galleryRef.id }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.title">Title</span></dt>
+          <dd>
+            <span>{{ galleryRef.title }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.slug">Slug</span></dt>
+          <dd>
+            <span>{{ galleryRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.content">Content</span></dt>
+          <dd>
+            <span>{{ galleryRef.content }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.status">Status</span></dt>
+          <dd>
+            <span>{{ galleryRef.status }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.createdAt">Created At</span></dt>
+          <dd>
+            <span>{{ galleryRef.createdAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.updatedAt">Updated At</span></dt>
+          <dd>
+            <span>{{ galleryRef.updatedAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.author">Author</span></dt>
+          <dd>
+            <span>{{ galleryRef.author?.login }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.listing">Listing</span></dt>
+          <dd>
+            @if (gallery()!.listing) {
+              <div>
+                <a [routerLink]="['/listing', gallery()!.listing?.id, 'view']">{{ galleryRef.listing?.title }}</a>
+              </div>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/gallery', galleryRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

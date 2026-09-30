@@ -1,0 +1,35 @@
+{
+  "javaSpringBootBackEndApp": {
+    "article": {
+      "home": {
+        "title": "Articles",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Article",
+        "createOrEditLabel": "Create or edit a Article",
+        "search": "Search for Article",
+        "notFound": "No Articles found"
+      },
+      "created": "A new Article is created with identifier {{ param }}",
+      "updated": "A Article is updated with identifier {{ param }}",
+      "deleted": "A Article is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Article {{ id }}?"
+      },
+      "detail": {
+        "title": "Article"
+      },
+      "id": "ID",
+      "title": "Title",
+      "slug": "Slug",
+      "excerpt": "Excerpt",
+      "content": "Content",
+      "status": "Status",
+      "featuredImageUrl": "Featured Image Url",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "author": "Author",
+      "categories": "Categories",
+      "tags": "Tags"
+    }
+  }
+}

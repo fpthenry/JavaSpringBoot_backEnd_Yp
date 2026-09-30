@@ -1,0 +1,65 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (articleCategory(); as articleCategoryRef) {
+      <div>
+        <h2 data-cy="articleCategoryDetailsHeading">
+          <span jhiTranslate="javaSpringBootBackEndApp.articleCategory.detail.title">Article Category</span>
+        </h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ articleCategoryRef.id }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleCategory.name">Name</span></dt>
+          <dd>
+            <span>{{ articleCategoryRef.name }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleCategory.slug">Slug</span></dt>
+          <dd>
+            <span>{{ articleCategoryRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleCategory.description">Description</span></dt>
+          <dd>
+            <span>{{ articleCategoryRef.description }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleCategory.count">Count</span></dt>
+          <dd>
+            <span>{{ articleCategoryRef.count }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleCategory.parent">Parent</span></dt>
+          <dd>
+            @if (articleCategory()!.parent) {
+              <div>
+                <a [routerLink]="['/article-category', articleCategory()!.parent?.id, 'view']">{{ articleCategoryRef.parent?.name }}</a>
+              </div>
+            }
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.articleCategory.articles">Articles</span></dt>
+          <dd>
+            @for (articles of articleCategoryRef.articleses; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/article', articles.id, 'view']">{{ articles?.id }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/article-category', articleCategoryRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

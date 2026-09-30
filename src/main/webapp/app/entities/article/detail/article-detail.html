@@ -1,0 +1,84 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (article(); as articleRef) {
+      <div>
+        <h2 data-cy="articleDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.article.detail.title">Article</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ articleRef.id }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.title">Title</span></dt>
+          <dd>
+            <span>{{ articleRef.title }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.slug">Slug</span></dt>
+          <dd>
+            <span>{{ articleRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.excerpt">Excerpt</span></dt>
+          <dd>
+            <span>{{ articleRef.excerpt }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.content">Content</span></dt>
+          <dd>
+            <span>{{ articleRef.content }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.status">Status</span></dt>
+          <dd>
+            <span>{{ articleRef.status }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.featuredImageUrl">Featured Image Url</span></dt>
+          <dd>
+            <span>{{ articleRef.featuredImageUrl }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.createdAt">Created At</span></dt>
+          <dd>
+            <span>{{ articleRef.createdAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.updatedAt">Updated At</span></dt>
+          <dd>
+            <span>{{ articleRef.updatedAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.author">Author</span></dt>
+          <dd>
+            <span>{{ articleRef.author?.login }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.categories">Categories</span></dt>
+          <dd>
+            @for (categories of articleRef.categorieses; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/article-category', categories.id, 'view']">{{ categories?.name }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.article.tags">Tags</span></dt>
+          <dd>
+            @for (tags of articleRef.tagses; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/article-tag', tags.id, 'view']">{{ tags?.name }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/article', articleRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>
