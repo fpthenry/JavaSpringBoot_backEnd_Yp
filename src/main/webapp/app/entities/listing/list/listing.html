@@ -52,8 +52,23 @@
     </div>
   </form>
 
-  <!-- Sửa tay: lọc theo cả cây địa phương (Tỉnh/thành -> Quận/huyện -> Phường/xã) -->
-  <jhi-location-tree-filter [filters]="filters" />
+  <!-- Sửa tay: lọc theo cả cây địa phương (Tỉnh/thành -> Quận/huyện -> Phường/xã) và cây ngành nghề (tối đa 4 cấp) -->
+  <jhi-tree-filter
+    [filters]="filters"
+    [source]="locationTree"
+    filterName="locationTreeId.equals"
+    [placeholders]="[
+      'javaSpringBootBackEndApp.location.filter.allProvinces',
+      'javaSpringBootBackEndApp.location.filter.allDistricts',
+      'javaSpringBootBackEndApp.location.filter.allWards',
+    ]"
+  />
+  <jhi-tree-filter
+    [filters]="filters"
+    [source]="categoryTree"
+    filterName="categoryTreeId.equals"
+    [placeholders]="['javaSpringBootBackEndApp.category.filter.allCategories', 'javaSpringBootBackEndApp.category.filter.allSubCategories']"
+  />
 
   <jhi-filter [filters]="filters" />
 

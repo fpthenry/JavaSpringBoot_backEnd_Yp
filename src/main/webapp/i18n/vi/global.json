@@ -18,7 +18,10 @@
         "locationTree": "Đơn vị hành chính",
         "locationProvince": "Tỉnh thành",
         "locationDistrict": "Quận huyện",
-        "locationWard": "Phường xã"
+        "locationWard": "Phường xã",
+        "categoryGroup": "Ngành nghề",
+        "categoryTree": "Cây ngành nghề",
+        "categoryList": "Danh sách ngành nghề"
       },
       "account": {
         "main": "Tài khoản",
@@ -133,6 +136,10 @@
       "set": "Following filters are set",
       "clear": "Clear filter",
       "clearAll": "Clear all filters"
+    },
+    "tree": {
+      "empty": "Không có dữ liệu",
+      "viewListings": "Xem doanh nghiệp"
     }
   },
   "error": {

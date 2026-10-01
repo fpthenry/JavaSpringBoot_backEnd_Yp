@@ -398,16 +398,16 @@ Lưu ý:
 | File | Sửa gì | Vì sao |
 |---|---|---|
 | `service/mapper/LocationMapper.java`, `CategoryMapper.java` | `toDto` và `partialUpdate` bỏ qua `listings` (`@Mapping(target = "listings", ignore = true)`) | JHipster 9.3.0 **luôn** sinh chiều ngược của ManyToMany, kể cả khi JDL khai báo một chiều. Nếu map `listings`, mỗi địa phương hoặc ngành tải hàng trăm nghìn listing, và `/api/locations` bị treo. |
-| `service/criteria/ListingCriteria.java` | Thêm filter `locationTreeId` | Lọc listing theo cả cây địa phương. Mỗi listing chỉ gắn vào **một** cấp (tỉnh 1,46 triệu, phường/xã 319 nghìn, quận/huyện 23 nghìn), nên lọc theo tỉnh phải gồm cả cấp con. |
-| `repository/LocationRepository.java` | `findSubtreeIds(id)` | Lấy id của địa phương và mọi cấp con |
-| `service/ListingQueryService.java` | `inLocationTree()` dùng `EXISTS` trên bảng nối; `findInLocationTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Tốc độ: TP.HCM 541 nghìn listing từ 5,6 s còn ~1,1 s; Hà Nội ~0,65 s; tỉnh và huyện nhỏ 0,1–0,3 s |
-| `entities/location/filter/*` | Component `jhi-location-tree-filter`: 3 ô chọn Tỉnh/thành → Quận/huyện → Phường/xã, đồng bộ với URL `filter[locationTreeId.equals]` | Lọc listing theo địa phương trên giao diện |
-| `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | Gắn `jhi-location-tree-filter`; trong spec thay bằng stub | |
-| `entities/location/tree/*` | Trang cây đơn vị hành chính `/location/tree` (tải dần từng cấp), mỗi nút có link "Xem doanh nghiệp" | Hiển thị phân cấp tỉnh → quận/huyện → phường/xã |
-| `entities/location/location.routes.ts` | Route `tree` | |
-| `layouts/navbar/navbar.html`, `navbar.ts` | Nhóm menu **Tỉnh thành**: Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã (lọc `filter[type.equals]`) | |
-| `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `chevron-*`, `location-dot`, `spinner` | |
-| `i18n/{vi,en}/global.json`, `location.json` | Key `locationGroup`…, `location.tree.*` | |
+| `service/criteria/ListingCriteria.java` | Thêm filter `locationTreeId`, `categoryTreeId` | Lọc listing theo cả cây. Mỗi listing chỉ gắn vào **một** cấp địa phương (tỉnh 1,46 triệu, phường/xã 319 nghìn, quận/huyện 23 nghìn) và gần như chỉ gắn vào **ngành lá** (24,4/25,2 triệu liên kết), nên lọc theo một nút phải gồm cả cây con. |
+| `repository/LocationRepository.java`, `CategoryRepository.java` | `findSubtreeIds(id)` | Lấy id của nút và mọi cấp con (địa phương 3 cấp, ngành nghề 4 cấp) |
+| `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 9) |
+| `shared/tree/*` | Dùng chung: `createTreeSource()`, `jhi-tree-view` (cây tải dần, link "Xem doanh nghiệp"), `jhi-tree-filter` (dãy ô chọn theo số cấp thực tế, đồng bộ với URL `filter[...]`) | Dùng cho cả địa phương và ngành nghề |
+| `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | 2 bộ lọc `jhi-tree-filter` (địa phương, ngành nghề); trong spec thay bằng stub | |
+| `entities/location/tree/*`, `entities/category/tree/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Cây ngành nghề) | |
+| `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree` | |
+| `layouts/navbar/navbar.html`, `navbar.ts` | Nhóm menu **Tỉnh thành** (Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã) và **Ngành nghề** (Cây ngành nghề, Danh sách) | |
+| `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `briefcase`, `circle`, `chevron-*`, `location-dot`, `spinner` | |
+| `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
 
 ---
 

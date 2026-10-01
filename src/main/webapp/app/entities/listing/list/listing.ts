@@ -18,7 +18,9 @@ import { Filter, FilterOptions, IFilterOption, IFilterOptions } from 'app/shared
 import { TranslateDirective } from 'app/shared/language';
 import { ItemCount } from 'app/shared/pagination';
 import { SortByDirective, SortDirective, SortService, type SortState, sortStateSignal } from 'app/shared/sort';
-import { LocationTreeFilter } from 'app/entities/location/filter/location-tree-filter';
+import { CategoryService } from 'app/entities/category/service/category.service';
+import { LocationService } from 'app/entities/location/service/location.service';
+import { TreeFilter, createTreeSource } from 'app/shared/tree';
 import { ListingDeleteDialog } from '../delete/listing-delete-dialog';
 import { IListing } from '../listing.model';
 import { ListingService } from '../service/listing.service';
@@ -40,7 +42,7 @@ import { ListingService } from '../service/listing.service';
     Filter,
     NgbPagination,
     ItemCount,
-    LocationTreeFilter,
+    TreeFilter,
   ],
 })
 export class Listing {
@@ -75,6 +77,9 @@ export class Listing {
   sortState = sortStateSignal({});
   readonly currentSearch = signal('');
   filters: IFilterOptions = new FilterOptions();
+  // Sửa tay: nguồn cây cho bộ lọc theo địa phương và ngành nghề
+  readonly locationTree = createTreeSource(inject(LocationService));
+  readonly categoryTree = createTreeSource(inject(CategoryService));
 
   readonly itemsPerPage = signal(ITEMS_PER_PAGE);
   readonly totalItems = signal(0);

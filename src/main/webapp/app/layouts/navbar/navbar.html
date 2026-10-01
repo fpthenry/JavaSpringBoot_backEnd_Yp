@@ -53,16 +53,36 @@
                   <span jhiTranslate="global.menu.entities.listing">Listing</span>
                 </a>
               </li>
+              <!-- Category: nhóm Ngành nghề (cây phân cấp + danh sách) -->
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <h6 class="dropdown-header">
+                  <fa-icon icon="briefcase" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.categoryGroup">Ngành nghề</span>
+                </h6>
+              </li>
               <li>
                 <a
-                  class="dropdown-item"
+                  class="dropdown-item ps-4"
+                  routerLink="/category/tree"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  (click)="collapseNavbar()"
+                >
+                  <fa-icon icon="sitemap" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.categoryTree">Cây ngành nghề</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  class="dropdown-item ps-4"
                   routerLink="/category"
                   routerLinkActive="active"
                   [routerLinkActiveOptions]="{ exact: true }"
                   (click)="collapseNavbar()"
                 >
-                  <fa-icon icon="asterisk" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.category">Category</span>
+                  <fa-icon icon="database" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.categoryList">Danh sách ngành nghề</span>
                 </a>
               </li>
               <!-- Location: nhóm Tỉnh thành (cây phân cấp + danh sách theo cấp) -->

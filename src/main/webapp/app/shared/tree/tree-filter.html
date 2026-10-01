@@ -1,0 +1,17 @@
+<div class="row g-2 mt-2" data-cy="treeFilter">
+  @for (level of levels(); track $index) {
+    <div class="col-sm">
+      <select
+        class="form-select"
+        [ngModel]="level.selected"
+        (ngModelChange)="onSelect($index, $event)"
+        [attr.aria-label]="placeholder($index) | translate"
+      >
+        <option [ngValue]="null">{{ placeholder($index) | translate }}</option>
+        @for (option of level.options; track option.id) {
+          <option [ngValue]="option.id">{{ option.name }}</option>
+        }
+      </select>
+    </div>
+  }
+</div>

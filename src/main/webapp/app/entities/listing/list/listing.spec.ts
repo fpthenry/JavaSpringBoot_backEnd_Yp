@@ -10,16 +10,19 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal';
 import { provideTranslateService } from '@ngx-translate/core';
 import { Subject, of } from 'rxjs';
 
-import { LocationTreeFilter } from 'app/entities/location/filter/location-tree-filter';
 import { IFilterOptions } from 'app/shared/filter';
+import { TreeFilter, TreeSource } from 'app/shared/tree';
 import { sampleWithRequiredData } from '../listing.test-samples';
 import { ListingService } from '../service/listing.service';
 
 import { Listing } from './listing';
 
-@Component({ selector: 'jhi-location-tree-filter', template: '' })
-class LocationTreeFilterStub {
+@Component({ selector: 'jhi-tree-filter', template: '' })
+class TreeFilterStub {
   readonly filters = input.required<IFilterOptions>();
+  readonly source = input.required<TreeSource>();
+  readonly filterName = input.required<string>();
+  readonly placeholders = input.required<string[]>();
 }
 
 vi.useFakeTimers();
@@ -63,10 +66,10 @@ describe('Listing Management Component', () => {
         },
       ],
     });
-    // Sửa tay: bộ lọc địa phương tự gọi API danh sách tỉnh; thay bằng stub để các test chỉ thấy request của Listing
+    // Sửa tay: bộ lọc theo cây tự gọi API lấy nút gốc; thay bằng stub để các test chỉ thấy request của Listing
     TestBed.overrideComponent(Listing, {
-      remove: { imports: [LocationTreeFilter] },
-      add: { imports: [LocationTreeFilterStub] },
+      remove: { imports: [TreeFilter] },
+      add: { imports: [TreeFilterStub] },
     });
 
     fixture = TestBed.createComponent(Listing);

@@ -31,6 +31,14 @@
       "listing": "Listing",
       "help": {
         "wpTermId": "wp_terms.term_id"
+      },
+      "tree": {
+        "title": "Industry tree",
+        "listView": "Table view"
+      },
+      "filter": {
+        "allCategories": "-- All industries --",
+        "allSubCategories": "-- All sub-industries --"
       }
     }
   }

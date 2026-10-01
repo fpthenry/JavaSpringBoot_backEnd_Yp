@@ -1,0 +1,21 @@
+<div>
+  <h2 id="page-heading" data-cy="CategoryTreeHeading">
+    <span jhiTranslate="javaSpringBootBackEndApp.category.tree.title">Cây ngành nghề</span>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="tree.load()" [disabled]="tree.isLoading()">
+        <fa-icon icon="sync" [animation]="tree.isLoading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.category.home.refreshListLabel">Làm mới</span>
+      </button>
+
+      <a class="btn btn-primary" routerLink="/category">
+        <fa-icon icon="list" />
+        <span jhiTranslate="javaSpringBootBackEndApp.category.tree.listView">Dạng bảng</span>
+      </a>
+    </div>
+  </h2>
+
+  <jhi-alert-error />
+
+  <jhi-tree-view #tree [source]="source" entityRoute="/category" listingFilterName="categoryTreeId.equals" />
+</div>

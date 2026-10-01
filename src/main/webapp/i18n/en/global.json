@@ -18,7 +18,10 @@
         "locationTree": "Administrative units",
         "locationProvince": "Provinces",
         "locationDistrict": "Districts",
-        "locationWard": "Wards"
+        "locationWard": "Wards",
+        "categoryGroup": "Industries",
+        "categoryTree": "Industry tree",
+        "categoryList": "Industry list"
       },
       "account": {
         "main": "Account",
@@ -135,6 +138,10 @@
       "set": "Following filters are set",
       "clear": "Clear filter",
       "clearAll": "Clear all filters"
+    },
+    "tree": {
+      "empty": "No data",
+      "viewListings": "View listings"
     }
   },
   "error": {

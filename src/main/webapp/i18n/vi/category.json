@@ -31,6 +31,14 @@
       "listing": "Listing",
       "help": {
         "wpTermId": "wp_terms.term_id"
+      },
+      "tree": {
+        "title": "Cây ngành nghề",
+        "listView": "Dạng bảng"
+      },
+      "filter": {
+        "allCategories": "-- Tất cả ngành nghề --",
+        "allSubCategories": "-- Tất cả ngành con --"
       }
     }
   }

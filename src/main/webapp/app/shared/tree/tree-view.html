@@ -1,0 +1,64 @@
+@if (!isLoading() && roots().length === 0) {
+  <div class="alert alert-warning" id="no-result">
+    <span jhiTranslate="entity.tree.empty">Không có dữ liệu</span>
+  </div>
+}
+
+<ul class="list-unstyled" data-cy="treeView">
+  @for (node of roots(); track node.item.id) {
+    <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: node }" />
+  }
+</ul>
+
+<ng-template #nodeTemplate let-node>
+  <li>
+    <div class="d-flex align-items-center gap-2 py-1">
+      @if (leaf(node)) {
+        <fa-icon [icon]="leafIcon()" [fixedWidth]="true" class="text-secondary" />
+      } @else {
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0"
+          (click)="toggle(node)"
+          [disabled]="node.loading()"
+          [attr.aria-expanded]="node.expanded()"
+        >
+          <fa-icon
+            [icon]="node.loading() ? 'spinner' : node.expanded() ? 'chevron-down' : 'chevron-right'"
+            [animation]="node.loading() ? 'spin' : undefined"
+            [fixedWidth]="true"
+          />
+        </button>
+      }
+
+      <a [routerLink]="[entityRoute(), node.item.id, 'view']">{{ node.item.name }}</a>
+
+      @if (itemLabel()(node.item); as label) {
+        <small class="text-secondary">{{ label | translate }}</small>
+      }
+
+      @if (node.children(); as children) {
+        @if (children.length > 0) {
+          <span class="badge rounded-pill text-bg-light">{{ children.length }}</span>
+        }
+      }
+
+      <a
+        class="btn btn-link btn-sm p-0 ms-1"
+        routerLink="/listing"
+        [queryParams]="listingQueryParams(node)"
+        [title]="'entity.tree.viewListings' | translate"
+      >
+        <fa-icon icon="list" />
+      </a>
+    </div>
+
+    @if (node.expanded() && node.children(); as children) {
+      <ul class="list-unstyled ms-3 ps-3 border-start">
+        @for (child of children; track child.item.id) {
+          <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: child }" />
+        }
+      </ul>
+    }
+  </li>
+</ng-template>

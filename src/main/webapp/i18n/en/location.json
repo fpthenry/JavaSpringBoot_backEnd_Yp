@@ -40,8 +40,7 @@
           "province": "Province",
           "district": "District",
           "ward": "Ward"
-        },
-        "viewListings": "View listings"
+        }
       },
       "filter": {
         "province": "Province",

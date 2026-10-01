@@ -15,6 +15,11 @@ const categoryRoute: Routes = [
     canActivate: [userRouteAccessService],
   },
   {
+    path: 'tree',
+    loadComponent: () => import('./tree/category-tree').then(m => m.CategoryTree),
+    canActivate: [userRouteAccessService],
+  },
+  {
     path: ':id/view',
     loadComponent: () => import('./detail/category-detail').then(m => m.CategoryDetail),
     resolve: {

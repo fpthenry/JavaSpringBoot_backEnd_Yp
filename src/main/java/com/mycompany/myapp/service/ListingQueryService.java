@@ -2,6 +2,7 @@ package com.mycompany.myapp.service;
 
 import com.mycompany.myapp.domain.*; // for static metamodels
 import com.mycompany.myapp.domain.Listing;
+import com.mycompany.myapp.repository.CategoryRepository;
 import com.mycompany.myapp.repository.ListingRepository;
 import com.mycompany.myapp.repository.LocationRepository;
 import com.mycompany.myapp.repository.search.ListingSearchRepository;
@@ -14,6 +15,8 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import jakarta.persistence.metamodel.SetAttribute;
+import jakarta.persistence.metamodel.SingularAttribute;
 import java.sql.Statement;
 import java.util.List;
 import org.hibernate.Session;
@@ -27,6 +30,7 @@ import org.springframework.data.jpa.repository.query.QueryUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tech.jhipster.service.QueryService;
+import tech.jhipster.service.filter.LongFilter;
 
 /**
  * Service for executing complex queries for {@link Listing} entities in the database.
@@ -40,8 +44,8 @@ public class ListingQueryService extends QueryService<Listing> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ListingQueryService.class);
 
-    /** Từ ngưỡng này (~5% tổng listing) lấy trang với semijoin=off, xem {@link #findInLocationTree}. */
-    private static final long LARGE_LOCATION_TREE = 100_000;
+    /** Từ ngưỡng này (~5% tổng listing) lấy trang với semijoin=off, xem {@link #findInTree}. */
+    private static final long LARGE_TREE_RESULT = 100_000;
 
     private final ListingRepository listingRepository;
 
@@ -51,6 +55,8 @@ public class ListingQueryService extends QueryService<Listing> {
 
     private final LocationRepository locationRepository;
 
+    private final CategoryRepository categoryRepository;
+
     private final EntityManager entityManager;
 
     public ListingQueryService(
@@ -58,12 +64,14 @@ public class ListingQueryService extends QueryService<Listing> {
         ListingMapper listingMapper,
         ListingSearchRepository listingSearchRepository,
         LocationRepository locationRepository,
+        CategoryRepository categoryRepository,
         EntityManager entityManager
     ) {
         this.listingRepository = listingRepository;
         this.listingMapper = listingMapper;
         this.listingSearchRepository = listingSearchRepository;
         this.locationRepository = locationRepository;
+        this.categoryRepository = categoryRepository;
         this.entityManager = entityManager;
     }
 
@@ -77,22 +85,22 @@ public class ListingQueryService extends QueryService<Listing> {
     public Page<ListingDTO> findByCriteria(ListingCriteria criteria, Pageable page) {
         LOG.debug("find by criteria : {}, page: {}", criteria, page);
         final Specification<Listing> specification = createSpecification(criteria);
-        if (hasLocationTree(criteria)) {
-            return findInLocationTree(specification, page);
+        if (hasTreeFilter(criteria)) {
+            return findInTree(specification, page);
         }
         return listingRepository.fetchBagRelationships(listingRepository.findAll(specification, page)).map(listingMapper::toDto);
     }
 
     /**
-     * Sửa tay: với bộ lọc cây địa phương, MySQL mặc định chọn semi-join (dựng cả tập con rồi mới sắp xếp):
+     * Sửa tay: với bộ lọc theo cây (địa phương, ngành nghề), MySQL mặc định chọn semi-join (dựng cả tập con rồi mới sắp xếp):
      * nhanh cho COUNT và cho tập nhỏ, nhưng rất chậm khi lấy trang đủ cột của tập lớn (TP.HCM: 3-22 s).
      * Với tập lớn, tắt semi-join để MySQL duyệt listing theo thứ tự và dừng khi đủ một trang (TP.HCM: ~1 s).
      * Tập nhỏ thì không tắt: listing của một quận/huyện có thể nằm dồn ở cuối bảng (Huyện Ba Vì: id ~1,44 triệu),
      * duyệt từ đầu sẽ chậm hơn semi-join.
      */
-    protected Page<ListingDTO> findInLocationTree(Specification<Listing> specification, Pageable page) {
+    protected Page<ListingDTO> findInTree(Specification<Listing> specification, Pageable page) {
         long total = listingRepository.count(specification);
-        if (total < LARGE_LOCATION_TREE) {
+        if (total < LARGE_TREE_RESULT) {
             return listingRepository.fetchBagRelationships(listingRepository.findAll(specification, page)).map(listingMapper::toDto);
         }
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -116,8 +124,12 @@ public class ListingQueryService extends QueryService<Listing> {
         return listingRepository.fetchBagRelationships(new PageImpl<>(content, page, total)).map(listingMapper::toDto);
     }
 
-    private static boolean hasLocationTree(ListingCriteria criteria) {
-        return criteria != null && criteria.getLocationTreeId() != null && criteria.getLocationTreeId().getEquals() != null;
+    private static boolean hasTreeFilter(ListingCriteria criteria) {
+        return criteria != null && (equalsValue(criteria.getLocationTreeId()) != null || equalsValue(criteria.getCategoryTreeId()) != null);
+    }
+
+    private static Long equalsValue(LongFilter filter) {
+        return filter == null ? null : filter.getEquals();
     }
 
     private void setSemijoin(boolean enabled) {
@@ -185,29 +197,42 @@ public class ListingQueryService extends QueryService<Listing> {
                     buildSpecification(criteria.getLocationId(), root -> root.join(Listing_.locations, JoinType.LEFT).get(Location_.id))
                 )
             );
-            // Sửa tay: lọc theo cả cây địa phương
-            if (criteria.getLocationTreeId() != null && criteria.getLocationTreeId().getEquals() != null) {
-                specification = specification.and(inLocationTree(criteria.getLocationTreeId().getEquals()));
+            // Sửa tay: lọc theo cả cây địa phương / cây ngành nghề.
+            // Mỗi listing chỉ gắn vào một cấp (địa phương: tỉnh, quận/huyện hoặc phường/xã; ngành nghề: gần như luôn là ngành lá),
+            // nên lọc theo một nút phải gồm cả cây con của nó.
+            Long locationTreeId = equalsValue(criteria.getLocationTreeId());
+            if (locationTreeId != null) {
+                specification = specification.and(
+                    linkedToAny(Listing_.locations, Location_.id, locationRepository.findSubtreeIds(locationTreeId))
+                );
+            }
+            Long categoryTreeId = equalsValue(criteria.getCategoryTreeId());
+            if (categoryTreeId != null) {
+                specification = specification.and(
+                    linkedToAny(Listing_.categories, Category_.id, categoryRepository.findSubtreeIds(categoryTreeId))
+                );
             }
         }
         return specification;
     }
 
     /**
-     * Listing gắn vào địa phương {@code locationId} hoặc bất kỳ cấp con nào của nó.
-     * Mỗi listing chỉ gắn vào một cấp (tỉnh, quận/huyện hoặc phường/xã), nên lọc theo tỉnh phải gồm cả cây con.
-     * Dùng {@code exists} tương quan trên bảng nối: không bị trùng dòng, và chỉ đọc rel_listing__location
-     * (nhanh gấp ~3 lần {@code id in (select ... join listing)} với tỉnh lớn như TP.HCM).
+     * Listing có liên kết (ManyToMany {@code relation}) tới ít nhất một trong {@code ids}.
+     * Dùng {@code exists} tương quan trên bảng nối: không bị trùng dòng và chỉ đọc bảng rel_listing__*
+     * (nhanh gấp ~3 lần {@code id in (select ... join listing)} với tập lớn như TP.HCM).
      */
-    protected Specification<Listing> inLocationTree(Long locationId) {
-        List<Long> locationIds = locationRepository.findSubtreeIds(locationId);
+    protected <T> Specification<Listing> linkedToAny(
+        SetAttribute<Listing, T> relation,
+        SingularAttribute<T, Long> idAttribute,
+        List<Long> ids
+    ) {
         return (root, query, cb) -> {
-            if (locationIds.isEmpty()) {
+            if (ids.isEmpty()) {
                 return cb.disjunction();
             }
             Subquery<Integer> linked = query.subquery(Integer.class);
             Root<Listing> listing = linked.correlate(root);
-            linked.select(cb.literal(1)).where(listing.join(Listing_.locations).get(Location_.id).in(locationIds));
+            linked.select(cb.literal(1)).where(listing.join(relation).get(idAttribute).in(ids));
             return cb.exists(linked);
         };
     }
