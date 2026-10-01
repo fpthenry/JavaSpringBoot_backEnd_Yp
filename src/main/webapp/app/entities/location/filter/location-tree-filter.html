@@ -1,0 +1,57 @@
+<div class="row g-2 mt-2" data-cy="locationTreeFilter">
+  <div class="col-sm-4">
+    <label class="form-label visually-hidden" for="filterProvince" jhiTranslate="javaSpringBootBackEndApp.location.filter.province"
+      >Tỉnh/thành</label
+    >
+    <select
+      class="form-select"
+      id="filterProvince"
+      name="filterProvince"
+      [ngModel]="provinceId()"
+      (ngModelChange)="onProvinceChange($event)"
+    >
+      <option [ngValue]="null" jhiTranslate="javaSpringBootBackEndApp.location.filter.allProvinces">-- Tất cả tỉnh/thành --</option>
+      @for (province of provinces(); track province.id) {
+        <option [ngValue]="province.id">{{ province.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="col-sm-4">
+    <label class="form-label visually-hidden" for="filterDistrict" jhiTranslate="javaSpringBootBackEndApp.location.filter.district"
+      >Quận/huyện</label
+    >
+    <select
+      class="form-select"
+      id="filterDistrict"
+      name="filterDistrict"
+      [ngModel]="districtId()"
+      (ngModelChange)="onDistrictChange($event)"
+      [disabled]="provinceId() === null"
+    >
+      <option [ngValue]="null" jhiTranslate="javaSpringBootBackEndApp.location.filter.allDistricts">-- Tất cả quận/huyện --</option>
+      @for (district of districts(); track district.id) {
+        <option [ngValue]="district.id">{{ district.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="col-sm-4">
+    <label class="form-label visually-hidden" for="filterWard" jhiTranslate="javaSpringBootBackEndApp.location.filter.ward"
+      >Phường/xã</label
+    >
+    <select
+      class="form-select"
+      id="filterWard"
+      name="filterWard"
+      [ngModel]="wardId()"
+      (ngModelChange)="onWardChange($event)"
+      [disabled]="districtId() === null"
+    >
+      <option [ngValue]="null" jhiTranslate="javaSpringBootBackEndApp.location.filter.allWards">-- Tất cả phường/xã --</option>
+      @for (ward of wards(); track ward.id) {
+        <option [ngValue]="ward.id">{{ ward.name }}</option>
+      }
+    </select>
+  </div>
+</div>

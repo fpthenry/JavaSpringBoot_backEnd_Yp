@@ -37,4 +37,13 @@ public interface LocationRepository extends JpaRepository<Location, Long>, JpaSp
 
     @Query("select location from Location location left join fetch location.parent where location.id =:id")
     Optional<Location> findOneWithToOneRelationships(@Param("id") Long id);
+
+    /**
+     * Sửa tay: id của địa phương và mọi cấp con bên dưới (tỉnh -> quận/huyện -> phường/xã, tối đa 3 cấp).
+     */
+    @Query(
+        "select location.id from Location location left join location.parent parent left join parent.parent grandParent " +
+            "where location.id = :id or parent.id = :id or grandParent.id = :id"
+    )
+    List<Long> findSubtreeIds(@Param("id") Long id);
 }

@@ -1,0 +1,80 @@
+<div>
+  <h2 id="page-heading" data-cy="LocationTreeHeading">
+    <span jhiTranslate="javaSpringBootBackEndApp.location.tree.title">Đơn vị hành chính</span>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading()">
+        <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.location.home.refreshListLabel">Làm mới</span>
+      </button>
+
+      <a class="btn btn-primary" routerLink="/location">
+        <fa-icon icon="list" />
+        <span jhiTranslate="javaSpringBootBackEndApp.location.tree.listView">Dạng bảng</span>
+      </a>
+    </div>
+  </h2>
+
+  <jhi-alert-error />
+
+  @if (!isLoading() && roots().length === 0) {
+    <div class="alert alert-warning" id="no-result">
+      <span jhiTranslate="javaSpringBootBackEndApp.location.home.notFound">Không có địa phương</span>
+    </div>
+  }
+
+  <ul class="list-unstyled" data-cy="locationTree">
+    @for (node of roots(); track node.location.id) {
+      <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: node }" />
+    }
+  </ul>
+</div>
+
+<ng-template #nodeTemplate let-node>
+  <li>
+    <div class="d-flex align-items-center gap-2 py-1">
+      @if (isLeaf(node)) {
+        <fa-icon icon="location-dot" [fixedWidth]="true" class="text-secondary" />
+      } @else {
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0"
+          (click)="toggle(node)"
+          [disabled]="node.loading()"
+          [attr.aria-expanded]="node.expanded()"
+        >
+          <fa-icon
+            [icon]="node.loading() ? 'spinner' : node.expanded() ? 'chevron-down' : 'chevron-right'"
+            [animation]="node.loading() ? 'spin' : undefined"
+            [fixedWidth]="true"
+          />
+        </button>
+      }
+
+      <a [routerLink]="['/location', node.location.id, 'view']">{{ node.location.name }}</a>
+
+      <small class="text-secondary">{{ 'javaSpringBootBackEndApp.location.tree.type.' + node.location.type | translate }}</small>
+
+      @if (node.children(); as children) {
+        <span class="badge rounded-pill text-bg-light">{{ children.length }}</span>
+      }
+
+      <a
+        class="btn btn-link btn-sm p-0 ms-1"
+        routerLink="/listing"
+        [queryParams]="{ 'filter[locationTreeId.equals]': node.location.id }"
+        [title]="'javaSpringBootBackEndApp.location.tree.viewListings' | translate"
+      >
+        <fa-icon icon="list" />
+      </a>
+    </div>
+
+    @if (node.expanded() && node.children(); as children) {
+      <ul class="list-unstyled ms-3 ps-3 border-start">
+        @for (child of children; track child.location.id) {
+          <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: child }" />
+        }
+      </ul>
+    }
+  </li>
+</ng-template>

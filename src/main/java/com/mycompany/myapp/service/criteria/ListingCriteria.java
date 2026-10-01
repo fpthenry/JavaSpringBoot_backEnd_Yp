@@ -84,6 +84,9 @@ public class ListingCriteria implements Serializable, Criteria {
 
     private LongFilter locationId;
 
+    /** Sửa tay: lọc theo cả cây địa phương (địa phương được chọn + quận/huyện + phường/xã bên dưới). */
+    private LongFilter locationTreeId;
+
     private Boolean distinct;
 
     public ListingCriteria() {}
@@ -119,6 +122,7 @@ public class ListingCriteria implements Serializable, Criteria {
         this.esIndexed = other.optionalEsIndexed().map(BooleanFilter::copy).orElse(null);
         this.categoryId = other.optionalCategoryId().map(LongFilter::copy).orElse(null);
         this.locationId = other.optionalLocationId().map(LongFilter::copy).orElse(null);
+        this.locationTreeId = other.optionalLocationTreeId().map(LongFilter::copy).orElse(null);
         this.distinct = other.distinct;
     }
 
@@ -697,6 +701,25 @@ public class ListingCriteria implements Serializable, Criteria {
         this.locationId = locationId;
     }
 
+    public LongFilter getLocationTreeId() {
+        return locationTreeId;
+    }
+
+    public Optional<LongFilter> optionalLocationTreeId() {
+        return Optional.ofNullable(locationTreeId);
+    }
+
+    public LongFilter locationTreeId() {
+        if (locationTreeId == null) {
+            setLocationTreeId(new LongFilter());
+        }
+        return locationTreeId;
+    }
+
+    public void setLocationTreeId(LongFilter locationTreeId) {
+        this.locationTreeId = locationTreeId;
+    }
+
     public Boolean getDistinct() {
         return distinct;
     }
@@ -756,6 +779,7 @@ public class ListingCriteria implements Serializable, Criteria {
             Objects.equals(esIndexed, that.esIndexed) &&
             Objects.equals(categoryId, that.categoryId) &&
             Objects.equals(locationId, that.locationId) &&
+            Objects.equals(locationTreeId, that.locationTreeId) &&
             Objects.equals(distinct, that.distinct)
         );
     }
@@ -793,6 +817,7 @@ public class ListingCriteria implements Serializable, Criteria {
             esIndexed,
             categoryId,
             locationId,
+            locationTreeId,
             distinct
         );
     }
@@ -831,6 +856,7 @@ public class ListingCriteria implements Serializable, Criteria {
             optionalEsIndexed().map(f -> "esIndexed=" + f + ", ").orElse("") +
             optionalCategoryId().map(f -> "categoryId=" + f + ", ").orElse("") +
             optionalLocationId().map(f -> "locationId=" + f + ", ").orElse("") +
+            optionalLocationTreeId().map(f -> "locationTreeId=" + f + ", ").orElse("") +
             optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
         "}";
     }

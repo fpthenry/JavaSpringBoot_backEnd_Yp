@@ -13,7 +13,12 @@
         "category": "Category",
         "location": "Location",
         "blogPost": "Blog Post",
-        "tag": "Tag"
+        "tag": "Tag",
+        "locationGroup": "Locations",
+        "locationTree": "Administrative units",
+        "locationProvince": "Provinces",
+        "locationDistrict": "Districts",
+        "locationWard": "Wards"
       },
       "account": {
         "main": "Account",

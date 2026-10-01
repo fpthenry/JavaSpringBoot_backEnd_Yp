@@ -32,6 +32,24 @@
       "help": {
         "wpTermId": "wp_terms.term_id",
         "type": "province, district, ward"
+      },
+      "tree": {
+        "title": "Administrative units",
+        "listView": "Table view",
+        "type": {
+          "province": "Province",
+          "district": "District",
+          "ward": "Ward"
+        },
+        "viewListings": "View listings"
+      },
+      "filter": {
+        "province": "Province",
+        "district": "District",
+        "ward": "Ward",
+        "allProvinces": "-- All provinces --",
+        "allDistricts": "-- All districts --",
+        "allWards": "-- All wards --"
       }
     }
   }

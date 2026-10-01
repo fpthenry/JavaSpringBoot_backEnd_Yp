@@ -38,6 +38,12 @@ export default class Navbar implements OnInit {
   readonly inProduction = signal(true);
   readonly isNavbarCollapsed = signal(true);
   readonly languages = LANGUAGES;
+  /** Menu Tỉnh thành: mỗi cấp mở trang Location lọc theo location.type */
+  readonly locationLevels = [
+    { type: 'province', labelKey: 'global.menu.entities.locationProvince' },
+    { type: 'district', labelKey: 'global.menu.entities.locationDistrict' },
+    { type: 'ward', labelKey: 'global.menu.entities.locationWard' },
+  ];
   readonly openAPIEnabled = signal(false);
   readonly version: string;
   readonly account = inject(AccountService).account;

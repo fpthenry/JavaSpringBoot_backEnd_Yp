@@ -18,6 +18,7 @@ import { Filter, FilterOptions, IFilterOption, IFilterOptions } from 'app/shared
 import { TranslateDirective } from 'app/shared/language';
 import { ItemCount } from 'app/shared/pagination';
 import { SortByDirective, SortDirective, SortService, type SortState, sortStateSignal } from 'app/shared/sort';
+import { LocationTreeFilter } from 'app/entities/location/filter/location-tree-filter';
 import { ListingDeleteDialog } from '../delete/listing-delete-dialog';
 import { IListing } from '../listing.model';
 import { ListingService } from '../service/listing.service';
@@ -39,6 +40,7 @@ import { ListingService } from '../service/listing.service';
     Filter,
     NgbPagination,
     ItemCount,
+    LocationTreeFilter,
   ],
 })
 export class Listing {

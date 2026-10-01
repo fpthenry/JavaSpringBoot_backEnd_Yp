@@ -32,6 +32,24 @@
       "help": {
         "wpTermId": "wp_terms.term_id",
         "type": "province, district, ward"
+      },
+      "tree": {
+        "title": "Đơn vị hành chính",
+        "listView": "Dạng bảng",
+        "type": {
+          "province": "Tỉnh/thành",
+          "district": "Quận/huyện",
+          "ward": "Phường/xã"
+        },
+        "viewListings": "Xem doanh nghiệp"
+      },
+      "filter": {
+        "province": "Tỉnh/thành",
+        "district": "Quận/huyện",
+        "ward": "Phường/xã",
+        "allProvinces": "-- Tất cả tỉnh/thành --",
+        "allDistricts": "-- Tất cả quận/huyện --",
+        "allWards": "-- Tất cả phường/xã --"
       }
     }
   }

@@ -393,6 +393,22 @@ Lưu ý:
 - **Đổi mapping Elasticsearch:** xóa index cũ trước khi chạy app, vì Spring Data không tạo lại index đã tồn tại.
 - Sau khi sinh lại, kiểm tra `application-dev.yml` vẫn giữ `port: 8081`.
 
+### Code sửa tay: kiểm tra lại sau mỗi lần sinh code với `--force`
+
+| File | Sửa gì | Vì sao |
+|---|---|---|
+| `service/mapper/LocationMapper.java`, `CategoryMapper.java` | `toDto` và `partialUpdate` bỏ qua `listings` (`@Mapping(target = "listings", ignore = true)`) | JHipster 9.3.0 **luôn** sinh chiều ngược của ManyToMany, kể cả khi JDL khai báo một chiều. Nếu map `listings`, mỗi địa phương hoặc ngành tải hàng trăm nghìn listing, và `/api/locations` bị treo. |
+| `service/criteria/ListingCriteria.java` | Thêm filter `locationTreeId` | Lọc listing theo cả cây địa phương. Mỗi listing chỉ gắn vào **một** cấp (tỉnh 1,46 triệu, phường/xã 319 nghìn, quận/huyện 23 nghìn), nên lọc theo tỉnh phải gồm cả cấp con. |
+| `repository/LocationRepository.java` | `findSubtreeIds(id)` | Lấy id của địa phương và mọi cấp con |
+| `service/ListingQueryService.java` | `inLocationTree()` dùng `EXISTS` trên bảng nối; `findInLocationTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Tốc độ: TP.HCM 541 nghìn listing từ 5,6 s còn ~1,1 s; Hà Nội ~0,65 s; tỉnh và huyện nhỏ 0,1–0,3 s |
+| `entities/location/filter/*` | Component `jhi-location-tree-filter`: 3 ô chọn Tỉnh/thành → Quận/huyện → Phường/xã, đồng bộ với URL `filter[locationTreeId.equals]` | Lọc listing theo địa phương trên giao diện |
+| `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | Gắn `jhi-location-tree-filter`; trong spec thay bằng stub | |
+| `entities/location/tree/*` | Trang cây đơn vị hành chính `/location/tree` (tải dần từng cấp), mỗi nút có link "Xem doanh nghiệp" | Hiển thị phân cấp tỉnh → quận/huyện → phường/xã |
+| `entities/location/location.routes.ts` | Route `tree` | |
+| `layouts/navbar/navbar.html`, `navbar.ts` | Nhóm menu **Tỉnh thành**: Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã (lọc `filter[type.equals]`) | |
+| `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `chevron-*`, `location-dot`, `spinner` | |
+| `i18n/{vi,en}/global.json`, `location.json` | Key `locationGroup`…, `location.tree.*` | |
+
 ---
 
 ## 8. Lỗi đã gặp và cách xử lý

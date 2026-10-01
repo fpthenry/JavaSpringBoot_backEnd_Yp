@@ -1,5 +1,6 @@
 import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component, input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
@@ -9,10 +10,17 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal';
 import { provideTranslateService } from '@ngx-translate/core';
 import { Subject, of } from 'rxjs';
 
+import { LocationTreeFilter } from 'app/entities/location/filter/location-tree-filter';
+import { IFilterOptions } from 'app/shared/filter';
 import { sampleWithRequiredData } from '../listing.test-samples';
 import { ListingService } from '../service/listing.service';
 
 import { Listing } from './listing';
+
+@Component({ selector: 'jhi-location-tree-filter', template: '' })
+class LocationTreeFilterStub {
+  readonly filters = input.required<IFilterOptions>();
+}
 
 vi.useFakeTimers();
 
@@ -54,6 +62,11 @@ describe('Listing Management Component', () => {
           },
         },
       ],
+    });
+    // Sửa tay: bộ lọc địa phương tự gọi API danh sách tỉnh; thay bằng stub để các test chỉ thấy request của Listing
+    TestBed.overrideComponent(Listing, {
+      remove: { imports: [LocationTreeFilter] },
+      add: { imports: [LocationTreeFilterStub] },
     });
 
     fixture = TestBed.createComponent(Listing);

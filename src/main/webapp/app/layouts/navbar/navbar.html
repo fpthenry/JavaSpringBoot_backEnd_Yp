@@ -65,18 +65,42 @@
                   <span jhiTranslate="global.menu.entities.category">Category</span>
                 </a>
               </li>
+              <!-- Location: nhóm Tỉnh thành (cây phân cấp + danh sách theo cấp) -->
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <h6 class="dropdown-header">
+                  <fa-icon icon="map" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.locationGroup">Tỉnh thành</span>
+                </h6>
+              </li>
               <li>
                 <a
-                  class="dropdown-item"
-                  routerLink="/location"
+                  class="dropdown-item ps-4"
+                  routerLink="/location/tree"
                   routerLinkActive="active"
                   [routerLinkActiveOptions]="{ exact: true }"
                   (click)="collapseNavbar()"
                 >
-                  <fa-icon icon="asterisk" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.location">Location</span>
+                  <fa-icon icon="sitemap" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.locationTree">Đơn vị hành chính</span>
                 </a>
               </li>
+              @for (level of locationLevels; track level.type) {
+                <li>
+                  <a
+                    class="dropdown-item ps-4"
+                    routerLink="/location"
+                    [queryParams]="{ 'filter[type.equals]': level.type }"
+                    routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'subset', fragment: 'ignored', matrixParams: 'ignored' }"
+                    (click)="collapseNavbar()"
+                  >
+                    <fa-icon icon="database" [fixedWidth]="true" />
+                    <span [jhiTranslate]="level.labelKey"></span>
+                  </a>
+                </li>
+              }
+              <li><hr class="dropdown-divider" /></li>
               <li>
                 <a
                   class="dropdown-item"

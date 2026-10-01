@@ -13,7 +13,12 @@
         "category": "Category",
         "location": "Location",
         "blogPost": "Blog Post",
-        "tag": "Tag"
+        "tag": "Tag",
+        "locationGroup": "Tỉnh thành",
+        "locationTree": "Đơn vị hành chính",
+        "locationProvince": "Tỉnh thành",
+        "locationDistrict": "Quận huyện",
+        "locationWard": "Phường xã"
       },
       "account": {
         "main": "Tài khoản",

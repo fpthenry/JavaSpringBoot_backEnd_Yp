@@ -14,12 +14,22 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface CategoryMapper extends EntityMapper<CategoryDTO, Category> {
     @Mapping(target = "parent", source = "parent", qualifiedByName = "categoryName")
-    @Mapping(target = "listings", source = "listings", qualifiedByName = "listingIdSet")
+    // Sửa tay (JHipster luôn sinh chiều ngược của ManyToMany): một ngành có hàng trăm nghìn listing,
+    // map listings làm /api/categories treo. Lọc listing theo ngành: /api/listings?categoryId.equals=...
+    @Mapping(target = "listings", ignore = true)
     CategoryDTO toDto(Category s);
 
     @Mapping(target = "listings", ignore = true)
     @Mapping(target = "removeListing", ignore = true)
     Category toEntity(CategoryDTO categoryDTO);
+
+    // Sửa tay: PATCH không được đụng tới listings (tránh tải toàn bộ listing của ngành)
+    @Override
+    @Named("partialUpdate")
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "listings", ignore = true)
+    @Mapping(target = "removeListing", ignore = true)
+    void partialUpdate(@MappingTarget Category entity, CategoryDTO dto);
 
     @Named("categoryName")
     @BeanMapping(ignoreByDefault = true)
