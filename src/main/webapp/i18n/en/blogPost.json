@@ -1,0 +1,38 @@
+{
+  "javaSpringBootBackEndApp": {
+    "blogPost": {
+      "home": {
+        "title": "Blog Posts",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Blog Post",
+        "createOrEditLabel": "Create or edit a Blog Post",
+        "search": "Search for Blog Post",
+        "notFound": "No Blog Posts found"
+      },
+      "created": "A new Blog Post is created with identifier {{ param }}",
+      "updated": "A Blog Post is updated with identifier {{ param }}",
+      "deleted": "A Blog Post is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Blog Post {{ id }}?"
+      },
+      "detail": {
+        "title": "Blog Post"
+      },
+      "id": "ID",
+      "wpId": "Wp Id",
+      "title": "Title",
+      "slug": "Slug",
+      "content": "Content",
+      "excerpt": "Excerpt",
+      "thumbnail": "Thumbnail",
+      "status": "Status",
+      "viewCount": "View Count",
+      "publishedAt": "Published At",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "help": {
+        "wpId": "wp_posts.ID"
+      }
+    }
+  }
+}

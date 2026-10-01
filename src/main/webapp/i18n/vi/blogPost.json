@@ -1,0 +1,38 @@
+{
+  "javaSpringBootBackEndApp": {
+    "blogPost": {
+      "home": {
+        "title": "Blog Posts",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Blog Post",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Blog Post",
+        "search": "Tìm Blog Post",
+        "notFound": "No Blog Posts found"
+      },
+      "created": "Một Blog Post mới được tạo với định danh {{ param }}",
+      "updated": "Một Blog Post cập nhật với định danh {{ param }}",
+      "deleted": "Một Blog Post đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Blog Post {{ id }}?"
+      },
+      "detail": {
+        "title": "Blog Post"
+      },
+      "id": "ID",
+      "wpId": "Wp Id",
+      "title": "Title",
+      "slug": "Slug",
+      "content": "Content",
+      "excerpt": "Excerpt",
+      "thumbnail": "Thumbnail",
+      "status": "Status",
+      "viewCount": "View Count",
+      "publishedAt": "Published At",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "help": {
+        "wpId": "wp_posts.ID"
+      }
+    }
+  }
+}

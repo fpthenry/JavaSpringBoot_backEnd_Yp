@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+    <!--
+        Added the constraints for entity Listing.
+    -->
+    <changeSet id="20261001032527-2" author="jhipster">
+
+        <addForeignKeyConstraint baseColumnNames="listing_id"
+                                 baseTableName="rel_listing__category"
+                                 constraintName="fk_rel_listing__category__listing_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="listing"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="category_id"
+                                 baseTableName="rel_listing__category"
+                                 constraintName="fk_rel_listing__category__category_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="category"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="listing_id"
+                                 baseTableName="rel_listing__location"
+                                 constraintName="fk_rel_listing__location__listing_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="listing"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="location_id"
+                                 baseTableName="rel_listing__location"
+                                 constraintName="fk_rel_listing__location__location_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="location"
+                                 />
+    </changeSet>
+</databaseChangeLog>

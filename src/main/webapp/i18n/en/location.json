@@ -1,0 +1,38 @@
+{
+  "javaSpringBootBackEndApp": {
+    "location": {
+      "home": {
+        "title": "Locations",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Location",
+        "createOrEditLabel": "Create or edit a Location",
+        "search": "Search for Location",
+        "notFound": "No Locations found"
+      },
+      "created": "A new Location is created with identifier {{ param }}",
+      "updated": "A Location is updated with identifier {{ param }}",
+      "deleted": "A Location is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Location {{ id }}?"
+      },
+      "detail": {
+        "title": "Location"
+      },
+      "id": "ID",
+      "wpTermId": "Wp Term Id",
+      "name": "Name",
+      "slug": "Slug",
+      "type": "Type",
+      "code": "Code",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "createdAt": "Created At",
+      "parent": "Parent",
+      "listing": "Listing",
+      "help": {
+        "wpTermId": "wp_terms.term_id",
+        "type": "province, district, ward"
+      }
+    }
+  }
+}

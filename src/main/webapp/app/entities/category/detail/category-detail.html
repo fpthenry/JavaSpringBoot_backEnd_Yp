@@ -1,0 +1,85 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (category(); as categoryRef) {
+      <div>
+        <h2 data-cy="categoryDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.category.detail.title">Category</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ categoryRef.id }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.category.help.wpTermId' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.category.wpTermId"
+              >Wp Term Id</span
+            >
+          </dt>
+          <dd>
+            <span>{{ categoryRef.wpTermId }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.name">Name</span></dt>
+          <dd>
+            <span>{{ categoryRef.name }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.slug">Slug</span></dt>
+          <dd>
+            <span>{{ categoryRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.description">Description</span></dt>
+          <dd>
+            <span>{{ categoryRef.description }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.icon">Icon</span></dt>
+          <dd>
+            <span>{{ categoryRef.icon }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.listingCount">Listing Count</span></dt>
+          <dd>
+            <span>{{ categoryRef.listingCount }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.createdAt">Created At</span></dt>
+          <dd>
+            <span>{{ categoryRef.createdAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.updatedAt">Updated At</span></dt>
+          <dd>
+            <span>{{ categoryRef.updatedAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.parent">Parent</span></dt>
+          <dd>
+            @if (category()!.parent) {
+              <div>
+                <a [routerLink]="['/category', category()!.parent?.id, 'view']">{{ categoryRef.parent?.name }}</a>
+              </div>
+            }
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.listing">Listing</span></dt>
+          <dd>
+            @for (listing of categoryRef.listings; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/listing', listing.id, 'view']">{{ listing?.id }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/category', categoryRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

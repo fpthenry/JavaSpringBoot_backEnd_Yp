@@ -1,0 +1,91 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (location(); as locationRef) {
+      <div>
+        <h2 data-cy="locationDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.location.detail.title">Location</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ locationRef.id }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.location.help.wpTermId' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.location.wpTermId"
+              >Wp Term Id</span
+            >
+          </dt>
+          <dd>
+            <span>{{ locationRef.wpTermId }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.name">Name</span></dt>
+          <dd>
+            <span>{{ locationRef.name }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.slug">Slug</span></dt>
+          <dd>
+            <span>{{ locationRef.slug }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.location.help.type' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.location.type"
+              >Type</span
+            >
+          </dt>
+          <dd>
+            <span>{{ locationRef.type }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.code">Code</span></dt>
+          <dd>
+            <span>{{ locationRef.code }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.latitude">Latitude</span></dt>
+          <dd>
+            <span>{{ locationRef.latitude }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.longitude">Longitude</span></dt>
+          <dd>
+            <span>{{ locationRef.longitude }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.createdAt">Created At</span></dt>
+          <dd>
+            <span>{{ locationRef.createdAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.parent">Parent</span></dt>
+          <dd>
+            @if (location()!.parent) {
+              <div>
+                <a [routerLink]="['/location', location()!.parent?.id, 'view']">{{ locationRef.parent?.name }}</a>
+              </div>
+            }
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.location.listing">Listing</span></dt>
+          <dd>
+            @for (listing of locationRef.listings; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/listing', listing.id, 'view']">{{ listing?.id }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/location', locationRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

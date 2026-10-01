@@ -1,0 +1,65 @@
+{
+  "javaSpringBootBackEndApp": {
+    "listing": {
+      "home": {
+        "title": "Listings",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Listing",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Listing",
+        "search": "Tìm Listing",
+        "notFound": "No Listings found"
+      },
+      "created": "Một Listing mới được tạo với định danh {{ param }}",
+      "updated": "Một Listing cập nhật với định danh {{ param }}",
+      "deleted": "Một Listing đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Listing {{ id }}?"
+      },
+      "detail": {
+        "title": "Listing"
+      },
+      "id": "ID",
+      "wpId": "Wp Id",
+      "apiId": "Api Id",
+      "name": "Name",
+      "nameEn": "Name En",
+      "nameAlias": "Name Alias",
+      "slug": "Slug",
+      "description": "Description",
+      "phone": "Phone",
+      "mobile": "Mobile",
+      "email": "Email",
+      "website": "Website",
+      "address": "Address",
+      "locationJson": "Location Json",
+      "taxCode": "Tax Code",
+      "representative": "Representative",
+      "capital": "Capital",
+      "foundedYear": "Founded Year",
+      "businessType": "Business Type",
+      "businessStatus": "Business Status",
+      "industryCode": "Industry Code",
+      "managedBy": "Managed By",
+      "thumbnail": "Thumbnail",
+      "images": "Images",
+      "viewCount": "View Count",
+      "isFeatured": "Is Featured",
+      "status": "Status",
+      "publishedAt": "Published At",
+      "modifiedAt": "Modified At",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "esIndexed": "Es Indexed",
+      "category": "Category",
+      "location": "Location",
+      "help": {
+        "wpId": "ID bài viết WordPress (wp_posts.ID)",
+        "apiId": "ID từ API nguồn",
+        "slug": "Không unique: dữ liệu gốc có slug NULL và trùng",
+        "locationJson": "JSON gốc: province, ward, street, province_code, ward_code, coordinate dạng lat:long (giữ nguyên dạng text)",
+        "foundedYear": "Dạng text gốc (vd 2024-01-11), không ép kiểu ngày",
+        "status": "publish, draft"
+      }
+    }
+  }
+}

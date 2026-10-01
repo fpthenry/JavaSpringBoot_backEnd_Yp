@@ -1,0 +1,187 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
+      <h2
+        id="jhi-location-heading"
+        data-cy="LocationCreateUpdateHeading"
+        jhiTranslate="javaSpringBootBackEndApp.location.home.createOrEditLabel"
+      >
+        Create or edit a Location
+      </h2>
+
+      <div>
+        <jhi-alert-error />
+
+        @if (editForm.controls.id.value !== null) {
+          <div class="mb-3">
+            <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
+            <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
+          </div>
+        }
+
+        @let wpTermIdRef = editForm.get('wpTermId')!;
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_wpTermId"
+            [ngbTooltip]="'javaSpringBootBackEndApp.location.help.wpTermId' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.location.wpTermId"
+            >Wp Term Id</label
+          >
+          <input type="number" class="form-control" name="wpTermId" id="field_wpTermId" data-cy="wpTermId" formControlName="wpTermId" />
+          @if (wpTermIdRef.invalid && (wpTermIdRef.dirty || wpTermIdRef.touched)) {
+            <div>
+              <small class="form-text text-danger" [hidden]="!wpTermIdRef.errors?.number" jhiTranslate="entity.validation.number"
+                >This field should be a number.</small
+              >
+            </div>
+          }
+        </div>
+
+        @let nameRef = editForm.get('name')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_name" jhiTranslate="javaSpringBootBackEndApp.location.name">Name</label>
+          <input type="text" class="form-control" name="name" id="field_name" data-cy="name" formControlName="name" />
+          @if (nameRef.invalid && (nameRef.dirty || nameRef.touched)) {
+            <div>
+              @if (nameRef.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
+              }
+              @if (nameRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
+                  >This field cannot be longer than 255 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let slugRef = editForm.get('slug')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_slug" jhiTranslate="javaSpringBootBackEndApp.location.slug">Slug</label>
+          <input type="text" class="form-control" name="slug" id="field_slug" data-cy="slug" formControlName="slug" />
+          @if (slugRef.invalid && (slugRef.dirty || slugRef.touched)) {
+            <div>
+              @if (slugRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
+                  >This field cannot be longer than 255 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let typeRef = editForm.get('type')!;
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_type"
+            [ngbTooltip]="'javaSpringBootBackEndApp.location.help.type' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.location.type"
+            >Type</label
+          >
+          <input type="text" class="form-control" name="type" id="field_type" data-cy="type" formControlName="type" />
+          @if (typeRef.invalid && (typeRef.dirty || typeRef.touched)) {
+            <div>
+              @if (typeRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '50' }"
+                  >This field cannot be longer than 50 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let codeRef = editForm.get('code')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_code" jhiTranslate="javaSpringBootBackEndApp.location.code">Code</label>
+          <input type="text" class="form-control" name="code" id="field_code" data-cy="code" formControlName="code" />
+          @if (codeRef.invalid && (codeRef.dirty || codeRef.touched)) {
+            <div>
+              @if (codeRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '50' }"
+                  >This field cannot be longer than 50 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="field_latitude" jhiTranslate="javaSpringBootBackEndApp.location.latitude">Latitude</label>
+          <input type="number" class="form-control" name="latitude" id="field_latitude" data-cy="latitude" formControlName="latitude" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="field_longitude" jhiTranslate="javaSpringBootBackEndApp.location.longitude">Longitude</label>
+          <input type="number" class="form-control" name="longitude" id="field_longitude" data-cy="longitude" formControlName="longitude" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="field_createdAt" jhiTranslate="javaSpringBootBackEndApp.location.createdAt">Created At</label>
+          <div class="d-flex">
+            <input
+              id="field_createdAt"
+              data-cy="createdAt"
+              type="datetime-local"
+              class="form-control"
+              name="createdAt"
+              formControlName="createdAt"
+              placeholder="YYYY-MM-DD HH:mm"
+            />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="field_parent" jhiTranslate="javaSpringBootBackEndApp.location.parent">Parent</label>
+          <select
+            class="form-control"
+            id="field_parent"
+            data-cy="parent"
+            name="parent"
+            formControlName="parent"
+            [compareWith]="compareLocation"
+          >
+            <option [ngValue]="null"></option>
+            @for (locationOption of locationsSharedCollection(); track $index) {
+              <option [ngValue]="locationOption">{{ locationOption.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="field_listings" jhiTranslate="javaSpringBootBackEndApp.location.listing">Listing</label>
+          <select
+            class="form-control"
+            id="field_listings"
+            data-cy="listing"
+            multiple
+            name="listings"
+            formControlName="listings"
+            [compareWith]="compareListing"
+          >
+            @for (listingOption of listingsSharedCollection(); track $index) {
+              <option [ngValue]="listingOption">{{ listingOption.id }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-secondary" (click)="previousState()">
+          <fa-icon icon="ban" />&nbsp;<span jhiTranslate="entity.action.cancel">Cancel</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.invalid || isSaving()"
+          class="btn btn-primary"
+        >
+          <fa-icon icon="save" />&nbsp;<span jhiTranslate="entity.action.save">Save</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

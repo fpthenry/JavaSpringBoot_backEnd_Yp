@@ -1,0 +1,80 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (blogPost(); as blogPostRef) {
+      <div>
+        <h2 data-cy="blogPostDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.title">Blog Post</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ blogPostRef.id }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.wpId' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.blogPost.wpId"
+              >Wp Id</span
+            >
+          </dt>
+          <dd>
+            <span>{{ blogPostRef.wpId }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.title">Title</span></dt>
+          <dd>
+            <span>{{ blogPostRef.title }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.slug">Slug</span></dt>
+          <dd>
+            <span>{{ blogPostRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.content">Content</span></dt>
+          <dd>
+            <span>{{ blogPostRef.content }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.excerpt">Excerpt</span></dt>
+          <dd>
+            <span>{{ blogPostRef.excerpt }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.thumbnail">Thumbnail</span></dt>
+          <dd>
+            <span>{{ blogPostRef.thumbnail }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.status">Status</span></dt>
+          <dd>
+            <span>{{ blogPostRef.status }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.viewCount">View Count</span></dt>
+          <dd>
+            <span>{{ blogPostRef.viewCount }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.publishedAt">Published At</span></dt>
+          <dd>
+            <span>{{ blogPostRef.publishedAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.createdAt">Created At</span></dt>
+          <dd>
+            <span>{{ blogPostRef.createdAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.updatedAt">Updated At</span></dt>
+          <dd>
+            <span>{{ blogPostRef.updatedAt | formatMediumDatetime }}</span>
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/blog-post', blogPostRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

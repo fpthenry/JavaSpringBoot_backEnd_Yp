@@ -1,0 +1,387 @@
+<div>
+  <h2 id="page-heading" data-cy="ListingHeading">
+    <span jhiTranslate="javaSpringBootBackEndApp.listing.home.title">Listings</span>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading()">
+        <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.listing.home.refreshListLabel">Refresh list</span>
+      </button>
+
+      <button
+        id="jh-create-entity"
+        data-cy="entityCreateButton"
+        class="btn btn-primary jh-create-entity create-listing"
+        [routerLink]="['/listing/new']"
+      >
+        <fa-icon icon="plus" />
+        <span class="hidden-sm-down" jhiTranslate="javaSpringBootBackEndApp.listing.home.createLabel">Create a new Listing</span>
+      </button>
+    </div>
+  </h2>
+
+  <jhi-alert-error />
+
+  <jhi-alert />
+
+  <form name="searchForm" class="row row-cols-sm-auto align-items-center">
+    <div class="col-sm-12">
+      <div class="input-group w-100 mt-3">
+        <label class="visually-hidden" for="currentSearch" jhiTranslate="javaSpringBootBackEndApp.listing.home.search"
+          >Search for Listing</label
+        >
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="currentSearch"
+          id="currentSearch"
+          name="currentSearch"
+          placeholder="{{ 'javaSpringBootBackEndApp.listing.home.search' | translate }}"
+        />
+
+        <button class="btn btn-info" (click)="search(currentSearch())">
+          <fa-icon icon="search" />
+        </button>
+
+        @if (currentSearch()) {
+          <button class="btn btn-danger" (click)="search('')">
+            <fa-icon icon="trash-alt" />
+          </button>
+        }
+      </div>
+    </div>
+  </form>
+
+  <jhi-filter [filters]="filters" />
+
+  @if (listings().length === 0) {
+    <div class="alert alert-warning" id="no-result">
+      <span jhiTranslate="javaSpringBootBackEndApp.listing.home.notFound">No Listings found</span>
+    </div>
+  } @else {
+    <div class="table-responsive table-entities" id="entities">
+      <table class="table table-striped" aria-describedby="page-heading">
+        <thead>
+          <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
+            <th scope="col" jhiSortBy="id">
+              <div class="d-flex">
+                <span jhiTranslate="global.field.id">ID</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="wpId">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.wpId">Wp Id</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="apiId">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.apiId">Api Id</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="name">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.name">Name</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="nameEn">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.nameEn">Name En</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="nameAlias">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.nameAlias">Name Alias</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="slug">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.slug">Slug</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="description">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.description">Description</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="phone">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.phone">Phone</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="mobile">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.mobile">Mobile</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="email">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.email">Email</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="website">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.website">Website</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="address">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.address">Address</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="locationJson">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.locationJson">Location Json</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="taxCode">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.taxCode">Tax Code</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="representative">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.representative">Representative</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="capital">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.capital">Capital</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="foundedYear">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.foundedYear">Founded Year</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="businessType">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.businessType">Business Type</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="businessStatus">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.businessStatus">Business Status</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="industryCode">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.industryCode">Industry Code</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="managedBy">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.managedBy">Managed By</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="thumbnail">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.thumbnail">Thumbnail</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="images">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.images">Images</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="viewCount">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.viewCount">View Count</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="isFeatured">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.isFeatured">Is Featured</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="status">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.status">Status</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="publishedAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.publishedAt">Published At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="modifiedAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.modifiedAt">Modified At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="createdAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.createdAt">Created At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="updatedAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.updatedAt">Updated At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="esIndexed">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.esIndexed">Es Indexed</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (listing of listings(); track trackId(listing)) {
+            <tr data-cy="entityTable">
+              <td>
+                <a [routerLink]="['/listing', listing.id, 'view']">{{ listing.id }}</a>
+              </td>
+              <td>{{ listing.wpId }}</td>
+              <td>{{ listing.apiId }}</td>
+              <td>{{ listing.name }}</td>
+              <td>{{ listing.nameEn }}</td>
+              <td>{{ listing.nameAlias }}</td>
+              <td>{{ listing.slug }}</td>
+              <td>{{ listing.description }}</td>
+              <td>{{ listing.phone }}</td>
+              <td>{{ listing.mobile }}</td>
+              <td>{{ listing.email }}</td>
+              <td>{{ listing.website }}</td>
+              <td>{{ listing.address }}</td>
+              <td>{{ listing.locationJson }}</td>
+              <td>{{ listing.taxCode }}</td>
+              <td>{{ listing.representative }}</td>
+              <td>{{ listing.capital }}</td>
+              <td>{{ listing.foundedYear }}</td>
+              <td>{{ listing.businessType }}</td>
+              <td>{{ listing.businessStatus }}</td>
+              <td>{{ listing.industryCode }}</td>
+              <td>{{ listing.managedBy }}</td>
+              <td>{{ listing.thumbnail }}</td>
+              <td>{{ listing.images }}</td>
+              <td>{{ listing.viewCount }}</td>
+              <td>{{ listing.isFeatured }}</td>
+              <td>{{ listing.status }}</td>
+              <td>{{ listing.publishedAt | formatMediumDatetime }}</td>
+              <td>{{ listing.modifiedAt | formatMediumDatetime }}</td>
+              <td>{{ listing.createdAt | formatMediumDatetime }}</td>
+              <td>{{ listing.updatedAt | formatMediumDatetime }}</td>
+              <td>{{ listing.esIndexed }}</td>
+              <td class="text-end">
+                <div class="btn-group">
+                  <a [routerLink]="['/listing', listing.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">
+                    <fa-icon icon="eye" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
+                  </a>
+
+                  <a [routerLink]="['/listing', listing.id, 'edit']" class="btn btn-primary btn-sm" data-cy="entityEditButton">
+                    <fa-icon icon="pencil-alt" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
+                  </a>
+
+                  <button type="submit" (click)="delete(listing)" class="btn btn-danger btn-sm" data-cy="entityDeleteButton">
+                    <fa-icon icon="times" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (listings().length > 0) {
+    <div>
+      <div class="d-flex justify-content-center">
+        <jhi-item-count [params]="{ page: page(), totalItems: totalItems(), itemsPerPage: itemsPerPage() }" />
+      </div>
+
+      <div class="d-flex justify-content-center">
+        <ngb-pagination
+          [collectionSize]="totalItems()"
+          [page]="page()"
+          [pageSize]="itemsPerPage()"
+          [maxSize]="5"
+          [rotate]="true"
+          [boundaryLinks]="true"
+          (pageChange)="navigateToPage($event)"
+        />
+      </div>
+    </div>
+  }
+</div>
