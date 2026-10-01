@@ -58,13 +58,6 @@
       "relationshipName": "parent",
       "relationshipSide": "left",
       "relationshipType": "many-to-one"
-    },
-    {
-      "otherEntityName": "listing",
-      "otherEntityRelationshipName": "category",
-      "relationshipName": "listing",
-      "relationshipSide": "right",
-      "relationshipType": "many-to-many"
     }
   ],
   "searchEngine": "elasticsearch",

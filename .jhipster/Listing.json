@@ -184,7 +184,6 @@
     {
       "otherEntityField": "name",
       "otherEntityName": "category",
-      "otherEntityRelationshipName": "listing",
       "relationshipName": "category",
       "relationshipSide": "left",
       "relationshipType": "many-to-many"
@@ -192,7 +191,6 @@
     {
       "otherEntityField": "name",
       "otherEntityName": "location",
-      "otherEntityRelationshipName": "listing",
       "relationshipName": "location",
       "relationshipSide": "left",
       "relationshipType": "many-to-many"
