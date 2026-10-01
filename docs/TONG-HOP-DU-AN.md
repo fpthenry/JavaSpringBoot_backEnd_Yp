@@ -35,6 +35,7 @@
 | Cấu hình generator | [`.yo-rc.json`](../.yo-rc.json) |
 | Định nghĩa entity | [`yp-schema.jdl`](../yp-schema.jdl) |
 | Script đồng bộ | [`db-sync/`](../db-sync/) |
+| Tài liệu API (Swagger) | Giao diện quản trị **Quản trị → API** (`/admin/docs`), hoặc `/swagger-ui/index.html`; JSON ở `/v3/api-docs/springdocDefault`. Chỉ bật với profile `api-docs` (dev mặc định có). Mô tả tiếng Việt, xác thực JWT và mô tả filter theo cây được bổ sung trong [`OpenApiDocsConfiguration.java`](../src/main/java/com/mycompany/myapp/config/OpenApiDocsConfiguration.java). Class này viết tay, không bị `jhipster --force` ghi đè. |
 
 **Ràng buộc kỹ thuật đã thống nhất:** không đổi phiên bản JHipster hay Spring Boot, không thêm thư viện, không đổi cấu trúc package.
 
