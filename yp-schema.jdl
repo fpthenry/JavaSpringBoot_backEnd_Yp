@@ -148,14 +148,15 @@ entity Tag(tag) {
 // RELATIONSHIPS
 // =====================================================
 
-// listing_category: Listing N - N Category
+// listing_category: Listing N - N Category (một chiều: Category không giữ danh sách listings,
+// tránh API /api/categories tải hàng trăm nghìn doanh nghiệp mỗi ngành)
 relationship ManyToMany {
-    Listing{category(name)} to Category{listing}
+    Listing{category(name)} to Category
 }
 
-// listing_location: Listing N - N Location
+// listing_location: Listing N - N Location (một chiều, cùng lý do)
 relationship ManyToMany {
-    Listing{location(name)} to Location{listing}
+    Listing{location(name)} to Location
 }
 
 // category.parent_id: cây ngành nghề
