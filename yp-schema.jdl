@@ -15,7 +15,7 @@
  *
  * Tên field camelCase -> cột snake_case trùng nguồn (wpId -> wp_id, locationJson -> location_json...).
  * Tên quan hệ ManyToMany để số ít (category, location) để cột nối là category_id / location_id;
- * JHipster 9.3.0 luôn thêm tiền tố "rel_" cho bảng nối, JDL không đổi được tên bảng nối.
+ * JHipster 9.3.0 luôn thêm tiền tố rel_ cho bảng nối, JDL không đổi được tên bảng nối.
  *
  * Không đưa vào app (bảng phục vụ migrate từ WordPress, chỉ giữ ở jhipster_vnyp):
  *   staging_listing, migration_log
@@ -52,7 +52,7 @@ entity Listing(listing) {
 
     // Địa chỉ
     address TextBlob
-    /** JSON gốc: province, ward, street, province_code, ward_code, coordinate "lat:long" (giữ nguyên dạng text) */
+    /** JSON gốc: province, ward, street, province_code, ward_code, coordinate dạng lat:long (giữ nguyên dạng text) */
     locationJson TextBlob
 
     // Thông tin doanh nghiệp
