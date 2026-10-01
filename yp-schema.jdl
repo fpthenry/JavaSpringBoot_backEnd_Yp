@@ -1,249 +1,171 @@
 /**
- * Yellow Pages Vietnam - JDL đầy đủ
- * Chuyển từ WordPress backup (wp_posts, wp_postmeta, wp_terms,
- * wp_term_taxonomy, wp_term_relationships, wp_termmeta, custom tables)
- * sang JHipster.
+ * Yellow Pages Vietnam - JDL
+ * Bám đúng schema chuẩn MySQL `jhipster_vnyp` (bản backup 2026-10-01):
+ * tên bảng/cột, kiểu dữ liệu, độ dài, NOT NULL, UNIQUE và quan hệ.
  *
- * Map WordPress -> JHipster:
- *   post_type 'listing'          -> Listing
- *   meta webbupointfinder_item_images / _thumbnail_id -> ListingImage
- *   post_type 'gallery'          -> Gallery
- *   post_type 'post'             -> Article (+ ArticleCategory, ArticleTag)
- *   post_type 'page'             -> StaticPage
- *   taxonomy pointfinderltypes   -> Category (cây cha/con)
- *   taxonomy pointfinderlocations-> Location (tỉnh -> huyện -> xã)
- *   wp_term_relationships        -> ManyToMany Listing <-> Category / Location
- *   post_author                  -> User (built-in JHipster)
- *   redirect_301                 -> RedirectRule
- *   wp_vnyp_relate_locations     -> CachedContent
+ *   jhipster_vnyp            -> JHipster
+ *   listing                  -> Listing
+ *   category                 -> Category      (cây cha/con qua parent_id)
+ *   location                 -> Location      (province -> district -> ward)
+ *   blog_post                -> BlogPost
+ *   tag                      -> Tag
+ *   listing_category         -> rel_listing__category (listing_id, category_id)
+ *   listing_location         -> rel_listing__location (listing_id, location_id)
+ *   jhi_user / jhi_authority / jhi_user_authority -> built-in của JHipster
+ *
+ * Tên field camelCase -> cột snake_case trùng nguồn (wpId -> wp_id, locationJson -> location_json...).
+ * Tên quan hệ ManyToMany để số ít (category, location) để cột nối là category_id / location_id;
+ * JHipster 9.3.0 luôn thêm tiền tố "rel_" cho bảng nối, JDL không đổi được tên bảng nối.
+ *
+ * Không đưa vào app (bảng phục vụ migrate từ WordPress, chỉ giữ ở jhipster_vnyp):
+ *   staging_listing, migration_log
+ *
+ * JDL không biểu diễn được (xử lý bằng changelog Liquibase viết tay sau khi generate):
+ *   - index thường: slug, status, tax_code, api_id, is_featured, type, parent_id
+ *   - ON DELETE CASCADE của listing_category / listing_location
+ *   - DEFAULT: status 'publish', view_count 0, is_featured 0, listing_count 0, CURRENT_TIMESTAMP
  */
 
 // =====================================================
 // 1. DOANH NGHIỆP
 // =====================================================
 
-/** Doanh nghiệp (wp_posts.post_type = 'listing' + wp_postmeta) */
-entity Listing {
-    // Basic Information
-    title String required maxlength(500)
-    slug String required unique maxlength(500)
-    content TextBlob
-    status String maxlength(20)          // publish, draft, pending, private, trash
+/** Doanh nghiệp (bảng listing) */
+entity Listing(listing) {
+    /** ID bài viết WordPress (wp_posts.ID) */
+    wpId Long required unique
+    /** ID từ API nguồn */
+    apiId String maxlength(100)
 
-    // Contact Information
-    email String maxlength(255)
-    telephone String maxlength(50)
-    mobile String maxlength(50)
-    website String maxlength(255)
-    fax String maxlength(50)
-
-    // Business Information
-    taxCode String maxlength(50)
-    nameAlias String maxlength(500)
+    name String required maxlength(500)
     nameEn String maxlength(500)
-    representative String maxlength(500)
-    mainIndustry String maxlength(500)   // webbupointfinder_item_focus
-    managedBy String maxlength(500)      // webbupointfinder_item_managed
-    businessType String maxlength(100)
-    statusYp String maxlength(50)
-    foundedDate Instant
-    licenseModifiedDate Instant
+    nameAlias String maxlength(500)
+    /** Không unique: dữ liệu gốc có slug NULL và trùng */
+    slug String maxlength(500)
+    description TextBlob
 
-    // Address
+    // Liên hệ
+    phone String maxlength(100)
+    mobile String maxlength(100)
+    email String maxlength(255)
+    website String maxlength(500)
+
+    // Địa chỉ
     address TextBlob
-    addressAlternative TextBlob
-    latitude BigDecimal
-    longitude BigDecimal
+    /** JSON gốc: province, ward, street, province_code, ward_code, coordinate "lat:long" (giữ nguyên dạng text) */
+    locationJson TextBlob
 
-    // API Tracking
-    apiId Long
+    // Thông tin doanh nghiệp
+    taxCode String maxlength(100)
+    representative String maxlength(255)
+    capital String maxlength(100)
+    /** Dạng text gốc (vd 2024-01-11), không ép kiểu ngày */
+    foundedYear String maxlength(50)
+    businessType String maxlength(100)
+    businessStatus String maxlength(50)
+    industryCode String maxlength(100)
+    managedBy String maxlength(255)
 
-    // Timestamps
-    createdAt Instant
-    updatedAt Instant
-}
+    // Hình ảnh (ID attachment WordPress)
+    thumbnail String maxlength(500)
+    images TextBlob
 
-/** Ảnh doanh nghiệp (webbupointfinder_item_images, _thumbnail_id) */
-entity ListingImage {
-    imageUrl TextBlob required
-    thumbnailUrl TextBlob
-    altText String maxlength(500)
-    displayOrder Integer min(0)
+    // Trạng thái
+    viewCount Integer
     isFeatured Boolean
+    /** publish, draft */
+    status String maxlength(50)
 
+    // Thời gian
+    publishedAt Instant
+    modifiedAt Instant
     createdAt Instant
     updatedAt Instant
-}
 
-/** Gallery (wp_posts.post_type = 'gallery') */
-entity Gallery {
-    title String required maxlength(500)
-    slug String unique maxlength(500)
-    content TextBlob
-    status String maxlength(20)
-
-    createdAt Instant
-    updatedAt Instant
+    esIndexed Boolean
 }
 
 // =====================================================
 // 2. TAXONOMY
 // =====================================================
 
-/** Ngành nghề (taxonomy pointfinderltypes + wp_termmeta.industry_code) */
-entity Category {
-    name String required maxlength(500)
-    slug String required unique maxlength(500)
-    description TextBlob
-    count Integer min(0)
-    industryCode String maxlength(50)
-    displayOrder Integer min(0)
-
-    createdAt Instant
-    updatedAt Instant
-}
-
-/** Địa phương (taxonomy pointfinderlocations + province/district/ward_code) */
-entity Location {
+/** Ngành nghề (bảng category) */
+entity Category(category) {
+    /** wp_terms.term_id */
+    wpTermId Long unique
     name String required maxlength(255)
-    slug String required unique maxlength(255)
-    type String maxlength(50)            // province, district, ward
-    provinceCode String maxlength(10)
-    districtCode String maxlength(10)
-    wardCode String maxlength(10)
-    count Integer min(0)
-    displayOrder Integer min(0)
-
+    slug String maxlength(255)
+    description TextBlob
+    icon String maxlength(255)
+    listingCount Integer
     createdAt Instant
     updatedAt Instant
 }
 
+/** Địa phương (bảng location) */
+entity Location(location) {
+    /** wp_terms.term_id */
+    wpTermId Long unique
+    name String required maxlength(255)
+    slug String maxlength(255)
+    /** province, district, ward */
+    type String maxlength(50)
+    code String maxlength(50)
+    latitude Double
+    longitude Double
+    createdAt Instant
+}
+
 // =====================================================
-// 3. BLOG / TRANG TĨNH
+// 3. BLOG
 // =====================================================
 
-/** Bài viết tin tức (wp_posts.post_type = 'post') */
-entity Article {
+/** Bài viết tin tức (bảng blog_post) */
+entity BlogPost(blog_post) {
+    /** wp_posts.ID */
+    wpId Long required unique
     title String required maxlength(500)
-    slug String required unique maxlength(500)
+    slug String maxlength(500)
+    content TextBlob
     excerpt TextBlob
-    content TextBlob
-    status String maxlength(20)
-    featuredImageUrl TextBlob
-
+    thumbnail String maxlength(500)
+    status String maxlength(50)
+    viewCount Integer
+    publishedAt Instant
     createdAt Instant
     updatedAt Instant
 }
 
-/** Chuyên mục blog (taxonomy 'category') */
-entity ArticleCategory {
+/** Thẻ (bảng tag) */
+entity Tag(tag) {
+    /** wp_terms.term_id */
+    wpTermId Long unique
     name String required maxlength(255)
-    slug String required unique maxlength(255)
-    description TextBlob
-    count Integer min(0)
-}
-
-/** Thẻ blog (taxonomy 'post_tag') */
-entity ArticleTag {
-    name String required maxlength(255)
-    slug String required unique maxlength(255)
-    count Integer min(0)
-}
-
-/** Trang tĩnh (wp_posts.post_type = 'page') */
-entity StaticPage {
-    title String required maxlength(500)
-    slug String required unique maxlength(500)
-    content TextBlob
-    status String maxlength(20)
-    template String maxlength(255)       // custom-search-page.php, custom-alphabet-page.php...
-    menuOrder Integer
-
-    createdAt Instant
-    updatedAt Instant
-}
-
-// =====================================================
-// 4. BẢNG CUSTOM
-// =====================================================
-
-/** Redirect 301 (bảng redirect_301) */
-entity RedirectRule {
-    sourceId Long
-    sourceSlug String required maxlength(500)
-    destinationId Long
-    destinationSlug String required maxlength(500)
-    objectType String required maxlength(50) // listing, pointfinderltypes, pointfinderlocations
-}
-
-/** Cache HTML (bảng wp_vnyp_relate_locations) */
-entity CachedContent {
-    termSlug String required unique maxlength(255)
-    expired Instant
-    content TextBlob
+    slug String maxlength(255)
 }
 
 // =====================================================
 // RELATIONSHIPS
 // =====================================================
 
-// Listing 1 - N ListingImage (xóa listing -> xóa ảnh)
-relationship OneToMany {
-    Listing{images} to ListingImage{listing(title) required}
-}
-
-// Gallery 1 - N ListingImage (ảnh có thể thuộc 1 gallery)
-relationship OneToMany {
-    Gallery{images} to ListingImage{gallery(title)}
-}
-
-// Listing 1 - N Gallery
-relationship OneToMany {
-    Listing{galleries} to Gallery{listing(title)}
-}
-
-// Listing N - N Category  (wp_term_relationships, junction listing_categories)
+// listing_category: Listing N - N Category
 relationship ManyToMany {
-    Listing{categories(name)} to Category{listings}
+    Listing{category(name)} to Category{listing}
 }
 
-// Listing N - N Location  (wp_term_relationships, junction listing_locations)
+// listing_location: Listing N - N Location
 relationship ManyToMany {
-    Listing{locations(name)} to Location{listings}
+    Listing{location(name)} to Location{listing}
 }
 
-// Cây ngành nghề: thay parentId Long bằng quan hệ tự tham chiếu
-relationship OneToMany {
-    Category{children} to Category{parent(name)}
-}
-
-// Cây địa phương: tỉnh -> quận/huyện -> phường/xã
-relationship OneToMany {
-    Location{children} to Location{parent(name)}
-}
-
-// Cây trang tĩnh (post_parent)
-relationship OneToMany {
-    StaticPage{children} to StaticPage{parent(title)}
-}
-
-// Cây chuyên mục blog
-relationship OneToMany {
-    ArticleCategory{children} to ArticleCategory{parent(name)}
-}
-
-// Article N - N ArticleCategory / ArticleTag
-relationship ManyToMany {
-    Article{categories(name)} to ArticleCategory{articles}
-    Article{tags(name)} to ArticleTag{articles}
-}
-
-// post_author -> User built-in của JHipster
+// category.parent_id: cây ngành nghề
 relationship ManyToOne {
-    Listing{author(login)} to User with builtInEntity
-    Article{author(login)} to User with builtInEntity
-    StaticPage{author(login)} to User with builtInEntity
-    Gallery{author(login)} to User with builtInEntity
+    Category{parent(name)} to Category
+}
+
+// location.parent_id: tỉnh -> quận/huyện -> phường/xã
+relationship ManyToOne {
+    Location{parent(name)} to Location
 }
 
 // =====================================================
@@ -254,11 +176,10 @@ dto * with mapstruct
 
 service * with serviceImpl
 
-paginate Listing, Category, Location, Article with pagination
-paginate ListingImage, Gallery, RedirectRule with infinite-scroll
+paginate Listing, Category, Location, BlogPost with pagination
+paginate Tag with infinite-scroll
 
-filter Listing, Category, Location, ListingImage, Article, RedirectRule
+filter Listing, Category, Location, BlogPost
 
-// Chỉ bật khi application có searchEngine elasticsearch,
-// nếu không JHipster sẽ báo lỗi / bỏ qua.
-// search Listing, Category, Location, Article with elasticsearch
+// Ứng dụng dùng searchEngine elasticsearch (.yo-rc.json)
+search * with elasticsearch
