@@ -1,0 +1,35 @@
+{
+  "analysis": {
+    "char_filter": {
+      "wp_shortcode": {
+        "type": "pattern_replace",
+        "pattern": "\\[/?vc_[^\\]\\[]*\\]?",
+        "replacement": " "
+      }
+    },
+    "analyzer": {
+      "vi_folding": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase", "asciifolding"]
+      },
+      "vi_html_folding": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "char_filter": ["html_strip", "wp_shortcode"],
+        "filter": ["lowercase", "asciifolding"]
+      },
+      "vi_exact": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase"]
+      },
+      "vi_html_exact": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "char_filter": ["html_strip", "wp_shortcode"],
+        "filter": ["lowercase"]
+      }
+    }
+  }
+}

@@ -37,4 +37,10 @@ public interface BlogCategoryRepository extends JpaRepository<BlogCategory, Long
 
     @Query("select blogCategory from BlogCategory blogCategory left join fetch blogCategory.parent where blogCategory.id =:id")
     Optional<BlogCategory> findOneWithToOneRelationships(@Param("id") Long id);
+
+    /**
+     * Sửa tay: [id, id danh mục cha, tên] của mọi danh mục (bảng nhỏ), để điền danh mục cha và tên khi index bài viết vào Elasticsearch.
+     */
+    @Query("select c.id, p.id, c.name from BlogCategory c left join c.parent p")
+    List<Object[]> findAllTreeRows();
 }

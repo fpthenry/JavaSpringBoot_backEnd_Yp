@@ -43,6 +43,7 @@ describe('BlogPost Management Component', () => {
               }),
             ),
             snapshot: {
+              data: { defaultSort: 'id,asc' },
               queryParams: {},
               queryParamMap: convertToParamMap({
                 page: '1',
@@ -122,6 +123,23 @@ describe('BlogPost Management Component', () => {
 
     // THEN - subscription is still alive and second load succeeds
     expect(comp.blogPosts()[0]).toEqual(expect.objectContaining({ id: 11641 }));
+  });
+
+  it('tìm kiếm: bỏ sắp xếp để xếp theo độ liên quan; xóa từ khóa thì về sắp xếp mặc định', () => {
+    TestBed.tick();
+    httpMock.expectOne({ method: 'GET' });
+
+    comp.search('khuyen mai');
+    expect(routerNavigateSpy).toHaveBeenLastCalledWith(
+      ['./'],
+      expect.objectContaining({ queryParams: expect.objectContaining({ search: 'khuyen mai', page: 1, sort: [] }) }),
+    );
+
+    comp.search('');
+    expect(routerNavigateSpy).toHaveBeenLastCalledWith(
+      ['./'],
+      expect.objectContaining({ queryParams: expect.objectContaining({ search: '', sort: ['id,asc'] }) }),
+    );
   });
 
   describe('trackId', () => {

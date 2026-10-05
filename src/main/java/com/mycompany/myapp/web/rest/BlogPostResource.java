@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.repository.BlogPostRepository;
+import com.mycompany.myapp.repository.search.BlogPostSearchFilter;
 import com.mycompany.myapp.service.BlogPostQueryService;
 import com.mycompany.myapp.service.BlogPostService;
 import com.mycompany.myapp.service.criteria.BlogPostCriteria;
@@ -207,6 +208,8 @@ public class BlogPostResource {
     /**
      * {@code SEARCH  /blog-posts/_search?query=:query} : search for the blogPost corresponding
      * to the query.
+     * <p>
+     * Sửa tay: tìm không dấu, bỏ HTML; lọc thêm theo danh mục (gồm danh mục con), thẻ, trạng thái; query không bắt buộc.
      *
      * @param query the query of the blogPost search.
      * @param pageable the pagination information.
@@ -214,12 +217,25 @@ public class BlogPostResource {
      */
     @GetMapping("/_search")
     public ResponseEntity<List<BlogPostDTO>> searchBlogPosts(
-        @RequestParam("query") String query,
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "Từ khóa, có dấu hay không dấu đều được (khuyen mai = khuyến mại). Bài phải chứa đủ mọi từ, trong tiêu đề, tóm tắt, nội dung, tên danh mục hoặc tên thẻ. Bỏ trống = tất cả, bài mới đăng trước"
+        ) @RequestParam(name = "query", required = false) String query,
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "Chỉ lấy bài thuộc danh mục này hoặc danh mục con của nó (id BlogCategory)"
+        ) @RequestParam(name = "categoryId", required = false) Long categoryId,
+        @io.swagger.v3.oas.annotations.Parameter(description = "Chỉ lấy bài có thẻ này (id Tag)") @RequestParam(
+            name = "tagId",
+            required = false
+        ) Long tagId,
+        @io.swagger.v3.oas.annotations.Parameter(description = "publish hoặc draft") @RequestParam(
+            name = "status",
+            required = false
+        ) String status,
         @org.springdoc.core.annotations.ParameterObject Pageable pageable
     ) {
         LOG.debug("REST request to search for a page of BlogPosts for query {}", query);
         try {
-            Page<BlogPostDTO> page = blogPostService.search(query, pageable);
+            Page<BlogPostDTO> page = blogPostService.search(new BlogPostSearchFilter(query, categoryId, tagId, status), pageable);
             HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
             return ResponseEntity.ok().headers(headers).body(page.getContent());
         } catch (RuntimeException e) {

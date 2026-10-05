@@ -808,7 +808,7 @@ Giảm tải trên máy dev:
 |---|---|---|
 | 0 | Cấu hình container (mục 8.3); xóa các index có mapping cũ | ✅ Xong 2026-10-01 |
 | 1 | Job reindex ([mục 8.4](#84-job-reindex-giai-đoạn-1)) | ✅ Xong 2026-10-02: 6/6 entity đủ, tìm kiếm `/api/listings/_search` trả kết quả trong 0,1–0,6 s |
-| 2 | Tìm kiếm tiếng Việt: bỏ dấu (`asciifolding`), ưu tiên tên doanh nghiệp, các từ phải cùng xuất hiện, đếm tổng đúng (xem nhận xét ở mục 8.4) | ⏳ Tiếp theo |
+| 2 | Tìm kiếm tiếng Việt: bỏ dấu (`asciifolding`), ưu tiên tên doanh nghiệp, các từ phải cùng xuất hiện, đếm tổng đúng (xem nhận xét ở mục 8.4) | ✅ **Bài viết** xong 2026-10-05 ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)), dùng làm mẫu cho listing. ⏳ Listing: tiếp theo |
 | 3 | Lọc theo cây địa phương/ngành nghề bằng ES, kết hợp với tìm kiếm | Chưa làm |
 
 ---
@@ -1106,6 +1106,82 @@ Menu **Thực thể → Blog Post → Thêm mới / Sửa**: route `new` và `:i
 | [`WordPressPostSyncServiceTest`](../src/test/java/com/mycompany/myapp/service/wordpress/WordPressPostSyncServiceTest.java): ngày GMT, giải mã HTML entity, slug `%xx`, cắt độ dài, đọc JSON | 5/5 ✅ |
 | Thủ công trên app: tạo bài không `wpId` có danh mục con, thẻ, ảnh đại diện, nội dung HTML (201) → đọc lại đúng → xóa đúng bài thử | ✅ |
 
+### 11.4 Tìm kiếm bài viết bằng Elasticsearch
+
+> Làm ngày 2026-10-05. Bài viết là entity đầu tiên làm xong "giai đoạn 2" (tìm tiếng Việt) của [mục 8](#8-elasticsearch). Listing vẫn dùng tìm kiếm mặc định của JHipster.
+
+**Trước khi sửa** (index do JHipster sinh, analyzer mặc định, `query_string`):
+
+| Vấn đề | Ví dụ |
+|---|---|
+| Index thiếu bài | ES có 2.000 bài, DB có 2.435: bài đồng bộ từ WordPress chưa được reindex |
+| Có dấu và không dấu ra khác nhau | "khuyến mại" 538 bài, "khuyen mai" 95; "Hà Nội" 631, "ha noi" 136 |
+| Tìm trúng mã HTML | "div" 747 bài, "class" 1.997 bài; shortcode WPBakery "vc_row" 371 bài |
+| Các từ không bắt buộc cùng có | "khuyến mại" ra cả bài chỉ có "khuyến" hoặc chỉ có "mại" |
+| Kết quả không có danh mục, thẻ; không lọc được | `categories: []`, `tags: []` |
+
+**Sau khi sửa:**
+
+| Truy vấn | Kết quả |
+|---|---|
+| "khuyến mại" / "khuyen mai" | 154 / 154 |
+| "Hà Nội" / "ha noi" | 511 / 511 |
+| "chăn nuôi gia cầm" / "chan nuoi gia cam" | 42 / 42 |
+| "div", "nbsp", "vc_row", "vc_column" | 0 |
+| "class" | 4 (đều là chữ "class" thật trong bài) |
+| `categoryId=1500` (danh mục gốc, gồm danh mục con) | 1.820, khớp đúng số đếm trên MySQL |
+| `status=draft` | 2 |
+| Thời gian | 30–130 ms; reindex 2.435 bài mất khoảng 8 giây |
+
+#### API
+
+`GET /api/blog-posts/_search` (đăng nhập JWT; Swagger: *Tìm bài viết (Elasticsearch, không dấu)…*). Mọi tham số đều không bắt buộc:
+
+| Tham số | Ý nghĩa |
+|---|---|
+| `query` | Từ khóa, có dấu hay không dấu đều được. Bài phải chứa **đủ mọi từ**, ở tiêu đề, tóm tắt, nội dung, tên danh mục hoặc tên thẻ (các từ có thể nằm ở các field khác nhau). Bỏ trống thì lấy tất cả |
+| `categoryId` | Bài thuộc danh mục này **hoặc danh mục con** |
+| `tagId` | Bài có thẻ này |
+| `status` | `publish` / `draft` |
+| `page`, `size`, `sort` | Như mọi API danh sách. Có `query` mà không có `sort` thì xếp theo độ liên quan; không có `query` và không có `sort` thì bài mới đăng trước (`publishedAt` giảm dần) |
+
+```
+GET /api/blog-posts/_search?query=khuyen mai ha noi&categoryId=1500&size=20
+```
+
+Trang danh sách bài viết trong quản trị dùng sẵn API này qua ô tìm kiếm. Bản JHipster sinh ra vẫn gửi `sort=id,asc` khi tìm, nên kết quả xếp theo id. Đã sửa [`entities/blog-post/list/blog-post.ts`](../src/main/webapp/app/entities/blog-post/list/blog-post.ts): có từ khóa thì không gửi `sort` (xếp theo độ liên quan), bấm tiêu đề cột vẫn sắp xếp được, xóa từ khóa thì về `id,asc`.
+
+#### Cách làm
+
+| Phần | File | Nội dung |
+|---|---|---|
+| Analyzer | [`config/elasticsearch/blogpost-settings.json`](../src/main/resources/config/elasticsearch/blogpost-settings.json), gắn vào entity bằng `@Setting` | `vi_folding`: chữ thường + `asciifolding` (bỏ dấu, `đ` → `d`). `vi_html_folding`: thêm `html_strip` (bỏ thẻ HTML, giải mã `&nbsp;`…) và `wp_shortcode` (bỏ `[vc_…]`, kể cả shortcode bị cắt cụt trong tóm tắt). `vi_exact`, `vi_html_exact`: giữ dấu |
+| Mapping | [`domain/BlogPost.java`](../src/main/java/com/mycompany/myapp/domain/BlogPost.java) | `title`: `vi_folding` + `title.exact` (giữ dấu) + `title.keyword` (sắp xếp). `content`, `excerpt`: index bằng `vi_html_folding`, tìm bằng `vi_folding` + `.exact` (giữ dấu). Bỏ `content.keyword` (vô nghĩa với HTML) |
+| Field chỉ có trong ES | `BlogPost`: `categoryIds`, `categoryNames`, `tagIds`, `tagNames` (`@jakarta.persistence.Transient`, không phải cột DB) | `categoryIds` gồm cả **id danh mục cha** (đi ngược lên gốc), nên lọc theo danh mục cha ra cả bài của danh mục con |
+| Điền field | [`repository/search/BlogPostSearchFields.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchFields.java) | Đọc cả cây danh mục (`BlogCategoryRepository.findAllTreeRows()`, vài chục dòng) và tên thẻ theo id |
+| Truy vấn | [`repository/search/BlogPostSearchRepository.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchRepository.java), [`BlogPostSearchFilter.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchFilter.java) | `bool`: **must** `multi_match` `cross_fields`, `operator: and` trên field không dấu (`title^3`, `excerpt^2`, `content`, `categoryNames^2`, `tagNames^2`); **should** cùng truy vấn trên field `.exact` (bài đúng dấu được cộng điểm) và `match_phrase` tiêu đề (khớp cả cụm được cộng điểm); **filter** `term` theo `categoryIds`, `tagIds`, `status.keyword` |
+| Kết quả | như trên | ES chỉ trả `id` (`_source` lọc còn `id`); bài viết đọc lại từ MySQL kèm danh mục, thẻ, giữ thứ tự của ES |
+| Lưu bài | [`service/impl/BlogPostServiceImpl.java`](../src/main/java/com/mycompany/myapp/service/impl/BlogPostServiceImpl.java) | `save`/`update`/`partialUpdate` gọi `BlogPostSearchFields.fill()` **trong transaction lưu bài**, rồi `index()` (chạy nền) chỉ ghi document lên ES, không đọc lại DB |
+| Reindex | [`service/ElasticsearchReindexService.java`](../src/main/java/com/mycompany/myapp/service/ElasticsearchReindexService.java) | Với `blogpost`: mỗi lô nạp danh mục, thẻ bằng `fetchBagRelationships` (2 câu query) rồi `fill()` |
+| API | [`web/rest/BlogPostResource.java`](../src/main/java/com/mycompany/myapp/web/rest/BlogPostResource.java), [`service/BlogPostService.java`](../src/main/java/com/mycompany/myapp/service/BlogPostService.java) | Thêm `categoryId`, `tagId`, `status`; `query` không bắt buộc; mô tả Swagger tiếng Việt |
+
+Vì sao `cross_fields` dùng được: các field trong nhóm tìm kiếm đều có **cùng search analyzer** (`vi_folding`), nên ES coi chúng như một field lớn. Từ "khuyến mại" ở tiêu đề và "Hà Nội" ở nội dung vẫn khớp truy vấn "khuyen mai ha noi". Nếu thêm field có search analyzer khác vào nhóm này, ES sẽ tách thành nhóm riêng và mỗi nhóm phải đủ mọi từ.
+
+> ⚠️ **Khi nào phải reindex `blogpost`** (`POST /api/admin/elasticsearch/reindex?entities=blogpost`, khoảng 8 giây):
+> - Sửa `blogpost-settings.json` hoặc annotation ES trong `BlogPost.java`. Spring Data **không** cập nhật index đã tồn tại; job reindex xóa và tạo lại index theo mapping mới.
+> - **Đổi tên hoặc đổi cha của danh mục bài viết**, đổi tên thẻ. Tên danh mục và cây cha được chép vào từng bài lúc index.
+> - Sau khi chép dữ liệu thẳng vào MySQL. Đồng bộ WordPress ([mục 11.2](#112-đồng-bộ-từ-wordpress)) tự reindex khi xong.
+
+**Kiểm thử (2026-10-05):**
+
+| Test | Kết quả |
+|---|---|
+| [`BlogPostSearchFieldsTest`](../src/test/java/com/mycompany/myapp/repository/search/BlogPostSearchFieldsTest.java): `categoryIds` gồm danh mục cha, cây có vòng lặp không treo, tên lấy theo id; truy vấn có từ khóa và bộ lọc; truy vấn rỗng = `match_all` | 4/4 ✅ |
+| `blog-post.spec.ts` (danh sách): tìm kiếm không gửi sort, xóa từ khóa về `id,asc`. Cả thư mục `entities/blog-post` | 60/60 ✅ |
+| Chrome headless: tìm trên 6 trang (bài viết, danh mục bài viết, thẻ, ngành nghề, địa phương, listing) rồi bấm menu sang trang khác: không đơ, chuyển trang 0,3–0,8 s | ✅ |
+| `BlogPostResourceIT` (Testcontainers MySQL + ES). Riêng `searchBlogPost` sửa từ `query=id:…` (cú pháp `query_string`, không còn dùng) sang tìm theo tiêu đề | 68/68 ✅ |
+| Thủ công trên app: tạo bài thử (danh mục con 1512, một thẻ, nội dung có HTML và shortcode) → tìm thấy ngay theo tiêu đề không dấu, nội dung, tên danh mục, `categoryId` của danh mục cha, `tagId`; không thấy khi tìm "strong" (thẻ HTML) hoặc lọc danh mục khác. Sửa tiêu đề, bỏ danh mục → tìm theo tiêu đề mới thấy, theo tiêu đề cũ và danh mục cũ không thấy. Xóa → biến khỏi index. Đã xóa đúng các bài thử (id 2444–2446) | ✅ |
+
 ---
 
 ## 12. Sinh lại code khi sửa JDL
@@ -1127,7 +1203,7 @@ Lưu ý:
 
 - **Xóa entity:** JHipster không có lệnh xóa entity. Phải gỡ code của entity đó trước khi sinh lại (lần này dùng `git revert --no-commit` commit chứa code sinh tự động).
 - **Đổi cấu trúc bảng đã có dữ liệu:** Liquibase không tự sửa bảng đã tồn tại. Ở dev: xóa và tạo lại database `javaspringbootbackend`, chạy app để Liquibase tạo bảng mới, rồi chạy lại [quy trình đồng bộ](#6-quy-trình-đồng-bộ-dữ-liệu).
-- **Đổi mapping Elasticsearch:** xóa index cũ trước khi chạy app, vì Spring Data không tạo lại index đã tồn tại.
+- **Đổi mapping Elasticsearch:** Spring Data không cập nhật index đã tồn tại. Chạy reindex entity đó (`POST /api/admin/elasticsearch/reindex?entities=...`): job xóa và tạo lại index theo mapping mới.
 - Sau khi sinh lại, kiểm tra `application-dev.yml` vẫn giữ `port: 8081`.
 
 ### Code sửa tay: kiểm tra lại sau mỗi lần sinh code với `--force`
@@ -1160,6 +1236,10 @@ Lưu ý:
 | `entities/blog-post/blog-post.routes.ts` | Route `new`, `:id/edit` trỏ tới `editor/blog-post-editor` | Sinh lại BlogPost sẽ trỏ về form JHipster |
 | `service/ElasticsearchReindexService.java` | Thêm entity `blogcategory` | |
 | `config/ApplicationProperties.java` (`wordpress.baseUrl`, `pageSize`), `application-dev.yml` | Địa chỉ WordPress để đồng bộ | |
+| `domain/BlogPost.java` (`@Setting`, mapping `title`/`content`/`excerpt`, field `categoryIds`, `categoryNames`, `tagIds`, `tagNames`), `repository/search/BlogPostSearchRepository.java`, `service/BlogPostService.java`, `service/impl/BlogPostServiceImpl.java`, `web/rest/BlogPostResource.java` (`_search` thêm bộ lọc), `repository/BlogCategoryRepository.java` (`findAllTreeRows`), `BlogPostResourceIT.java` (`searchBlogPost`) | Tìm kiếm bài viết không dấu, lọc theo danh mục, thẻ | [Mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch). **Sinh lại BlogPost hoặc BlogCategory sẽ mất, phải sửa lại** (sinh lại `BlogPostSearchRepository` sẽ quay về `query_string` và đọc lại DB khi index). |
+| `entities/blog-post/list/blog-post.ts`, `blog-post.spec.ts` | Tìm kiếm không gửi sort mặc định `id,asc` | Kết quả theo độ liên quan ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)). Sinh lại BlogPost sẽ mất |
+| `config/elasticsearch/blogpost-settings.json`, `repository/search/BlogPostSearchFields.java`, `BlogPostSearchFilter.java`, `BlogPostSearchFieldsTest.java` (file mới) | Analyzer, điền field tìm kiếm, điều kiện tìm | File viết tay |
+| `src/test/java/.../config/ElasticsearchTestContainer.java` | `ES_JAVA_OPTS=-Xms512m -Xmx512m` | ES test mặc định lấy heap 2 GB, không khởi động kịp khi ES dev đang chạy ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)) |
 | `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
 
 ---
@@ -1190,6 +1270,9 @@ Lưu ý:
 | Script test xóa nhầm dữ liệu banner thật đang nhập (2026-10-05) | Bước dọn dẹp dùng `DELETE FROM gallery_image; DELETE FROM gallery;` trong lúc người dùng đang nhập trên trang quản trị | Khôi phục bằng binlog (ROW/FULL): `mysqlbinlog` lấy từ image `percona/percona-server:8.0` (chạy `--user 0`, gắn volume chỉ đọc), vì image `mysql:26.7`/`8.4` không có. **Không dọn dẹp bằng xóa cả bảng**: chỉ xóa đúng id mà test tạo, hoặc kiểm thử chỉ đọc. |
 | Sau khi thêm chuỗi bảo mật mới, app (DevTools) mất vài phút mới chạy lại cổng 8081 | DevTools khởi động lại chậm khi đổi cấu hình bảo mật và file yml | Chờ, hoặc Ctrl+C rồi chạy lại `./mvnw`. Chạy thử một bản trên cổng khác (`-Dspring-boot.run.arguments=--server.port=8082`) để xem lỗi khởi động. |
 | Kibana báo `healthy` trong khi `/api/status` vẫn là `unavailable` | Healthcheck `grep available` khớp luôn chuỗi `unavailable` | Khớp đúng `'"level":"available"'` |
+| Index `blogpost` có 2.000/2.435 bài (2026-10-05) | Bài đồng bộ từ WordPress chưa vào ES. Chưa rõ lý do: trạng thái job reindex chỉ giữ trong bộ nhớ, mất khi app khởi động lại | Reindex `blogpost`. Luôn kiểm tra bằng `GET /api/admin/elasticsearch/indices` (`complete: true`) |
+| Lưu bài viết nhưng tìm kiếm không thấy bài mới, hoặc vẫn ra nội dung cũ | Code JHipster sinh: `index()` chạy `@Async` và **đọc lại bài từ DB**, trong khi transaction lưu bài **chưa commit**. Bài mới không thấy gì, bài sửa thì index bản cũ. Thêm vào đó, ngoài transaction `fetchBagRelationships` trả về bản thể có danh mục chưa nạp (LazyInitializationException) | Điền field tìm kiếm trong transaction lưu bài (`BlogPostSearchFields.fill`), `index()` chỉ ghi document lên ES. **Các entity khác do JHipster sinh (listing, category, location, tag, blogcategory, user) vẫn còn lỗi này**: sửa qua API có thể không cập nhật ES cho tới lần reindex sau ([mục 14](#14-việc-còn-tồn-đọng)). Không dùng `afterCommit` được vì test chạy `@Async` đồng bộ trong transaction của test, transaction đó không bao giờ commit |
+| Integration test lỗi hết (68/68), log báo `Timed out waiting for log output … started` của container Elasticsearch | Container ES của Testcontainers lấy heap 2 GB (`-Xms2g`, `AlwaysPreTouch`) trong máy ảo Docker 7,6 GB, trong khi ES dev, Kibana, MySQL đang chạy | Giới hạn heap ES test 512 MB trong `ElasticsearchTestContainer.java`, hoặc tắt Kibana trước khi chạy IT |
 | Tiếng Việt bị lỗi (`Ð?a phuong`) khi gửi JSON bằng `curl -d "..."` trong Git Bash | Git Bash chuyển tham số dòng lệnh sang code page Windows | Gửi bằng file (`curl --data-binary @file.json`) hoặc script Node/PowerShell `-Encoding utf8` |
 
 ---
@@ -1215,6 +1298,10 @@ Lưu ý:
 | 15 | Chuyển ảnh bài viết (`yp.com.vn/wp-content/uploads`) về server mới | Hiện vẫn phụ thuộc site WordPress cũ ([mục 11.2](#112-đồng-bộ-từ-wordpress)) |
 | 16 | API công khai cho bài viết (danh sách theo danh mục, chi tiết theo slug) | Dữ liệu đã đủ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)); làm theo [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
 | 17 | Upload ảnh (ảnh đại diện, ảnh trong bài) lên server mới | Hiện chỉ dùng URL ảnh; ảnh dán từ Word nhúng base64 |
+| 18 | Sửa lỗi index chạy nền đọc DB trước khi commit cho các entity còn lại | Đã sửa cho bài viết ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)); listing, category, location, tag, blogcategory, user vẫn là code JHipster |
+| 19 | Tự reindex bài viết khi đổi tên, đổi cha của danh mục bài viết hoặc đổi tên thẻ | Hiện phải chạy tay `reindex?entities=blogpost` ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)) |
+| 20 | Nội dung bài cũ còn shortcode WPBakery (`[vc_row]`, `[vc_column_text]`… ở 371 bài) | ES đã bỏ qua khi tìm. Khi làm API công khai cho Next.js (#16) cần bỏ shortcode khỏi `content` (giữ phần chữ, ảnh bên trong) |
+| 21 | Bộ lọc danh mục, thẻ trên trang danh sách bài viết (quản trị) | API đã có (`categoryId`, `tagId`); giao diện hiện chỉ có ô tìm kiếm |
 
 ---
 

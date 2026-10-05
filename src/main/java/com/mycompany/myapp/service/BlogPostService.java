@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.repository.search.BlogPostSearchFilter;
 import com.mycompany.myapp.service.dto.BlogPostDTO;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -65,4 +66,13 @@ public interface BlogPostService {
      * @return the list of entities.
      */
     Page<BlogPostDTO> search(String query, Pageable pageable);
+
+    /**
+     * Sửa tay: tìm không dấu và lọc theo danh mục (gồm danh mục con), thẻ, trạng thái.
+     *
+     * @param filter điều kiện tìm.
+     * @param pageable the pagination information.
+     * @return the list of entities.
+     */
+    Page<BlogPostDTO> search(BlogPostSearchFilter filter, Pageable pageable);
 }

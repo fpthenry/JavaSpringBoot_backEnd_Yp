@@ -16,6 +16,8 @@ public class ElasticsearchTestContainer {
     )
         .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(ElasticsearchTestContainer.class)))
         .withEnv("xpack.security.enabled", "false")
+        // Sửa tay: mặc định ES lấy heap 2 GB, không khởi động kịp khi ES dev, MySQL đang chạy (Docker 7,6 GB RAM)
+        .withEnv("ES_JAVA_OPTS", "-Xms512m -Xmx512m")
         .withReuse(true);
 
     @Bean

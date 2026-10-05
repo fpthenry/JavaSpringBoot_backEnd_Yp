@@ -1236,9 +1236,9 @@ class BlogPostResourceIT {
         insertedBlogPost = blogPostRepository.saveAndFlush(blogPost);
         blogPostSearchRepository.save(blogPost);
 
-        // Search the blogPost
+        // Search the blogPost (sửa tay: tìm theo từ khóa vì API không còn dùng cú pháp query_string "id:...")
         restBlogPostMockMvc
-            .perform(get(ENTITY_SEARCH_API_URL + "?query=id:" + blogPost.getId()))
+            .perform(get(ENTITY_SEARCH_API_URL + "?query=" + DEFAULT_TITLE.toLowerCase()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.[*].id").value(hasItem(blogPost.getId().intValue())))

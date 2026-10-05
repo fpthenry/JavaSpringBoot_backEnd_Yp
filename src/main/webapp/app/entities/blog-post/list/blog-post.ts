@@ -105,12 +105,9 @@ export class BlogPost {
   search(query: string): void {
     this.page.set(1);
     this.currentSearch.set(query);
-    const { predicate } = this.sortState();
-    if (query && predicate && BlogPost.NOT_SORTABLE_FIELDS_AFTER_SEARCH.includes(predicate)) {
-      this.navigateToWithComponentValues(this.getDefaultSortState());
-      return;
-    }
-    this.navigateToWithComponentValues(this.sortState());
+    // Sửa tay: có từ khóa thì bỏ sắp xếp để Elasticsearch xếp theo độ liên quan (bấm tiêu đề cột vẫn sắp xếp được);
+    // xóa từ khóa thì quay về sắp xếp mặc định
+    this.navigateToWithComponentValues(query ? {} : this.getDefaultSortState());
   }
 
   getDefaultSortState(): SortState {
@@ -152,9 +149,11 @@ export class BlogPost {
   protected fillComponentAttributeFromRoute(params: ParamMap, data: Data): void {
     const page = params.get(PAGE_HEADER);
     this.page.set(+(page ?? 1));
-    this.sortState.set(this.sortService.parseSortParam(params.get(SORT) ?? data[DEFAULT_SORT_DATA]));
+    const searching = params.has('search') && params.get('search') !== '';
+    // Sửa tay: đang tìm mà URL không có sort thì giữ trống (theo độ liên quan), không dùng sort mặc định id,asc
+    this.sortState.set(this.sortService.parseSortParam(params.get(SORT) ?? (searching ? undefined : data[DEFAULT_SORT_DATA])));
     this.filters.initializeFromParams(params);
-    if (params.has('search') && params.get('search') !== '') {
+    if (searching) {
       this.currentSearch.set(params.get('search') as string);
       const { predicate } = this.sortState();
       if (predicate && BlogPost.NOT_SORTABLE_FIELDS_AFTER_SEARCH.includes(predicate)) {

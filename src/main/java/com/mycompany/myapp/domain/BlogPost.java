@@ -15,6 +15,8 @@ import java.util.Set;
 @Entity
 @Table(name = "blog_post")
 @org.springframework.data.elasticsearch.annotations.Document(indexName = "blogpost")
+// Sửa tay: analyzer tiếng Việt (không dấu, bỏ HTML). Đổi file này thì phải reindex blogpost.
+@org.springframework.data.elasticsearch.annotations.Setting(settingPath = "config/elasticsearch/blogpost-settings.json")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class BlogPost implements Serializable {
 
@@ -38,11 +40,18 @@ public class BlogPost implements Serializable {
     @NotNull
     @Size(max = 500)
     @Column(name = "title", length = 500, nullable = false)
+    // Sửa tay: title tìm không dấu; title.exact giữ dấu để bài đúng dấu xếp trước; title.keyword để sắp xếp
     @org.springframework.data.elasticsearch.annotations.MultiField(
         mainField = @org.springframework.data.elasticsearch.annotations.Field(
-            type = org.springframework.data.elasticsearch.annotations.FieldType.Text
+            type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+            analyzer = "vi_folding"
         ),
         otherFields = {
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "exact",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_exact"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
@@ -70,15 +79,19 @@ public class BlogPost implements Serializable {
 
     @Lob
     @Column(name = "content")
+    // Sửa tay: nội dung là HTML, bỏ thẻ khi index (html_strip) rồi tìm không dấu; .exact giữ dấu
     @org.springframework.data.elasticsearch.annotations.MultiField(
         mainField = @org.springframework.data.elasticsearch.annotations.Field(
-            type = org.springframework.data.elasticsearch.annotations.FieldType.Text
+            type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+            analyzer = "vi_html_folding",
+            searchAnalyzer = "vi_folding"
         ),
         otherFields = {
             @org.springframework.data.elasticsearch.annotations.InnerField(
-                suffix = "keyword",
-                type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
-                ignoreAbove = 256
+                suffix = "exact",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_html_exact",
+                searchAnalyzer = "vi_exact"
             ),
         }
     )
@@ -86,15 +99,19 @@ public class BlogPost implements Serializable {
 
     @Lob
     @Column(name = "excerpt")
+    // Sửa tay: nội dung là HTML, bỏ thẻ khi index (html_strip) rồi tìm không dấu; .exact giữ dấu
     @org.springframework.data.elasticsearch.annotations.MultiField(
         mainField = @org.springframework.data.elasticsearch.annotations.Field(
-            type = org.springframework.data.elasticsearch.annotations.FieldType.Text
+            type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+            analyzer = "vi_html_folding",
+            searchAnalyzer = "vi_folding"
         ),
         otherFields = {
             @org.springframework.data.elasticsearch.annotations.InnerField(
-                suffix = "keyword",
-                type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
-                ignoreAbove = 256
+                suffix = "exact",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_html_exact",
+                searchAnalyzer = "vi_exact"
             ),
         }
     )
@@ -200,6 +217,30 @@ public class BlogPost implements Serializable {
     // Sửa tay: không ghi quan hệ vào Elasticsearch (tránh lazy-load khi reindex)
     @org.springframework.data.annotation.Transient
     private Set<Tag> tags = new HashSet<>();
+
+    // Sửa tay: các field dưới chỉ có trong Elasticsearch (không phải cột DB), do BlogPostSearchFields điền trước khi index.
+    // categoryIds gồm cả id danh mục cha, để lọc theo một nhánh cây danh mục.
+    @jakarta.persistence.Transient
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
+    private Set<Long> categoryIds = new HashSet<>();
+
+    @jakarta.persistence.Transient
+    @org.springframework.data.elasticsearch.annotations.Field(
+        type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+        analyzer = "vi_folding"
+    )
+    private Set<String> categoryNames = new HashSet<>();
+
+    @jakarta.persistence.Transient
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
+    private Set<Long> tagIds = new HashSet<>();
+
+    @jakarta.persistence.Transient
+    @org.springframework.data.elasticsearch.annotations.Field(
+        type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+        analyzer = "vi_folding"
+    )
+    private Set<String> tagNames = new HashSet<>();
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
@@ -416,6 +457,38 @@ public class BlogPost implements Serializable {
     public BlogPost removeTag(Tag tag) {
         this.tags.remove(tag);
         return this;
+    }
+
+    public Set<Long> getCategoryIds() {
+        return categoryIds;
+    }
+
+    public void setCategoryIds(Set<Long> categoryIds) {
+        this.categoryIds = categoryIds;
+    }
+
+    public Set<String> getCategoryNames() {
+        return categoryNames;
+    }
+
+    public void setCategoryNames(Set<String> categoryNames) {
+        this.categoryNames = categoryNames;
+    }
+
+    public Set<Long> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(Set<Long> tagIds) {
+        this.tagIds = tagIds;
+    }
+
+    public Set<String> getTagNames() {
+        return tagNames;
+    }
+
+    public void setTagNames(Set<String> tagNames) {
+        this.tagNames = tagNames;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here

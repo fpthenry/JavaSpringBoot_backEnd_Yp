@@ -8,6 +8,8 @@ import com.mycompany.myapp.domain.Listing;
 import com.mycompany.myapp.domain.Location;
 import com.mycompany.myapp.domain.Tag;
 import com.mycompany.myapp.domain.User;
+import com.mycompany.myapp.repository.BlogPostRepository;
+import com.mycompany.myapp.repository.search.BlogPostSearchFields;
 import jakarta.annotation.PreDestroy;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
@@ -66,6 +68,8 @@ public class ElasticsearchReindexService {
     private final TransactionTemplate readOnlyTransaction;
     private final ElasticsearchTemplate elasticsearchTemplate;
     private final ElasticsearchClient elasticsearchClient;
+    private final BlogPostRepository blogPostRepository;
+    private final BlogPostSearchFields blogPostSearchFields;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "elasticsearch-reindex");
@@ -79,13 +83,17 @@ public class ElasticsearchReindexService {
         EntityManager entityManager,
         PlatformTransactionManager transactionManager,
         ElasticsearchTemplate elasticsearchTemplate,
-        ElasticsearchClient elasticsearchClient
+        ElasticsearchClient elasticsearchClient,
+        BlogPostRepository blogPostRepository,
+        BlogPostSearchFields blogPostSearchFields
     ) {
         this.entityManager = entityManager;
         this.readOnlyTransaction = new TransactionTemplate(transactionManager);
         this.readOnlyTransaction.setReadOnly(true);
         this.elasticsearchTemplate = elasticsearchTemplate;
         this.elasticsearchClient = elasticsearchClient;
+        this.blogPostRepository = blogPostRepository;
+        this.blogPostSearchFields = blogPostSearchFields;
     }
 
     /**
@@ -221,7 +229,7 @@ public class ElasticsearchReindexService {
                         .getResultList();
                     // Ghi ES trong transaction để field lazy (nếu có) vẫn đọc được, rồi giải phóng bộ nhớ Hibernate
                     if (!rows.isEmpty()) {
-                        elasticsearchTemplate.save(new ArrayList<>(rows));
+                        elasticsearchTemplate.save(prepareForIndex(rows));
                     }
                     List<Object> ids = rows
                         .stream()
@@ -245,6 +253,15 @@ public class ElasticsearchReindexService {
         }
         indexOps.refresh();
         LOG.info("Reindex {} xong trong {}", name, Duration.between(start, Instant.now()));
+    }
+
+    /** Bài viết: nạp danh mục, thẻ (2 câu query cho cả lô) rồi điền các field chỉ có trong ES. Entity khác giữ nguyên. */
+    private List<?> prepareForIndex(List<?> rows) {
+        if (rows.get(0) instanceof BlogPost) {
+            List<BlogPost> posts = rows.stream().map(BlogPost.class::cast).toList();
+            return blogPostSearchFields.fill(new ArrayList<>(blogPostRepository.fetchBagRelationships(posts)));
+        }
+        return new ArrayList<>(rows);
     }
 
     private void setRefreshInterval(String indexName, String interval) throws IOException {

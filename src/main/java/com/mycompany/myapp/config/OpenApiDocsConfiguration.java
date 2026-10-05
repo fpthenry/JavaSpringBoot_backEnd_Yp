@@ -77,6 +77,7 @@ public class OpenApiDocsConfiguration {
         Map.entry("POST /api/account/reset-password/finish", "Đặt lại mật khẩu bằng key trong email"),
         Map.entry("GET /api/users", "Danh sách người dùng công khai"),
         Map.entry("GET /api/users/_search/{query}", "Tìm người dùng (Elasticsearch)"),
+        Map.entry("GET /api/blog-posts/_search", "Tìm bài viết (Elasticsearch, không dấu), lọc theo danh mục, thẻ, trạng thái"),
         Map.entry("GET /api/admin/users", "Danh sách người dùng (quản trị)"),
         Map.entry("POST /api/admin/users", "Tạo người dùng"),
         Map.entry("PUT /api/admin/users", "Cập nhật người dùng"),
