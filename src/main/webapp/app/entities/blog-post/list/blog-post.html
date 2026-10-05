@@ -147,6 +147,14 @@
                 <fa-icon class="p-1" icon="sort" />
               </div>
             </th>
+            <th scope="col" jhiSortBy="authorName">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.authorName">Author Name</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
             <th scope="col"></th>
           </tr>
         </thead>
@@ -167,6 +175,7 @@
               <td>{{ blogPost.publishedAt | formatMediumDatetime }}</td>
               <td>{{ blogPost.createdAt | formatMediumDatetime }}</td>
               <td>{{ blogPost.updatedAt | formatMediumDatetime }}</td>
+              <td>{{ blogPost.authorName }}</td>
               <td class="text-end">
                 <div class="btn-group">
                   <a [routerLink]="['/blog-post', blogPost.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">

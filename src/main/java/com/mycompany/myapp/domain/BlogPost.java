@@ -1,10 +1,13 @@
 package com.mycompany.myapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Bài viết tin tức (bảng blog_post)
@@ -27,8 +30,8 @@ public class BlogPost implements Serializable {
     /**
      * wp_posts.ID
      */
-    @NotNull
-    @Column(name = "wp_id", nullable = false, unique = true)
+    // Sửa tay: bài soạn mới trên trang quản trị không có id WordPress, nên wpId không bắt buộc
+    @Column(name = "wp_id", unique = true)
     @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
     private Long wpId;
 
@@ -97,6 +100,9 @@ public class BlogPost implements Serializable {
     )
     private String excerpt;
 
+    /**
+     * URL ảnh đại diện (featured image)
+     */
     @Size(max = 500)
     @Column(name = "thumbnail", length = 500)
     @org.springframework.data.elasticsearch.annotations.MultiField(
@@ -153,6 +159,47 @@ public class BlogPost implements Serializable {
         format = org.springframework.data.elasticsearch.annotations.DateFormat.date_time
     )
     private Instant updatedAt;
+
+    /**
+     * Tên tác giả trên WordPress, vd: ADMIN HCM
+     */
+    @Size(max = 255)
+    @Column(name = "author_name", length = 255)
+    @org.springframework.data.elasticsearch.annotations.MultiField(
+        mainField = @org.springframework.data.elasticsearch.annotations.Field(
+            type = org.springframework.data.elasticsearch.annotations.FieldType.Text
+        ),
+        otherFields = {
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "keyword",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
+                ignoreAbove = 256
+            ),
+        }
+    )
+    private String authorName;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "rel_blog_post__category",
+        joinColumns = @JoinColumn(name = "blog_post_id"),
+        inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    @JsonIgnoreProperties(value = { "parent", "blogPosts" }, allowSetters = true)
+    // Sửa tay: không ghi quan hệ vào Elasticsearch (tránh lazy-load khi reindex)
+    @org.springframework.data.annotation.Transient
+    private Set<BlogCategory> categories = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "rel_blog_post__tag",
+        joinColumns = @JoinColumn(name = "blog_post_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @JsonIgnoreProperties(value = { "blogPosts" }, allowSetters = true)
+    // Sửa tay: không ghi quan hệ vào Elasticsearch (tránh lazy-load khi reindex)
+    @org.springframework.data.annotation.Transient
+    private Set<Tag> tags = new HashSet<>();
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
@@ -312,6 +359,65 @@ public class BlogPost implements Serializable {
         this.updatedAt = updatedAt;
     }
 
+    public String getAuthorName() {
+        return this.authorName;
+    }
+
+    public BlogPost authorName(String authorName) {
+        this.setAuthorName(authorName);
+        return this;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
+    }
+
+    public Set<BlogCategory> getCategories() {
+        return this.categories;
+    }
+
+    public void setCategories(Set<BlogCategory> blogCategories) {
+        this.categories = blogCategories;
+    }
+
+    public BlogPost categories(Set<BlogCategory> blogCategories) {
+        this.setCategories(blogCategories);
+        return this;
+    }
+
+    public BlogPost addCategory(BlogCategory blogCategory) {
+        this.categories.add(blogCategory);
+        return this;
+    }
+
+    public BlogPost removeCategory(BlogCategory blogCategory) {
+        this.categories.remove(blogCategory);
+        return this;
+    }
+
+    public Set<Tag> getTags() {
+        return this.tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
+    }
+
+    public BlogPost tags(Set<Tag> tags) {
+        this.setTags(tags);
+        return this;
+    }
+
+    public BlogPost addTag(Tag tag) {
+        this.tags.add(tag);
+        return this;
+    }
+
+    public BlogPost removeTag(Tag tag) {
+        this.tags.remove(tag);
+        return this;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -347,6 +453,7 @@ public class BlogPost implements Serializable {
             ", publishedAt='" + getPublishedAt() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +
+            ", authorName='" + getAuthorName() + "'" +
             "}";
     }
 }

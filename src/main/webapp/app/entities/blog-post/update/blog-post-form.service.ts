@@ -30,7 +30,7 @@ type BlogPostFormRawValue = FormValueOf<IBlogPost>;
 
 type NewBlogPostFormRawValue = FormValueOf<NewBlogPost>;
 
-type BlogPostFormDefaults = Pick<NewBlogPost, 'id' | 'publishedAt' | 'createdAt' | 'updatedAt'>;
+type BlogPostFormDefaults = Pick<NewBlogPost, 'id' | 'publishedAt' | 'createdAt' | 'updatedAt' | 'categories' | 'tags'>;
 
 type BlogPostFormGroupContent = {
   id: FormControl<BlogPostFormRawValue['id'] | NewBlogPost['id']>;
@@ -45,6 +45,9 @@ type BlogPostFormGroupContent = {
   publishedAt: FormControl<BlogPostFormRawValue['publishedAt']>;
   createdAt: FormControl<BlogPostFormRawValue['createdAt']>;
   updatedAt: FormControl<BlogPostFormRawValue['updatedAt']>;
+  authorName: FormControl<BlogPostFormRawValue['authorName']>;
+  categories: FormControl<BlogPostFormRawValue['categories']>;
+  tags: FormControl<BlogPostFormRawValue['tags']>;
 };
 
 export type BlogPostFormGroup = FormGroup<BlogPostFormGroupContent>;
@@ -86,6 +89,11 @@ export class BlogPostFormService {
       publishedAt: new FormControl(blogPostRawValue.publishedAt),
       createdAt: new FormControl(blogPostRawValue.createdAt),
       updatedAt: new FormControl(blogPostRawValue.updatedAt),
+      authorName: new FormControl(blogPostRawValue.authorName, {
+        validators: [Validators.maxLength(255)],
+      }),
+      categories: new FormControl(blogPostRawValue.categories ?? []),
+      tags: new FormControl(blogPostRawValue.tags ?? []),
     });
   }
 
@@ -109,6 +117,8 @@ export class BlogPostFormService {
       publishedAt: currentTime,
       createdAt: currentTime,
       updatedAt: currentTime,
+      categories: [],
+      tags: [],
     };
   }
 
@@ -129,6 +139,8 @@ export class BlogPostFormService {
       publishedAt: blogPost.publishedAt ? blogPost.publishedAt.format(DATE_TIME_FORMAT) : undefined,
       createdAt: blogPost.createdAt ? blogPost.createdAt.format(DATE_TIME_FORMAT) : undefined,
       updatedAt: blogPost.updatedAt ? blogPost.updatedAt.format(DATE_TIME_FORMAT) : undefined,
+      categories: blogPost.categories ?? [],
+      tags: blogPost.tags ?? [],
     };
   }
 }

@@ -1,9 +1,12 @@
 package com.mycompany.myapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Thẻ (bảng tag)
@@ -63,6 +66,11 @@ public class Tag implements Serializable {
     )
     private String slug;
 
+    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "tags")
+    @org.springframework.data.annotation.Transient
+    @JsonIgnoreProperties(value = { "categories", "tags" }, allowSetters = true)
+    private Set<BlogPost> blogPosts = new HashSet<>();
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -115,6 +123,37 @@ public class Tag implements Serializable {
 
     public void setSlug(String slug) {
         this.slug = slug;
+    }
+
+    public Set<BlogPost> getBlogPosts() {
+        return this.blogPosts;
+    }
+
+    public void setBlogPosts(Set<BlogPost> blogPosts) {
+        if (this.blogPosts != null) {
+            this.blogPosts.forEach(i -> i.removeTag(this));
+        }
+        if (blogPosts != null) {
+            blogPosts.forEach(i -> i.addTag(this));
+        }
+        this.blogPosts = blogPosts;
+    }
+
+    public Tag blogPosts(Set<BlogPost> blogPosts) {
+        this.setBlogPosts(blogPosts);
+        return this;
+    }
+
+    public Tag addBlogPost(BlogPost blogPost) {
+        this.blogPosts.add(blogPost);
+        blogPost.getTags().add(this);
+        return this;
+    }
+
+    public Tag removeBlogPost(BlogPost blogPost) {
+        this.blogPosts.remove(blogPost);
+        blogPost.getTags().remove(this);
+        return this;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here

@@ -76,11 +76,15 @@ public class BlogPostServiceImpl implements BlogPostService {
             .map(blogPostMapper::toDto);
     }
 
+    public Page<BlogPostDTO> findAllWithEagerRelationships(Pageable pageable) {
+        return blogPostRepository.findAllWithEagerRelationships(pageable).map(blogPostMapper::toDto);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Optional<BlogPostDTO> findOne(Long id) {
         LOG.debug("Request to get BlogPost : {}", id);
-        return blogPostRepository.findById(id).map(blogPostMapper::toDto);
+        return blogPostRepository.findOneWithEagerRelationships(id).map(blogPostMapper::toDto);
     }
 
     @Override

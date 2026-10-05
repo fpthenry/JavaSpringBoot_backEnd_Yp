@@ -1,6 +1,7 @@
 package com.mycompany.myapp.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import com.mycompany.myapp.domain.BlogCategory;
 import com.mycompany.myapp.domain.BlogPost;
 import com.mycompany.myapp.domain.Category;
 import com.mycompany.myapp.domain.Listing;
@@ -54,6 +55,7 @@ public class ElasticsearchReindexService {
         entities.put("category", Category.class);
         entities.put("location", Location.class);
         entities.put("tag", Tag.class);
+        entities.put("blogcategory", BlogCategory.class);
         entities.put("blogpost", BlogPost.class);
         entities.put("user", User.class);
         entities.put("listing", Listing.class);

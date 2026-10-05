@@ -30,8 +30,37 @@
       "publishedAt": "Published At",
       "createdAt": "Created At",
       "updatedAt": "Updated At",
+      "authorName": "Author Name",
+      "category": "Category",
+      "tag": "Tag",
       "help": {
-        "wpId": "wp_posts.ID"
+        "wpId": "wp_posts.ID",
+        "thumbnail": "URL ảnh đại diện (featured image)",
+        "authorName": "Tên tác giả trên WordPress, vd: ADMIN HCM"
+      },
+      "editor": {
+        "newTitle": "Thêm bài viết",
+        "editTitle": "Sửa bài viết",
+        "backToList": "Danh sách bài viết",
+        "titlePlaceholder": "Thêm tiêu đề",
+        "slug": "Đường dẫn",
+        "excerpt": "Tóm tắt",
+        "excerptHint": "Đoạn mô tả ngắn hiển thị ở danh sách bài viết (không bắt buộc)",
+        "publishBox": "Xuất bản",
+        "status": "Trạng thái",
+        "published": "Đã xuất bản",
+        "draft": "Bản nháp",
+        "publishedAt": "Ngày đăng",
+        "author": "Tác giả",
+        "saveDraft": "Lưu nháp",
+        "publish": "Xuất bản",
+        "categories": "Danh mục",
+        "tags": "Thẻ",
+        "search": "Tìm...",
+        "noCategory": "Không có danh mục",
+        "thumbnail": "Ảnh đại diện",
+        "thumbnailUrl": "Dán link ảnh (https://...)",
+        "pickFromContent": "Chọn ảnh trong bài"
       }
     }
   }

@@ -44,6 +44,12 @@ public class BlogPostCriteria implements Serializable, Criteria {
 
     private InstantFilter updatedAt;
 
+    private StringFilter authorName;
+
+    private LongFilter categoryId;
+
+    private LongFilter tagId;
+
     private Boolean distinct;
 
     public BlogPostCriteria() {}
@@ -59,6 +65,9 @@ public class BlogPostCriteria implements Serializable, Criteria {
         this.publishedAt = other.optionalPublishedAt().map(InstantFilter::copy).orElse(null);
         this.createdAt = other.optionalCreatedAt().map(InstantFilter::copy).orElse(null);
         this.updatedAt = other.optionalUpdatedAt().map(InstantFilter::copy).orElse(null);
+        this.authorName = other.optionalAuthorName().map(StringFilter::copy).orElse(null);
+        this.categoryId = other.optionalCategoryId().map(LongFilter::copy).orElse(null);
+        this.tagId = other.optionalTagId().map(LongFilter::copy).orElse(null);
         this.distinct = other.distinct;
     }
 
@@ -257,6 +266,63 @@ public class BlogPostCriteria implements Serializable, Criteria {
         this.updatedAt = updatedAt;
     }
 
+    public StringFilter getAuthorName() {
+        return authorName;
+    }
+
+    public Optional<StringFilter> optionalAuthorName() {
+        return Optional.ofNullable(authorName);
+    }
+
+    public StringFilter authorName() {
+        if (authorName == null) {
+            setAuthorName(new StringFilter());
+        }
+        return authorName;
+    }
+
+    public void setAuthorName(StringFilter authorName) {
+        this.authorName = authorName;
+    }
+
+    public LongFilter getCategoryId() {
+        return categoryId;
+    }
+
+    public Optional<LongFilter> optionalCategoryId() {
+        return Optional.ofNullable(categoryId);
+    }
+
+    public LongFilter categoryId() {
+        if (categoryId == null) {
+            setCategoryId(new LongFilter());
+        }
+        return categoryId;
+    }
+
+    public void setCategoryId(LongFilter categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public LongFilter getTagId() {
+        return tagId;
+    }
+
+    public Optional<LongFilter> optionalTagId() {
+        return Optional.ofNullable(tagId);
+    }
+
+    public LongFilter tagId() {
+        if (tagId == null) {
+            setTagId(new LongFilter());
+        }
+        return tagId;
+    }
+
+    public void setTagId(LongFilter tagId) {
+        this.tagId = tagId;
+    }
+
     public Boolean getDistinct() {
         return distinct;
     }
@@ -296,13 +362,31 @@ public class BlogPostCriteria implements Serializable, Criteria {
             Objects.equals(publishedAt, that.publishedAt) &&
             Objects.equals(createdAt, that.createdAt) &&
             Objects.equals(updatedAt, that.updatedAt) &&
+            Objects.equals(authorName, that.authorName) &&
+            Objects.equals(categoryId, that.categoryId) &&
+            Objects.equals(tagId, that.tagId) &&
             Objects.equals(distinct, that.distinct)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, wpId, title, slug, thumbnail, status, viewCount, publishedAt, createdAt, updatedAt, distinct);
+        return Objects.hash(
+            id,
+            wpId,
+            title,
+            slug,
+            thumbnail,
+            status,
+            viewCount,
+            publishedAt,
+            createdAt,
+            updatedAt,
+            authorName,
+            categoryId,
+            tagId,
+            distinct
+        );
     }
 
     // prettier-ignore
@@ -319,6 +403,9 @@ public class BlogPostCriteria implements Serializable, Criteria {
             optionalPublishedAt().map(f -> "publishedAt=" + f + ", ").orElse("") +
             optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
             optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
+            optionalAuthorName().map(f -> "authorName=" + f + ", ").orElse("") +
+            optionalCategoryId().map(f -> "categoryId=" + f + ", ").orElse("") +
+            optionalTagId().map(f -> "tagId=" + f + ", ").orElse("") +
             optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
         "}";
     }

@@ -24,7 +24,8 @@ const blogPostRoute: Routes = [
   },
   {
     path: 'new',
-    loadComponent: () => import('./update/blog-post-update').then(m => m.BlogPostUpdate),
+    // Sửa tay: trang soạn bài kiểu WordPress thay cho form JHipster
+    loadComponent: () => import('./editor/blog-post-editor').then(m => m.BlogPostEditor),
     resolve: {
       blogPost: BlogPostResolve,
     },
@@ -32,7 +33,8 @@ const blogPostRoute: Routes = [
   },
   {
     path: ':id/edit',
-    loadComponent: () => import('./update/blog-post-update').then(m => m.BlogPostUpdate),
+    // Sửa tay: trang soạn bài kiểu WordPress thay cho form JHipster
+    loadComponent: () => import('./editor/blog-post-editor').then(m => m.BlogPostEditor),
     resolve: {
       blogPost: BlogPostResolve,
     },

@@ -86,7 +86,13 @@
 
         @let thumbnailRef = editForm.get('thumbnail')!;
         <div class="mb-3">
-          <label class="form-label" for="field_thumbnail" jhiTranslate="javaSpringBootBackEndApp.blogPost.thumbnail">Thumbnail</label>
+          <label
+            class="form-label"
+            for="field_thumbnail"
+            [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.thumbnail' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.blogPost.thumbnail"
+            >Thumbnail</label
+          >
           <input type="text" class="form-control" name="thumbnail" id="field_thumbnail" data-cy="thumbnail" formControlName="thumbnail" />
           @if (thumbnailRef.invalid && (thumbnailRef.dirty || thumbnailRef.touched)) {
             <div>
@@ -164,6 +170,60 @@
               placeholder="YYYY-MM-DD HH:mm"
             />
           </div>
+        </div>
+
+        @let authorNameRef = editForm.get('authorName')!;
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_authorName"
+            [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.authorName' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.blogPost.authorName"
+            >Author Name</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            name="authorName"
+            id="field_authorName"
+            data-cy="authorName"
+            formControlName="authorName"
+          />
+          @if (authorNameRef.invalid && (authorNameRef.dirty || authorNameRef.touched)) {
+            <div>
+              @if (authorNameRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
+                  >This field cannot be longer than 255 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label for="field_categories" jhiTranslate="javaSpringBootBackEndApp.blogPost.category">Category</label>
+          <select
+            class="form-control"
+            id="field_categories"
+            data-cy="category"
+            multiple
+            name="categories"
+            formControlName="categories"
+            [compareWith]="compareBlogCategory"
+          >
+            @for (blogCategoryOption of blogCategoriesSharedCollection(); track $index) {
+              <option [ngValue]="blogCategoryOption">{{ blogCategoryOption.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="field_tags" jhiTranslate="javaSpringBootBackEndApp.blogPost.tag">Tag</label>
+          <select class="form-control" id="field_tags" data-cy="tag" multiple name="tags" formControlName="tags" [compareWith]="compareTag">
+            @for (tagOption of tagsSharedCollection(); track $index) {
+              <option [ngValue]="tagOption">{{ tagOption.name }}</option>
+            }
+          </select>
         </div>
       </div>
 

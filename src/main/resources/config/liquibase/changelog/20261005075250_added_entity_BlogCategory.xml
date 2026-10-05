@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Added the entity BlogCategory.
+    -->
+    <changeSet id="20261005075250-1" author="jhipster">
+        <createTable tableName="blog_category" remarks="Danh mục bài viết (taxonomy category của WordPress), dạng cây">
+            <column name="id" type="bigint" autoIncrement="true" startWith="1500">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="wp_term_id" type="bigint" remarks="wp_terms.term_id">
+                <constraints nullable="true" unique="true" uniqueConstraintName="ux_blog_category__wp_term_id" />
+            </column>
+            <column name="name" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="slug" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="description" type="${clobType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="post_count" type="integer" remarks="Số bài viết theo WordPress">
+                <constraints nullable="true" />
+            </column>
+            <column name="parent_id" type="bigint">
+                <constraints nullable="true" />
+            </column>
+            <!-- jhipster-needle-liquibase-add-column - JHipster will add columns here -->
+        </createTable>
+    </changeSet>
+
+    <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
+
+    <!-- Sửa tay: bỏ dữ liệu giả (faker); danh mục được đồng bộ từ WordPress -->
+</databaseChangeLog>

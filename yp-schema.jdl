@@ -122,8 +122,8 @@ entity Location(location) {
 
 /** Bài viết tin tức (bảng blog_post) */
 entity BlogPost(blog_post) {
-    /** wp_posts.ID */
-    wpId Long required unique
+    /** wp_posts.ID; để trống với bài soạn mới trên trang quản trị */
+    wpId Long unique
     title String required maxlength(500)
     slug String maxlength(500)
     content TextBlob

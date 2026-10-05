@@ -34,6 +34,7 @@
       "fieldType": "TextBlob"
     },
     {
+      "documentation": "URL ảnh đại diện (featured image)",
       "fieldName": "thumbnail",
       "fieldType": "String",
       "fieldValidateRules": ["maxlength"],
@@ -60,12 +61,35 @@
     {
       "fieldName": "updatedAt",
       "fieldType": "Instant"
+    },
+    {
+      "documentation": "Tên tác giả trên WordPress, vd: ADMIN HCM",
+      "fieldName": "authorName",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "255"
     }
   ],
+  "incrementalChangelog": false,
   "jpaMetamodelFiltering": true,
   "name": "BlogPost",
   "pagination": "pagination",
-  "relationships": [],
+  "relationships": [
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "blogCategory",
+      "relationshipName": "category",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-many"
+    },
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "tag",
+      "relationshipName": "tag",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-many"
+    }
+  ],
   "searchEngine": "elasticsearch",
   "service": "serviceImpl"
 }

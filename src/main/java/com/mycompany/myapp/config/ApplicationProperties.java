@@ -15,6 +15,8 @@ public class ApplicationProperties {
 
     private final PublicApi publicApi = new PublicApi();
 
+    private final WordPress wordpress = new WordPress();
+
     // jhipster-needle-application-properties-property
 
     public Liquibase getLiquibase() {
@@ -23,6 +25,10 @@ public class ApplicationProperties {
 
     public PublicApi getPublicApi() {
         return publicApi;
+    }
+
+    public WordPress getWordpress() {
+        return wordpress;
     }
 
     // jhipster-needle-application-properties-property-getter
@@ -56,6 +62,34 @@ public class ApplicationProperties {
 
         public void setAsyncStart(Boolean asyncStart) {
             this.asyncStart = asyncStart;
+        }
+    }
+
+    /**
+     * Site WordPress cũ để đồng bộ bài viết (REST API dạng {@code ?rest_route=/wp/v2/...}).
+     */
+    public static class WordPress {
+
+        /** Địa chỉ site, vd https://yp.com.vn */
+        private String baseUrl = "https://yp.com.vn";
+
+        /** Số bản ghi mỗi request (tối đa 100 theo WordPress) */
+        private int pageSize = 100;
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public int getPageSize() {
+            return pageSize;
+        }
+
+        public void setPageSize(int pageSize) {
+            this.pageSize = pageSize;
         }
     }
 

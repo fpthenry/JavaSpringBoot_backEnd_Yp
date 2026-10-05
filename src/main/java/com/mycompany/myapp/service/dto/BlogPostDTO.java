@@ -5,7 +5,9 @@ import jakarta.persistence.Lob;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * A DTO for the {@link com.mycompany.myapp.domain.BlogPost} entity.
@@ -16,8 +18,8 @@ public class BlogPostDTO implements Serializable {
 
     private Long id;
 
-    @NotNull
-    @Schema(description = "wp_posts.ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    // Sửa tay: không bắt buộc (bài soạn mới không có id WordPress)
+    @Schema(description = "wp_posts.ID; null với bài soạn mới trên trang quản trị")
     private Long wpId;
 
     @NotNull
@@ -34,6 +36,7 @@ public class BlogPostDTO implements Serializable {
     private String excerpt;
 
     @Size(max = 500)
+    @Schema(description = "URL ảnh đại diện (featured image)")
     private String thumbnail;
 
     @Size(max = 50)
@@ -46,6 +49,14 @@ public class BlogPostDTO implements Serializable {
     private Instant createdAt;
 
     private Instant updatedAt;
+
+    @Size(max = 255)
+    @Schema(description = "Tên tác giả trên WordPress, vd: ADMIN HCM")
+    private String authorName;
+
+    private Set<BlogCategoryDTO> categories = new HashSet<>();
+
+    private Set<TagDTO> tags = new HashSet<>();
 
     public Long getId() {
         return id;
@@ -143,6 +154,30 @@ public class BlogPostDTO implements Serializable {
         this.updatedAt = updatedAt;
     }
 
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
+    }
+
+    public Set<BlogCategoryDTO> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Set<BlogCategoryDTO> categories) {
+        this.categories = categories;
+    }
+
+    public Set<TagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<TagDTO> tags) {
+        this.tags = tags;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -180,6 +215,9 @@ public class BlogPostDTO implements Serializable {
             ", publishedAt='" + getPublishedAt() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +
+            ", authorName='" + getAuthorName() + "'" +
+            ", categories=" + getCategories() +
+            ", tags=" + getTags() +
             "}";
     }
 }

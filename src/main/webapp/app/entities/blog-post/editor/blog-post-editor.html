@@ -1,0 +1,201 @@
+<form name="editForm" novalidate [formGroup]="editForm" (ngSubmit)="publish()">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 id="jhi-blog-post-heading" data-cy="BlogPostCreateUpdateHeading" class="mb-0">
+      {{
+        (original?.id ? 'javaSpringBootBackEndApp.blogPost.editor.editTitle' : 'javaSpringBootBackEndApp.blogPost.editor.newTitle')
+          | translate
+      }}
+    </h2>
+    <a class="btn btn-outline-secondary btn-sm" routerLink="/blog-post">
+      <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.backToList">Danh sách bài viết</span>
+    </a>
+  </div>
+
+  <jhi-alert-error />
+
+  <div class="row g-4">
+    <!-- Cột chính: tiêu đề, đường dẫn, nội dung, tóm tắt -->
+    <div class="col-lg-9">
+      <input
+        type="text"
+        class="form-control form-control-lg mb-2"
+        formControlName="title"
+        data-cy="title"
+        [placeholder]="'javaSpringBootBackEndApp.blogPost.editor.titlePlaceholder' | translate"
+        [class.is-invalid]="editForm.controls.title.invalid && editForm.controls.title.touched"
+      />
+      @if (editForm.controls.title.invalid && editForm.controls.title.touched) {
+        <div class="invalid-feedback d-block" jhiTranslate="entity.validation.required">Bắt buộc nhập.</div>
+      }
+
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.slug">Đường dẫn</span>
+        <input type="text" class="form-control" formControlName="slug" data-cy="slug" (input)="onSlugInput()" />
+      </div>
+
+      <jhi-rich-text-editor formControlName="content" />
+
+      <div class="card mt-3">
+        <div class="card-header py-2" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.excerpt">Tóm tắt</div>
+        <div class="card-body p-2">
+          <textarea
+            class="form-control"
+            rows="3"
+            formControlName="excerpt"
+            data-cy="excerpt"
+            [placeholder]="'javaSpringBootBackEndApp.blogPost.editor.excerptHint' | translate"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cột phải: xuất bản, danh mục, thẻ, ảnh đại diện -->
+    <div class="col-lg-3">
+      <div class="card mb-3">
+        <div class="card-header py-2 fw-semibold" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.publishBox">Xuất bản</div>
+        <div class="card-body p-2 small">
+          <div class="mb-2">
+            <span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.status">Trạng thái</span>:
+            <strong>{{
+              (editForm.controls.status.value === 'publish'
+                ? 'javaSpringBootBackEndApp.blogPost.editor.published'
+                : 'javaSpringBootBackEndApp.blogPost.editor.draft'
+              ) | translate
+            }}</strong>
+          </div>
+          <label class="form-label mb-1" for="field_publishedAt" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.publishedAt"
+            >Ngày đăng</label
+          >
+          <input id="field_publishedAt" type="datetime-local" class="form-control form-control-sm mb-2" formControlName="publishedAt" />
+          <label class="form-label mb-1" for="field_authorName" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.author"
+            >Tác giả</label
+          >
+          <input id="field_authorName" type="text" class="form-control form-control-sm mb-2" formControlName="authorName" />
+          @if (original?.wpId; as wpId) {
+            <div class="text-muted mb-2">WordPress ID: {{ wpId }}</div>
+          }
+          <div class="d-flex gap-2">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="saveDraft()"
+              [disabled]="isSaving()"
+              data-cy="entityCreateSaveDraftButton"
+            >
+              <span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.saveDraft">Lưu nháp</span>
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm ms-auto" [disabled]="isSaving()" data-cy="entityCreateSaveButton">
+              <fa-icon icon="save" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.publish">Xuất bản</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header py-2 fw-semibold d-flex justify-content-between">
+          <span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.categories">Danh mục</span>
+          <span class="badge text-bg-secondary">{{ selectedCategoryIds().size }}</span>
+        </div>
+        <div class="card-body p-2">
+          <input
+            type="search"
+            class="form-control form-control-sm mb-2"
+            [ngModel]="categoryFilter()"
+            (ngModelChange)="categoryFilter.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+            [placeholder]="'javaSpringBootBackEndApp.blogPost.editor.search' | translate"
+          />
+          <div class="overflow-auto small" style="max-height: 260px" data-cy="categoryTree">
+            @for (row of categoryRows(); track row.category.id) {
+              <div class="form-check" [style.margin-left.rem]="row.depth * 1.25">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  [id]="'cat_' + row.category.id"
+                  [checked]="isCategoryChecked(row.category.id)"
+                  (change)="toggleCategory(row.category.id)"
+                />
+                <label class="form-check-label" [for]="'cat_' + row.category.id">{{ row.category.name }}</label>
+              </div>
+            } @empty {
+              <div class="text-muted" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.noCategory">Không có danh mục</div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header py-2 fw-semibold d-flex justify-content-between">
+          <span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.tags">Thẻ</span>
+          <span class="badge text-bg-secondary">{{ selectedTagIds().size }}</span>
+        </div>
+        <div class="card-body p-2">
+          <input
+            type="search"
+            class="form-control form-control-sm mb-2"
+            [ngModel]="tagFilter()"
+            (ngModelChange)="tagFilter.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+            [placeholder]="'javaSpringBootBackEndApp.blogPost.editor.search' | translate"
+          />
+          <div class="overflow-auto small" style="max-height: 180px">
+            @for (tag of filteredTags(); track tag.id) {
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  [id]="'tag_' + tag.id"
+                  [checked]="isTagChecked(tag.id)"
+                  (change)="toggleTag(tag.id)"
+                />
+                <label class="form-check-label" [for]="'tag_' + tag.id">{{ tag.name }}</label>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header py-2 fw-semibold" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.thumbnail">Ảnh đại diện</div>
+        <div class="card-body p-2 small">
+          @if (thumbnailValue() || editForm.controls.thumbnail.value; as thumb) {
+            <img [src]="thumb" class="img-fluid rounded border mb-2" alt="thumbnail" />
+          }
+          <input
+            type="url"
+            class="form-control form-control-sm mb-2"
+            formControlName="thumbnail"
+            data-cy="thumbnail"
+            [placeholder]="'javaSpringBootBackEndApp.blogPost.editor.thumbnailUrl' | translate"
+          />
+          <div class="d-flex gap-2">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              [disabled]="contentImages().length === 0"
+              (click)="showContentImages.set(!showContentImages())"
+            >
+              <span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.pickFromContent">Chọn ảnh trong bài</span> ({{
+                contentImages().length
+              }})
+            </button>
+            @if (editForm.controls.thumbnail.value) {
+              <button type="button" class="btn btn-outline-danger btn-sm" (click)="editForm.controls.thumbnail.setValue(null)">
+                <fa-icon icon="times" />
+              </button>
+            }
+          </div>
+          @if (showContentImages()) {
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              @for (url of contentImages(); track url) {
+                <button type="button" class="btn p-0 border" (click)="useAsThumbnail(url)" [title]="url">
+                  <img [src]="url" alt="" style="width: 72px; height: 54px; object-fit: cover" />
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

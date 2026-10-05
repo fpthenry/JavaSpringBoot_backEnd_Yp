@@ -1,0 +1,100 @@
+<div class="rte border rounded" [class.rte-disabled]="disabled()">
+  <div class="rte-toolbar d-flex flex-wrap align-items-center gap-1 p-1 border-bottom bg-body-tertiary">
+    <select
+      class="form-select form-select-sm w-auto"
+      [disabled]="htmlMode() || disabled()"
+      (change)="formatBlock($any($event.target).value); $any($event.target).value = ''"
+      [attr.aria-label]="'entity.richText.format' | translate"
+    >
+      <option value="">{{ 'entity.richText.format' | translate }}</option>
+      @for (format of blockFormats; track format.value) {
+        <option [value]="format.value">{{ format.label | translate }}</option>
+      }
+    </select>
+
+    @for (group of buttons; track $index) {
+      <div class="btn-group btn-group-sm" role="group">
+        @for (button of group; track button.command) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="htmlMode() || disabled()"
+            [title]="button.label | translate"
+            (mousedown)="$event.preventDefault()"
+            (click)="exec(button.command, button.value)"
+          >
+            @if (button.icon) {
+              <fa-icon [icon]="$any(button.icon)" />
+            } @else {
+              <span [class.fw-bold]="button.command === 'bold'" [class.fst-italic]="button.command === 'italic'">{{ button.text }}</span>
+            }
+          </button>
+        }
+      </div>
+    }
+
+    <div class="btn-group btn-group-sm" role="group">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [disabled]="htmlMode() || disabled()"
+        [title]="'entity.richText.link' | translate"
+        (mousedown)="$event.preventDefault()"
+        (click)="insertLink()"
+      >
+        🔗
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [disabled]="htmlMode() || disabled()"
+        [title]="'entity.richText.unlink' | translate"
+        (mousedown)="$event.preventDefault()"
+        (click)="exec('unlink')"
+      >
+        ⛓̸
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        [disabled]="htmlMode() || disabled()"
+        [title]="'entity.richText.image' | translate"
+        (mousedown)="$event.preventDefault()"
+        (click)="insertImage()"
+      >
+        <fa-icon icon="image" />
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-sm ms-auto"
+      [class.btn-secondary]="htmlMode()"
+      [class.btn-outline-secondary]="!htmlMode()"
+      (click)="toggleHtmlMode()"
+    >
+      &lt;/&gt; HTML
+    </button>
+  </div>
+
+  @if (htmlMode()) {
+    <textarea
+      class="form-control rte-source border-0 rounded-0"
+      [ngModel]="html()"
+      (ngModelChange)="onHtmlSourceChange($event)"
+      [disabled]="disabled()"
+      spellcheck="false"
+    ></textarea>
+  } @else {
+    <div
+      #editor
+      class="rte-content p-3"
+      [attr.contenteditable]="!disabled()"
+      (input)="onInput()"
+      (blur)="onBlur()"
+      (paste)="onPaste($event)"
+      data-cy="richTextEditor"
+    ></div>
+  }
+</div>
+<small class="form-text text-muted">{{ 'entity.richText.pasteHint' | translate }}</small>

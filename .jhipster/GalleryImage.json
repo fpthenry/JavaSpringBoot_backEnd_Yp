@@ -65,6 +65,7 @@
       "fieldType": "Boolean"
     }
   ],
+  "incrementalChangelog": false,
   "jpaMetamodelFiltering": true,
   "name": "GalleryImage",
   "pagination": "pagination",

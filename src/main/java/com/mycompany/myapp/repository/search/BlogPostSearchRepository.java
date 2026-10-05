@@ -57,7 +57,7 @@ class BlogPostSearchRepositoryInternalImpl implements BlogPostSearchRepositoryIn
 
     @Override
     public void index(BlogPost entity) {
-        repository.findById(entity.getId()).ifPresent(elasticsearchTemplate::save);
+        repository.findOneWithEagerRelationships(entity.getId()).ifPresent(elasticsearchTemplate::save);
     }
 
     @Override

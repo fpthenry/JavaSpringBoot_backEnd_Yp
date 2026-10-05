@@ -41,7 +41,13 @@
           <dd>
             <span>{{ blogPostRef.excerpt }}</span>
           </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.thumbnail">Thumbnail</span></dt>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.thumbnail' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.blogPost.thumbnail"
+              >Thumbnail</span
+            >
+          </dt>
           <dd>
             <span>{{ blogPostRef.thumbnail }}</span>
           </dd>
@@ -64,6 +70,34 @@
           <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.updatedAt">Updated At</span></dt>
           <dd>
             <span>{{ blogPostRef.updatedAt | formatMediumDatetime }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.authorName' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.blogPost.authorName"
+              >Author Name</span
+            >
+          </dt>
+          <dd>
+            <span>{{ blogPostRef.authorName }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.category">Category</span></dt>
+          <dd>
+            @for (category of blogPostRef.categories; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/blog-category', category.id, 'view']">{{ category?.name }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.tag">Tag</span></dt>
+          <dd>
+            @for (tag of blogPostRef.tags; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/tag', tag.id, 'view']">{{ tag?.name }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
           </dd>
         </dl>
 

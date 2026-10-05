@@ -31,6 +31,9 @@ describe('BlogPost Form Service', () => {
             publishedAt: expect.any(Object),
             createdAt: expect.any(Object),
             updatedAt: expect.any(Object),
+            authorName: expect.any(Object),
+            categories: expect.any(Object),
+            tags: expect.any(Object),
           }),
         );
       });
@@ -52,6 +55,9 @@ describe('BlogPost Form Service', () => {
             publishedAt: expect.any(Object),
             createdAt: expect.any(Object),
             updatedAt: expect.any(Object),
+            authorName: expect.any(Object),
+            categories: expect.any(Object),
+            tags: expect.any(Object),
           }),
         );
       });

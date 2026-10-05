@@ -14,10 +14,11 @@
 8. [Elasticsearch](#8-elasticsearch)
 9. [Xác thực và JWT](#9-xác-thực-và-jwt)
 10. [API công khai cho FE (Next.js)](#10-api-công-khai-cho-fe-nextjs)
-11. [Sinh lại code khi sửa JDL](#11-sinh-lại-code-khi-sửa-jdl)
-12. [Lỗi đã gặp và cách xử lý](#12-lỗi-đã-gặp-và-cách-xử-lý)
-13. [Việc còn tồn đọng](#13-việc-còn-tồn-đọng)
-14. [Lệnh hay dùng](#14-lệnh-hay-dùng)
+11. [Bài viết (Blog): đồng bộ WordPress và trang soạn bài](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)
+12. [Sinh lại code khi sửa JDL](#12-sinh-lại-code-khi-sửa-jdl)
+13. [Lỗi đã gặp và cách xử lý](#13-lỗi-đã-gặp-và-cách-xử-lý)
+14. [Việc còn tồn đọng](#14-việc-còn-tồn-đọng)
+15. [Lệnh hay dùng](#15-lệnh-hay-dùng)
 
 ---
 
@@ -280,11 +281,11 @@ search * with elasticsearch
 | Giới hạn | Cách xử lý |
 |---|---|
 | Bảng nối luôn có tiền tố `rel_` (`rel_listing__category`); JDL không đổi được, vì generator ghi đè tên | Script đồng bộ map `listing_category` → `rel_listing__category` |
-| Không khai báo được index thường (`slug`, `status`, `tax_code`, `api_id`, `is_featured`, `type`) | Viết thêm changelog Liquibase tay (xem [mục 13](#13-việc-còn-tồn-đọng)) |
+| Không khai báo được index thường (`slug`, `status`, `tax_code`, `api_id`, `is_featured`, `type`) | Viết thêm changelog Liquibase tay (xem [mục 14](#14-việc-còn-tồn-đọng)) |
 | Không khai báo được `ON DELETE CASCADE` và `DEFAULT` | Như trên |
 | Không thêm được cột vào entity built-in `User` (`jhi_user.wp_user_id` của nguồn) | Chưa chuyển user từ nguồn |
 | Bảng không có cột `id` làm khóa chính (`staging_listing` dùng `wp_id`) | Không đưa vào app |
-| Comment `/** … */` trên field được chép nguyên vào file i18n JSON **mà không escape** | **Không dùng dấu `"` trong comment JDL** (xem [mục 12](#12-lỗi-đã-gặp-và-cách-xử-lý)) |
+| Comment `/** … */` trên field được chép nguyên vào file i18n JSON **mà không escape** | **Không dùng dấu `"` trong comment JDL** (xem [mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)) |
 
 ---
 
@@ -309,7 +310,7 @@ search * with elasticsearch
 
 1. **`parent_id` ở nguồn trỏ tới `wp_term_id`, không phải `id`.** Ví dụ: `category.parent_id = 523` nghĩa là cha có `wp_term_id = 523`. Khi chép phải tra cha theo `wp_term_id` rồi gán `id` của cha. Đã kiểm tra: 2.354/2.354 category và 15.215/15.215 location có cha đều tìm được cha.
 2. **Giữ nguyên `id` gốc.** Quan hệ và đường dẫn cũ vẫn đúng. Entity dùng `GenerationType.IDENTITY`, nên MySQL tự đẩy `AUTO_INCREMENT` lên sau id lớn nhất.
-3. **Datetime chép nguyên giá trị, không đổi múi giờ.** App đọc `DATETIME` theo UTC (`hibernate.jdbc.time_zone: UTC`). Nếu dữ liệu nguồn là giờ Việt Nam thì giao diện sẽ hiển thị lệch 7 tiếng (xem [mục 13](#13-việc-còn-tồn-đọng)).
+3. **Datetime chép nguyên giá trị, không đổi múi giờ.** App đọc `DATETIME` theo UTC (`hibernate.jdbc.time_zone: UTC`). Nếu dữ liệu nguồn là giờ Việt Nam thì giao diện sẽ hiển thị lệch 7 tiếng (xem [mục 14](#14-việc-còn-tồn-đọng)).
 4. **Ảnh doanh nghiệp chưa dùng được.** `thumbnail` và `images` chỉ chứa ID attachment của WordPress. Muốn có URL ảnh cần thêm dữ liệu `wp_posts.guid` từ WordPress.
 5. **Tiếng Việt** ở nguồn là UTF-8 chuẩn (`utf8mb4`). Dấu `?` thấy trong PowerShell chỉ là lỗi hiển thị của console.
 
@@ -359,7 +360,7 @@ docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/sync_from_jh
 docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/verify_sync.sql
 ```
 
-**Bước 4: reindex Elasticsearch.** Dữ liệu chép bằng SQL không đi qua tầng service nên ES không được cập nhật (xem [mục 13](#13-việc-còn-tồn-đọng)).
+**Bước 4: reindex Elasticsearch.** Dữ liệu chép bằng SQL không đi qua tầng service nên ES không được cập nhật (xem [mục 14](#14-việc-còn-tồn-đọng)).
 
 > Nếu terminal bị ngắt giữa chừng, câu lệnh SQL vẫn chạy tiếp trong MySQL. Kiểm tra bằng `SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE command <> 'Sleep';` trước khi chạy lại, tránh chèn trùng.
 
@@ -490,7 +491,7 @@ Vì vậy `findInTree()` **đếm bằng cấu hình mặc định**, rồi:
 | "Công nghiệp chế biến, chế tạo" (VSIC) | 717.984 | ~8 s |
 | "Bán buôn và bán lẻ…" (VSIC) | 1.088.771 | **~33 s** |
 
-Nhóm VSIC lớn chậm vì **phần đếm** phải loại trùng hàng triệu liên kết (7,7 triệu với "Bán buôn và bán lẻ"). Không chỉnh được bằng cách viết lại truy vấn; hướng xử lý ở [mục 13](#13-việc-còn-tồn-đọng).
+Nhóm VSIC lớn chậm vì **phần đếm** phải loại trùng hàng triệu liên kết (7,7 triệu với "Bán buôn và bán lẻ"). Không chỉnh được bằng cách viết lại truy vấn; hướng xử lý ở [mục 14](#14-việc-còn-tồn-đọng).
 
 ### 7.5 Frontend: component dùng chung `shared/tree`
 
@@ -556,11 +557,11 @@ Backend: kiểm tra thủ công bằng API ở [mục 7.3](#73-api), so với SQ
 
 ### 7.8 Lưu ý và bẫy thường gặp
 
-- **Không map `listings` trong `LocationMapper` / `CategoryMapper`.** JHipster 9.3.0 luôn sinh chiều ngược của ManyToMany. Nếu map, `/api/locations` sẽ tải hàng trăm nghìn doanh nghiệp cho mỗi nút và bị treo. Sau mỗi lần `jhipster jdl --force`, kiểm tra lại (xem [mục 11](#11-sinh-lại-code-khi-sửa-jdl)).
+- **Không map `listings` trong `LocationMapper` / `CategoryMapper`.** JHipster 9.3.0 luôn sinh chiều ngược của ManyToMany. Nếu map, `/api/locations` sẽ tải hàng trăm nghìn doanh nghiệp cho mỗi nút và bị treo. Sau mỗi lần `jhipster jdl --force`, kiểm tra lại (xem [mục 12](#12-sinh-lại-code-khi-sửa-jdl)).
 - **Độ sâu cây đang cố định** trong JPQL `findSubtreeIds`: địa phương 3 cấp, ngành nghề 4 cấp. Dữ liệu sâu hơn sẽ bị thiếu nút con khi lọc.
 - **Mỗi cấp tải tối đa 1.000 nút con** (`CHILDREN_PAGE_SIZE`). Hiện nhiều nhất là 415.
 - **`SET SESSION optimizer_switch` phải luôn được bật lại** (`finally`), nếu không connection trong pool sẽ giữ `semijoin=off` cho các truy vấn khác.
-- **Sắp xếp theo cột không có index** (ví dụ `name`) rất chậm với tập lớn: TP.HCM sắp theo tên mất ~44 s. Cần changelog index (xem [mục 13](#13-việc-còn-tồn-đọng)).
+- **Sắp xếp theo cột không có index** (ví dụ `name`) rất chậm với tập lớn: TP.HCM sắp theo tên mất ~44 s. Cần changelog index (xem [mục 14](#14-việc-còn-tồn-đọng)).
 - **Tên ngành có `&amp;`** (ví dụ `SỨC KHỎE &amp; LÀM ĐẸP`): dữ liệu WordPress lưu sẵn trong `jhipster_vnyp`. Giao diện hiển thị nguyên văn.
 - **Tìm kiếm Elasticsearch không kết hợp với lọc theo cây** (xem [mục 7.3](#73-api)).
 
@@ -722,7 +723,7 @@ Cách làm ([`ElasticsearchReindexService.java`](../src/main/java/com/mycompany/
 | Entity | Tài liệu | Thời gian |
 |---|---:|---:|
 | category, location, tag, blogpost, user | 2.394 / 15.313 / 0 / 2.288 / 2 | **15 s** cho cả 5 |
-| listing | 1.855.619 | **8 phút 14 giây** (2026-10-02, trung bình ~3.760 tài liệu/giây; ES dùng 36–73% CPU, MySQL ~3%). Index 1,2 GB. Lần chạy đầu (2026-10-01) bị ngắt ở 423.000 tài liệu vì app tắt giữa chừng (xem [mục 12](#12-lỗi-đã-gặp-và-cách-xử-lý)). |
+| listing | 1.855.619 | **8 phút 14 giây** (2026-10-02, trung bình ~3.760 tài liệu/giây; ES dùng 36–73% CPU, MySQL ~3%). Index 1,2 GB. Lần chạy đầu (2026-10-01) bị ngắt ở 423.000 tài liệu vì app tắt giữa chừng (xem [mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)). |
 
 #### Biết index đã đủ chưa
 
@@ -1014,14 +1015,100 @@ export async function getGallery(code: string) {
 | Doanh nghiệp liên quan; số doanh nghiệp theo tỉnh trong một ngành | `/listings/{slug}/related`, `/listings/facets` | ✅ | Chưa làm |
 | Ngành nghề (slug, id, chữ cái đầu, con) | `/categories` | ✅ | Chưa làm |
 | Địa phương (cấp 1, con, slug) | `/locations` | ✅ | Chưa làm |
-| Tin tức, sự kiện | `/posts` | ⚠️ Thiếu chuyên mục bài viết | Chờ dữ liệu WordPress |
+| Tin tức, sự kiện | `/posts` | ✅ Đã đồng bộ 2.433 bài, 52 danh mục, 54 thẻ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)) | Chưa làm |
 | Mã ngành (`industry_code`) của ngành nghề | | ⚠️ Không có trong `jhipster_vnyp` | Chờ dữ liệu |
 
 > ⚠️ File Postman của FE cũ chứa **JWT RS256 không có hạn dùng** của hệ thống cũ. Không commit hay gửi file này; nên thu hồi hoặc đổi khóa ở hệ thống cũ.
 
 ---
 
-## 11. Sinh lại code khi sửa JDL
+## 11. Bài viết (Blog): đồng bộ WordPress và trang soạn bài
+
+> Làm ngày 2026-10-05. Thay cho mục Bài viết trên WordPress (`yp.com.vn/wp-admin/edit.php`): tiêu đề, nội dung dán từ website hoặc Word, danh mục dạng cây có ô tích, thẻ, ảnh đại diện.
+
+### 11.1 Mô hình dữ liệu
+
+Sinh từ [`jdl/blog.jdl`](../jdl/blog.jdl) (cũng có trong `yp-schema.jdl`) bằng lệnh `npx jhipster jdl jdl/blog.jdl --force --incremental-changelog`:
+
+| Entity / bảng | Field | Ghi chú |
+|---|---|---|
+| **BlogPost** / `blog_post` | `wpId` (**không bắt buộc**), `title`, `slug`, `content` (HTML), `excerpt`, `thumbnail` (URL ảnh đại diện), `status` (`publish`/`draft`), `viewCount`, `publishedAt`, `createdAt`, `updatedAt`, **`authorName`** (mới) | `wpId` để trống với bài soạn mới trên trang quản trị |
+| **BlogCategory** / `blog_category` (mới) | `wpTermId`, `name`, `slug`, `description`, `postCount`, `parent` (cây) | Danh mục bài viết của WordPress (taxonomy `category`) |
+| **Tag** / `tag` | `wpTermId`, `name`, `slug` | |
+| `rel_blog_post__category`, `rel_blog_post__tag` (mới) | `blog_post_id` + `category_id` / `tag_id` | Bài viết N–N danh mục, N–N thẻ |
+
+`--incremental-changelog`: vì `blog_post` đã có dữ liệu, Liquibase chỉ **thêm** cột và bảng (`…_updated_entity_BlogPost.xml`), không tạo lại bảng. Thêm changelog viết tay [`20261005100000_blog_post_wp_id_optional.xml`](../src/main/resources/config/liquibase/changelog/20261005100000_blog_post_wp_id_optional.xml) để bỏ NOT NULL của `wp_id` (vẫn UNIQUE; MySQL cho phép nhiều NULL).
+
+> ⚠️ Chế độ incremental có sinh thêm changelog **dữ liệu giả** (`…_updated_entity_migrate_BlogPost.xml`, context `faker`) dùng `loadUpdateData onlyUpdate=true` lên **bài viết thật id 1–30**. Đã xóa các changelog đó và changeset faker của BlogCategory (xem [mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)). **Mỗi lần sinh code có `--incremental-changelog`, kiểm tra và xóa changelog `*_migrate_*` trước khi chạy app.**
+
+### 11.2 Đồng bộ từ WordPress
+
+| API (chỉ `ROLE_ADMIN`, Swagger nhóm **wordpress-sync**) | Việc làm |
+|---|---|
+| `POST /api/admin/wordpress/sync-posts` | Bắt đầu đồng bộ (chạy nền), trả **202**; đang chạy thì **409** |
+| `GET /api/admin/wordpress/sync-posts` | Trạng thái, giai đoạn (`categories` → `tags` → `posts` → `reindex`), số bản ghi tạo mới / cập nhật, lỗi |
+
+Cách làm ([`WordPressPostSyncService.java`](../src/main/java/com/mycompany/myapp/service/wordpress/WordPressPostSyncService.java), [`WordPressClient.java`](../src/main/java/com/mycompany/myapp/service/wordpress/WordPressClient.java)):
+
+- Đọc **REST API công khai** của WordPress dạng `https://yp.com.vn/?rest_route=/wp/v2/...`, vì đường dẫn `/wp-json/` bị chuyển hướng. Mỗi trang 100 bản ghi, sắp theo id; lỗi mạng thì thử lại tối đa 3 lần.
+- **Danh mục** (`/wp/v2/categories`): thêm mới hoặc cập nhật theo `wpTermId`, rồi một lượt thứ hai gán `parent`.
+- **Thẻ** (`/wp/v2/tags`): thêm mới hoặc cập nhật theo `wpTermId`.
+- **Bài viết** (`/wp/v2/posts&_embed=author,wp:featuredmedia`): thêm mới hoặc cập nhật theo `wpId`, mỗi trang một transaction. Ánh xạ field:
+  - `title.rendered` → `title` (giải mã `&#8220;`…)
+  - `content.rendered` → `content`; `excerpt.rendered` → `excerpt`
+  - `slug` → `slug` (giải mã `%xx`)
+  - `date_gmt` → `publishedAt`; `modified_gmt` → `updatedAt`
+  - ảnh `wp:featuredmedia` → `thumbnail`; `author` → `authorName`
+  - `categories`, `tags` → quan hệ
+- Xong thì tự reindex Elasticsearch cho `blogcategory`, `tag`, `blogpost`.
+- **Không xóa gì**, chạy lại được. Bài chỉ có ở dự án mà không còn trên WordPress được đếm ở `postsOnlyInProject`.
+- **Giới hạn:** API công khai chỉ trả bài **đã xuất bản**, không đọc được bài nháp.
+- Cấu hình: `application.wordpress.base-url` (dev: `https://yp.com.vn`).
+
+**Kết quả ngày 2026-10-05:** chạy hết khoảng 40 giây.
+
+| | Kết quả |
+|---|---|
+| Danh mục | 52 tạo mới (46 có danh mục cha). Số bài theo danh mục gốc khớp WordPress: Tin tức 234, Doanh nghiệp 168, Công đoàn VNPT 42, Sự kiện 19, Covid 19 14 |
+| Thẻ | 54 tạo mới |
+| Bài viết | 2.433 trên WordPress: **147 tạo mới**, **2.286 cập nhật** (đã có từ `jhipster_vnyp`). 2.004 bài có ảnh đại diện; 1.955 bài có danh mục |
+| Chỉ có ở dự án | 2 bài nháp cũ (id 1, 2) |
+
+> Ảnh trong nội dung và ảnh đại diện vẫn trỏ về `yp.com.vn/wp-content/uploads/...`. Site WordPress cũ cần còn chạy để ảnh hiển thị, cho tới khi chuyển ảnh về server mới.
+
+### 11.3 Trang soạn bài (quản trị)
+
+Menu **Thực thể → Blog Post → Thêm mới / Sửa**: route `new` và `:id/edit` trỏ tới [`entities/blog-post/editor/blog-post-editor`](../src/main/webapp/app/entities/blog-post/editor/blog-post-editor.ts), thay cho form JHipster sinh ra (form cũ vẫn còn file nhưng không dùng).
+
+| Vùng | Chức năng |
+|---|---|
+| Cột chính | **Tiêu đề** (bắt buộc); **Đường dẫn** tự sinh từ tiêu đề (bỏ dấu tiếng Việt; tự sửa thì thôi sinh, bài từ WordPress giữ slug cũ); **Nội dung** (trình soạn thảo bên dưới); **Tóm tắt** |
+| Xuất bản | Trạng thái, Ngày đăng (bỏ trống khi xuất bản = bây giờ), Tác giả, nút **Lưu nháp** / **Xuất bản**; hiện WordPress ID nếu có |
+| Danh mục | **Cây có ô tích** (cha trước, con thụt lề), ô tìm kiếm không dấu (giữ cả danh mục cha của mục khớp), đếm số đã chọn |
+| Thẻ | Danh sách ô tích có tìm kiếm |
+| Ảnh đại diện | Dán link ảnh hoặc **Chọn ảnh trong bài** (lấy các ảnh `http(s)` trong nội dung), có xem trước |
+
+**Trình soạn thảo nội dung** [`shared/rich-text/rich-text-editor`](../src/main/webapp/app/shared/rich-text/rich-text-editor.ts) (`<jhi-rich-text-editor formControlName="content" />`):
+
+- Viết bằng `contenteditable` của trình duyệt, **không thêm thư viện**.
+- Thanh công cụ: Định dạng (đoạn văn, tiêu đề 2–4, trích dẫn), đậm, nghiêng, gạch chân, gạch ngang, danh sách, căn lề, đường kẻ, xóa định dạng, hoàn tác, làm lại, chèn hoặc bỏ link, chèn ảnh từ URL, chế độ **HTML** để sửa mã.
+- **Dán (Ctrl+V) từ website hoặc Word:** giữ chữ, tiêu đề, danh sách, bảng, ảnh, link; [`sanitizeHtml(..., { strict: true })`](../src/main/webapp/app/shared/rich-text/html-sanitizer.ts) bỏ `script`, `style`, `iframe`, `form`…, thuộc tính `on*`, link `javascript:`, cùng class, style, id và thẻ rác của Word (`o:p`, `font`, `span`).
+- Nội dung có sẵn (đồng bộ từ WordPress) chỉ bị bỏ phần nguy hiểm; **class và style được giữ** để không vỡ trình bày WPBakery.
+- Dùng `document.execCommand`: API này bị đánh dấu deprecated nhưng mọi trình duyệt vẫn hỗ trợ và chưa có API thay thế. Gom trong một hàm `runCommand`, có giải thích lý do tắt quy tắc ESLint.
+- Ảnh dán từ Word (không có URL) được nhúng dạng base64 trong nội dung, làm nội dung nặng; nên dùng ảnh có URL.
+
+**Kiểm thử (2026-10-05):**
+
+| Test | Kết quả |
+|---|---|
+| [`html-sanitizer.spec.ts`](../src/main/webapp/app/shared/rich-text/html-sanitizer.spec.ts): bỏ mã nguy hiểm; giữ class với nội dung có sẵn; chế độ dán (Word, bảng, link, ảnh); lấy URL ảnh | 4/4 ✅ |
+| [`blog-post-editor.spec.ts`](../src/main/webapp/app/entities/blog-post/editor/blog-post-editor.spec.ts): slug tiếng Việt; cây danh mục; lọc không dấu; bài mới (slug, danh mục, thẻ, ảnh, ngày đăng); thiếu tiêu đề; sửa bài WordPress (giữ `wpId`, slug, lượt xem) | 6/6 ✅ |
+| [`WordPressPostSyncServiceTest`](../src/test/java/com/mycompany/myapp/service/wordpress/WordPressPostSyncServiceTest.java): ngày GMT, giải mã HTML entity, slug `%xx`, cắt độ dài, đọc JSON | 5/5 ✅ |
+| Thủ công trên app: tạo bài không `wpId` có danh mục con, thẻ, ảnh đại diện, nội dung HTML (201) → đọc lại đúng → xóa đúng bài thử | ✅ |
+
+---
+
+## 12. Sinh lại code khi sửa JDL
 
 ```powershell
 # 1. Commit trước để có thể quay lại
@@ -1050,12 +1137,12 @@ Lưu ý:
 | `service/mapper/LocationMapper.java`, `CategoryMapper.java` | `toDto` và `partialUpdate` bỏ qua `listings` (`@Mapping(target = "listings", ignore = true)`) | JHipster 9.3.0 **luôn** sinh chiều ngược của ManyToMany, kể cả khi JDL khai báo một chiều. Nếu map `listings`, mỗi địa phương hoặc ngành tải hàng trăm nghìn listing, và `/api/locations` bị treo. |
 | `service/criteria/ListingCriteria.java` | Thêm filter `locationTreeId`, `categoryTreeId` | Lọc listing theo cả cây. Mỗi listing chỉ gắn vào **một** cấp địa phương (tỉnh 1,46 triệu, phường/xã 319 nghìn, quận/huyện 23 nghìn) và gần như chỉ gắn vào **ngành lá** (24,4/25,2 triệu liên kết), nên lọc theo một nút phải gồm cả cây con. |
 | `repository/LocationRepository.java`, `CategoryRepository.java` | `findSubtreeIds(id)` | Lấy id của nút và mọi cấp con (địa phương 3 cấp, ngành nghề 4 cấp) |
-| `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 13) |
+| `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 14) |
 | `shared/tree/*` | Dùng chung: `createTreeSource()`, `jhi-tree-view` (cây tải dần, link "Xem doanh nghiệp"), `jhi-tree-filter` (dãy ô chọn theo số cấp thực tế, đồng bộ với URL `filter[...]`) | Dùng cho cả địa phương và ngành nghề |
 | `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | 2 bộ lọc `jhi-tree-filter` (địa phương, ngành nghề); trong spec thay bằng stub | |
 | `entities/location/tree/*`, `entities/category/tree/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Cây ngành nghề) | |
 | `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree` | |
-| `layouts/navbar/navbar.html`, `navbar.ts` | Nhóm menu **Tỉnh thành** (Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã) và **Ngành nghề** (Cây ngành nghề, Danh sách) | |
+| `layouts/navbar/navbar.html`, `navbar.ts` | Các nhóm menu: **Tỉnh thành** (Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã), **Ngành nghề** (Cây ngành nghề, Danh sách), **Blogs** (Bài viết, Danh mục bài viết, Thẻ), **Banner quảng cáo** (Vị trí banner, Ảnh banner); icon `newspaper`, `folder-tree`, `tags` | Sinh lại entity thì JHipster thêm lại mục menu rời (tên tiếng Anh) ở cuối danh sách; xóa và đưa vào nhóm |
 | `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `briefcase`, `circle`, `chevron-*`, `location-dot`, `spinner` | |
 | `src/main/docker/elasticsearch.yml`, `services.yml` | Heap 1 GB, named volume `elasticsearch-data`, healthcheck chờ `yellow`; service `kibana` (profile `kibana`) | Xem [mục 8.3](#83-cấu-hình-container-giai-đoạn-0-xong-2026-10-01), [mục 8.2](#82-giao-diện-quản-trị-elasticsearch) |
 | `src/main/docker/kibana.yml` (file mới) | Kibana 9.4.5 cho dev | |
@@ -1066,11 +1153,18 @@ Lưu ý:
 | `config/PublicApiSecurityConfiguration.java`, `security/PublicApiKeyFilter.java`, `repository/GalleryPublicRepository.java`, `GalleryPublicRow.java`, `service/PublicGalleryService.java`, `service/dto/publicapi/*`, `web/rest/publicapi/*` (file mới) | API công khai, gallery | File viết tay, không bị ghi đè |
 | `entities/gallery-image/update/gallery-image-form.service.ts` (+ `gallery-image-form.dates.spec.ts` mới) | Ảnh mới để trống `startAt`/`endAt`; ô trống lưu `null` | JHipster mặc định cả hai = giờ hiện tại, làm ảnh hết hạn ngay ([mục 10.3](#103-banner-quảng-cáo-gallery)). **Sinh lại GalleryImage sẽ mất, phải sửa lại.** |
 | `web/rest/GalleryAdminResource.java`, `service/GalleryAdminService.java`, `service/dto/GalleryWithImagesDTO.java`, `repository/GalleryAdminRepository.java`, `GalleryImageAdminRow.java` (file mới) | API quản trị `GET /api/galleries/with-images` | File viết tay |
+| `domain/BlogPost.java` (`wpId` bỏ `@NotNull`; `categories`, `tags` thêm `@Transient` cho ES), `domain/BlogCategory.java` (`parent` `@Transient` cho ES), `service/dto/BlogPostDTO.java` (`wpId` không bắt buộc), `BlogPostResourceIT.java` (bỏ `checkWpIdIsRequired`) | Bài soạn mới không có id WordPress; reindex không lazy-load | [Mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài). **Sinh lại BlogPost hoặc BlogCategory sẽ mất, phải sửa lại.** |
+| `service/mapper/BlogCategoryMapper.java`, `TagMapper.java` | `toDto`/`partialUpdate` bỏ `blogPosts` | Không tải mọi bài viết của danh mục hoặc thẻ (chiều ngược JHipster luôn sinh) |
+| `liquibase/master.xml`, `changelog/20261005075250_added_entity_BlogCategory.xml` | Bỏ changeset dữ liệu giả và 2 changelog `*_updated_entity_migrate_BlogPost.xml` | Faker ghi đè dữ liệu thật ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)) |
+| `changelog/20261005100000_blog_post_wp_id_optional.xml`, `service/wordpress/*`, `web/rest/WordPressSyncResource.java`, `shared/rich-text/*`, `entities/blog-post/editor/*` (file mới) | Đồng bộ WordPress, trình soạn thảo, trang soạn bài | File viết tay |
+| `entities/blog-post/blog-post.routes.ts` | Route `new`, `:id/edit` trỏ tới `editor/blog-post-editor` | Sinh lại BlogPost sẽ trỏ về form JHipster |
+| `service/ElasticsearchReindexService.java` | Thêm entity `blogcategory` | |
+| `config/ApplicationProperties.java` (`wordpress.baseUrl`, `pageSize`), `application-dev.yml` | Địa chỉ WordPress để đồng bộ | |
 | `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
 
 ---
 
-## 12. Lỗi đã gặp và cách xử lý
+## 13. Lỗi đã gặp và cách xử lý
 
 | Lỗi | Nguyên nhân | Cách xử lý |
 |---|---|---|
@@ -1092,6 +1186,7 @@ Lưu ý:
 | Máy chậm, CPU cao sau khi bật ES và Kibana | Hết RAM (còn trống 0,5/15,7 GB): Docker 4,2 GB, cộng app, IDE, trình duyệt | Tắt Kibana khi không dùng; giới hạn RAM WSL ([mục 8.5](#85-cpu-ram-và-triển-khai-production)) |
 | Gọi `POST /api/public/...` có khóa đúng nhận 401 thay vì 403 | Mặc định Spring từ chối bằng `sendError(403)`, chuyển sang `/error`; `/error` do chuỗi bảo mật JWT xử lý nên thành 401 | Chuỗi API công khai đặt mã trạng thái trực tiếp (`accessDeniedHandler` gọi `response.setStatus(403)`) |
 | Ảnh banner đã bật nhưng FE không hiển thị | Form JHipster tự điền `startAt = endAt =` giờ tạo nên khung hiển thị dài 0 giây | Đã sửa form; ảnh cũ thì xóa trắng hai ô ngày giờ. Kiểm tra bằng `GET /api/galleries/with-images` (`showingNow`). |
+| Sau `jhipster jdl … --incremental-changelog`: 30 danh mục giả trong `blog_category`, 30 bài viết thật (id 1–30) bị ghi `author_name` giả | Changelog faker (`loadUpdateData onlyUpdate=true`) lên bảng có dữ liệu thật; app (DevTools) **vẫn chạy trong lúc sinh code** nên chạy luôn changelog mới (14:53), trước khi kịp xóa | Dọn đúng các id giả (`DELETE` danh mục id 1–30 không có tham chiếu; `author_name = NULL` cho bài id 1–30), xóa changelog faker. **Dừng hẳn app trước khi chạy generator; xóa changelog `*_migrate_*` trước khi chạy lại app.** |
 | Script test xóa nhầm dữ liệu banner thật đang nhập (2026-10-05) | Bước dọn dẹp dùng `DELETE FROM gallery_image; DELETE FROM gallery;` trong lúc người dùng đang nhập trên trang quản trị | Khôi phục bằng binlog (ROW/FULL): `mysqlbinlog` lấy từ image `percona/percona-server:8.0` (chạy `--user 0`, gắn volume chỉ đọc), vì image `mysql:26.7`/`8.4` không có. **Không dọn dẹp bằng xóa cả bảng**: chỉ xóa đúng id mà test tạo, hoặc kiểm thử chỉ đọc. |
 | Sau khi thêm chuỗi bảo mật mới, app (DevTools) mất vài phút mới chạy lại cổng 8081 | DevTools khởi động lại chậm khi đổi cấu hình bảo mật và file yml | Chờ, hoặc Ctrl+C rồi chạy lại `./mvnw`. Chạy thử một bản trên cổng khác (`-Dspring-boot.run.arguments=--server.port=8082`) để xem lỗi khởi động. |
 | Kibana báo `healthy` trong khi `/api/status` vẫn là `unavailable` | Healthcheck `grep available` khớp luôn chuỗi `unavailable` | Khớp đúng `'"level":"available"'` |
@@ -1099,7 +1194,7 @@ Lưu ý:
 
 ---
 
-## 13. Việc còn tồn đọng
+## 14. Việc còn tồn đọng
 
 | # | Việc | Ghi chú |
 |---|---|---|
@@ -1117,10 +1212,13 @@ Lưu ý:
 | 12 | **Các API công khai còn lại cho FE Next.js** (doanh nghiệp, ngành nghề, địa phương, tin tức) | Xem [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
 | 13 | Chuyên mục bài viết, mã ngành của ngành nghề | Cần dữ liệu WordPress (`wp_term_relationships` của bài viết, `termmeta industry_code`) |
 | 14 | Quản trị viên nhập banner thật | Theo các vị trí trên WordPress: footer banner, quảng cáo listing, right banner 1, left center banner, right-banner-2 ([mục 10.3](#103-banner-quảng-cáo-gallery)) |
+| 15 | Chuyển ảnh bài viết (`yp.com.vn/wp-content/uploads`) về server mới | Hiện vẫn phụ thuộc site WordPress cũ ([mục 11.2](#112-đồng-bộ-từ-wordpress)) |
+| 16 | API công khai cho bài viết (danh sách theo danh mục, chi tiết theo slug) | Dữ liệu đã đủ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)); làm theo [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
+| 17 | Upload ảnh (ảnh đại diện, ảnh trong bài) lên server mới | Hiện chỉ dùng URL ảnh; ảnh dán từ Word nhúng base64 |
 
 ---
 
-## 14. Lệnh hay dùng
+## 15. Lệnh hay dùng
 
 ```bash
 # Chạy ứng dụng (dev)

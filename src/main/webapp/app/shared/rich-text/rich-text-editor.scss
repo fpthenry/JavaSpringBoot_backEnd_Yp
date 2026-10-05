@@ -1,0 +1,39 @@
+.rte .rte-content {
+  min-height: 420px;
+  max-height: 70vh;
+  overflow-y: auto;
+  outline: none;
+  line-height: 1.6;
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    max-width: 100%;
+
+    td,
+    th {
+      border: 1px solid var(--bs-border-color);
+      padding: 0.25rem 0.5rem;
+    }
+  }
+
+  blockquote {
+    border-left: 4px solid var(--bs-border-color);
+    padding-left: 1rem;
+    color: var(--bs-secondary-color);
+  }
+}
+
+.rte .rte-source {
+  min-height: 420px;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.85rem;
+}
+
+.rte.rte-disabled {
+  opacity: 0.7;
+}

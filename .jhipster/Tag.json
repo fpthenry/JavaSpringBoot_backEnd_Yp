@@ -26,6 +26,7 @@
       "fieldValidateRulesMaxlength": "255"
     }
   ],
+  "incrementalChangelog": false,
   "name": "Tag",
   "pagination": "infinite-scroll",
   "relationships": [],

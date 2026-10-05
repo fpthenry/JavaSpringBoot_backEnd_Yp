@@ -22,6 +22,7 @@
       "wpTermId": "Wp Term Id",
       "name": "Name",
       "slug": "Slug",
+      "blogPost": "Blog Post",
       "help": {
         "wpTermId": "wp_terms.term_id"
       }

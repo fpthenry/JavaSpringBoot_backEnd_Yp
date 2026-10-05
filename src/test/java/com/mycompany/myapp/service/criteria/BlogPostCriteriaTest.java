@@ -81,6 +81,9 @@ class BlogPostCriteriaTest {
         blogPostCriteria.publishedAt();
         blogPostCriteria.createdAt();
         blogPostCriteria.updatedAt();
+        blogPostCriteria.authorName();
+        blogPostCriteria.categoryId();
+        blogPostCriteria.tagId();
         blogPostCriteria.distinct();
     }
 
@@ -97,6 +100,9 @@ class BlogPostCriteriaTest {
                 condition.apply(criteria.getPublishedAt()) &&
                 condition.apply(criteria.getCreatedAt()) &&
                 condition.apply(criteria.getUpdatedAt()) &&
+                condition.apply(criteria.getAuthorName()) &&
+                condition.apply(criteria.getCategoryId()) &&
+                condition.apply(criteria.getTagId()) &&
                 condition.apply(criteria.getDistinct()),
             "every filter matches"
         );
@@ -115,6 +121,9 @@ class BlogPostCriteriaTest {
                 condition.apply(criteria.getPublishedAt(), copy.getPublishedAt()) &&
                 condition.apply(criteria.getCreatedAt(), copy.getCreatedAt()) &&
                 condition.apply(criteria.getUpdatedAt(), copy.getUpdatedAt()) &&
+                condition.apply(criteria.getAuthorName(), copy.getAuthorName()) &&
+                condition.apply(criteria.getCategoryId(), copy.getCategoryId()) &&
+                condition.apply(criteria.getTagId(), copy.getTagId()) &&
                 condition.apply(criteria.getDistinct(), copy.getDistinct()),
             "every filter matches"
         );

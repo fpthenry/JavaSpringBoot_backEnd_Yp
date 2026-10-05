@@ -12,8 +12,8 @@
         "listing": "Listing",
         "category": "Category",
         "location": "Location",
-        "blogPost": "Blog Post",
-        "tag": "Tag",
+        "blogPost": "Bài viết",
+        "tag": "Thẻ",
         "locationGroup": "Tỉnh thành",
         "locationTree": "Đơn vị hành chính",
         "locationProvince": "Tỉnh thành",
@@ -24,7 +24,9 @@
         "categoryList": "Danh sách ngành nghề",
         "gallery": "Vị trí banner",
         "galleryImage": "Ảnh banner",
-        "galleryGroup": "Banner quảng cáo"
+        "galleryGroup": "Banner quảng cáo",
+        "blogCategory": "Danh mục bài viết",
+        "blogGroup": "Blogs"
       },
       "account": {
         "main": "Tài khoản",
@@ -143,6 +145,31 @@
     "tree": {
       "empty": "Không có dữ liệu",
       "viewListings": "Xem doanh nghiệp"
+    },
+    "richText": {
+      "format": "Định dạng",
+      "paragraph": "Đoạn văn",
+      "heading2": "Tiêu đề 2",
+      "heading3": "Tiêu đề 3",
+      "heading4": "Tiêu đề 4",
+      "quote": "Trích dẫn",
+      "bold": "Đậm",
+      "italic": "Nghiêng",
+      "underline": "Gạch chân",
+      "strike": "Gạch ngang",
+      "bulletList": "Danh sách chấm",
+      "numberList": "Danh sách số",
+      "alignLeft": "Căn trái",
+      "alignCenter": "Căn giữa",
+      "alignRight": "Căn phải",
+      "hr": "Đường kẻ ngang",
+      "removeFormat": "Xóa định dạng",
+      "undo": "Hoàn tác",
+      "redo": "Làm lại",
+      "link": "Chèn link",
+      "unlink": "Bỏ link",
+      "image": "Chèn ảnh từ URL",
+      "pasteHint": "Có thể dán (Ctrl+V) nội dung copy từ website hoặc Word: giữ chữ, ảnh, bảng, link; mã nguy hiểm và định dạng rác được tự loại bỏ."
     }
   },
   "error": {

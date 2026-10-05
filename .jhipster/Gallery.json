@@ -39,6 +39,7 @@
       "fieldValidateRules": ["unique"]
     }
   ],
+  "incrementalChangelog": false,
   "jpaMetamodelFiltering": true,
   "name": "Gallery",
   "pagination": "pagination",

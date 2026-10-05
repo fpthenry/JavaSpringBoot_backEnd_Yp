@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Added relationships to the entity BlogPost.
+    -->
+    <changeSet id="20261005075252-1-add-relationships" author="jhipster">
+
+        <createTable tableName="rel_blog_post__category">
+            <column name="category_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="blog_post_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey columnNames="blog_post_id, category_id" tableName="rel_blog_post__category"/>
+
+        <createTable tableName="rel_blog_post__tag">
+            <column name="tag_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="blog_post_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey columnNames="blog_post_id, tag_id" tableName="rel_blog_post__tag"/>
+    </changeSet>
+
+    <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here -->
+
+</databaseChangeLog>

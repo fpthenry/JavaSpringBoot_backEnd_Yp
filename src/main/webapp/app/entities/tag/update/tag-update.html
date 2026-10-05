@@ -66,6 +66,23 @@
             </div>
           }
         </div>
+
+        <div class="mb-3">
+          <label for="field_blogPosts" jhiTranslate="javaSpringBootBackEndApp.tag.blogPost">Blog Post</label>
+          <select
+            class="form-control"
+            id="field_blogPosts"
+            data-cy="blogPost"
+            multiple
+            name="blogPosts"
+            formControlName="blogPosts"
+            [compareWith]="compareBlogPost"
+          >
+            @for (blogPostOption of blogPostsSharedCollection(); track $index) {
+              <option [ngValue]="blogPostOption">{{ blogPostOption.id }}</option>
+            }
+          </select>
+        </div>
       </div>
 
       <div>

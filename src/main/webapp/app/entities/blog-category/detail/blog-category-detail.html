@@ -1,0 +1,81 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (blogCategory(); as blogCategoryRef) {
+      <div>
+        <h2 data-cy="blogCategoryDetailsHeading">
+          <span jhiTranslate="javaSpringBootBackEndApp.blogCategory.detail.title">Blog Category</span>
+        </h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ blogCategoryRef.id }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.blogCategory.help.wpTermId' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.blogCategory.wpTermId"
+              >Wp Term Id</span
+            >
+          </dt>
+          <dd>
+            <span>{{ blogCategoryRef.wpTermId }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogCategory.name">Name</span></dt>
+          <dd>
+            <span>{{ blogCategoryRef.name }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogCategory.slug">Slug</span></dt>
+          <dd>
+            <span>{{ blogCategoryRef.slug }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogCategory.description">Description</span></dt>
+          <dd>
+            <span>{{ blogCategoryRef.description }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.blogCategory.help.postCount' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.blogCategory.postCount"
+              >Post Count</span
+            >
+          </dt>
+          <dd>
+            <span>{{ blogCategoryRef.postCount }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogCategory.parent">Parent</span></dt>
+          <dd>
+            @if (blogCategory()!.parent) {
+              <div>
+                <a [routerLink]="['/blog-category', blogCategory()!.parent?.id, 'view']">{{ blogCategoryRef.parent?.name }}</a>
+              </div>
+            }
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogCategory.blogPost">Blog Post</span></dt>
+          <dd>
+            @for (blogPost of blogCategoryRef.blogPosts; track $index; let last = $last) {
+              <span>
+                <a [routerLink]="['/blog-post', blogPost.id, 'view']">{{ blogPost?.id }}</a
+                >{{ last ? '' : ', ' }}
+              </span>
+            }
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/blog-category', blogCategoryRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

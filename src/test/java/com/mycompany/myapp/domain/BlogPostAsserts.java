@@ -57,7 +57,8 @@ public class BlogPostAsserts {
             .satisfies(a -> assertThat(a.getViewCount()).as("check viewCount").isEqualTo(expected.getViewCount()))
             .satisfies(a -> assertThat(a.getPublishedAt()).as("check publishedAt").isEqualTo(expected.getPublishedAt()))
             .satisfies(a -> assertThat(a.getCreatedAt()).as("check createdAt").isEqualTo(expected.getCreatedAt()))
-            .satisfies(a -> assertThat(a.getUpdatedAt()).as("check updatedAt").isEqualTo(expected.getUpdatedAt()));
+            .satisfies(a -> assertThat(a.getUpdatedAt()).as("check updatedAt").isEqualTo(expected.getUpdatedAt()))
+            .satisfies(a -> assertThat(a.getAuthorName()).as("check authorName").isEqualTo(expected.getAuthorName()));
     }
 
     /**
@@ -67,6 +68,9 @@ public class BlogPostAsserts {
      * @param actual the actual entity
      */
     public static void assertBlogPostUpdatableRelationshipsEquals(BlogPost expected, BlogPost actual) {
-        // empty method
+        assertThat(actual)
+            .as("Verify BlogPost relationships")
+            .satisfies(a -> assertThat(a.getCategories()).as("check categories").isEqualTo(expected.getCategories()))
+            .satisfies(a -> assertThat(a.getTags()).as("check tags").isEqualTo(expected.getTags()));
     }
 }

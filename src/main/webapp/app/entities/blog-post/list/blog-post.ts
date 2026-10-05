@@ -42,7 +42,7 @@ import { BlogPostService } from '../service/blog-post.service';
   ],
 })
 export class BlogPost {
-  private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['title', 'slug', 'content', 'excerpt', 'thumbnail', 'status'];
+  private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['title', 'slug', 'content', 'excerpt', 'thumbnail', 'status', 'authorName'];
 
   readonly blogPosts = signal<IBlogPost[]>([]);
 
@@ -176,6 +176,7 @@ export class BlogPost {
     const queryObject: any = {
       page: pageToLoad - 1,
       size: this.itemsPerPage(),
+      eagerload: true,
       query: this.currentSearch(),
       sort: this.sortService.buildSortParam(this.sortState()),
     };

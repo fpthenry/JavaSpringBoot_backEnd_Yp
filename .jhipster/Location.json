@@ -51,6 +51,7 @@
       "fieldType": "Instant"
     }
   ],
+  "incrementalChangelog": false,
   "jpaMetamodelFiltering": true,
   "name": "Location",
   "pagination": "pagination",

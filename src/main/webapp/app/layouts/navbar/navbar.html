@@ -120,29 +120,48 @@
                   </a>
                 </li>
               }
+              <!-- Blog: nhóm Blogs (bài viết, danh mục bài viết, thẻ) -->
               <li><hr class="dropdown-divider" /></li>
               <li>
+                <h6 class="dropdown-header">
+                  <fa-icon icon="newspaper" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.blogGroup">Blogs</span>
+                </h6>
+              </li>
+              <li>
                 <a
-                  class="dropdown-item"
+                  class="dropdown-item ps-4"
                   routerLink="/blog-post"
                   routerLinkActive="active"
                   [routerLinkActiveOptions]="{ exact: true }"
                   (click)="collapseNavbar()"
                 >
-                  <fa-icon icon="asterisk" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.blogPost">Blog Post</span>
+                  <fa-icon icon="newspaper" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.blogPost">Bài viết</span>
                 </a>
               </li>
               <li>
                 <a
-                  class="dropdown-item"
+                  class="dropdown-item ps-4"
+                  routerLink="/blog-category"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  (click)="collapseNavbar()"
+                >
+                  <fa-icon icon="folder-tree" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.blogCategory">Danh mục bài viết</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  class="dropdown-item ps-4"
                   routerLink="/tag"
                   routerLinkActive="active"
                   [routerLinkActiveOptions]="{ exact: true }"
                   (click)="collapseNavbar()"
                 >
-                  <fa-icon icon="asterisk" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.tag">Tag</span>
+                  <fa-icon icon="tags" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.tag">Thẻ</span>
                 </a>
               </li>
               <!-- Gallery: nhóm Banner quảng cáo (vị trí banner + ảnh banner) -->

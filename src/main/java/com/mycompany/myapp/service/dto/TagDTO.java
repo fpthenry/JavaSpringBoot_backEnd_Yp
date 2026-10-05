@@ -3,7 +3,9 @@ package com.mycompany.myapp.service.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * A DTO for the {@link com.mycompany.myapp.domain.Tag} entity.
@@ -23,6 +25,8 @@ public class TagDTO implements Serializable {
 
     @Size(max = 255)
     private String slug;
+
+    private Set<BlogPostDTO> blogPosts = new HashSet<>();
 
     public Long getId() {
         return id;
@@ -56,6 +60,14 @@ public class TagDTO implements Serializable {
         this.slug = slug;
     }
 
+    public Set<BlogPostDTO> getBlogPosts() {
+        return blogPosts;
+    }
+
+    public void setBlogPosts(Set<BlogPostDTO> blogPosts) {
+        this.blogPosts = blogPosts;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -85,6 +97,7 @@ public class TagDTO implements Serializable {
             ", wpTermId=" + getWpTermId() +
             ", name='" + getName() + "'" +
             ", slug='" + getSlug() + "'" +
+            ", blogPosts=" + getBlogPosts() +
             "}";
     }
 }

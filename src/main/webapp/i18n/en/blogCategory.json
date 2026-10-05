@@ -1,0 +1,35 @@
+{
+  "javaSpringBootBackEndApp": {
+    "blogCategory": {
+      "home": {
+        "title": "Blog Categories",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Blog Category",
+        "createOrEditLabel": "Create or edit a Blog Category",
+        "search": "Search for Blog Category",
+        "notFound": "No Blog Categories found"
+      },
+      "created": "A new Blog Category is created with identifier {{ param }}",
+      "updated": "A Blog Category is updated with identifier {{ param }}",
+      "deleted": "A Blog Category is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Blog Category {{ id }}?"
+      },
+      "detail": {
+        "title": "Blog Category"
+      },
+      "id": "ID",
+      "wpTermId": "Wp Term Id",
+      "name": "Name",
+      "slug": "Slug",
+      "description": "Description",
+      "postCount": "Post Count",
+      "parent": "Parent",
+      "blogPost": "Blog Post",
+      "help": {
+        "wpTermId": "wp_terms.term_id",
+        "postCount": "Số bài viết theo WordPress"
+      }
+    }
+  }
+}

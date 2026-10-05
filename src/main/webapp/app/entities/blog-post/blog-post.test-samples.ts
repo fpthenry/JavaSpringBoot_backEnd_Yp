@@ -9,16 +9,17 @@ export const sampleWithRequiredData: IBlogPost = {
 };
 
 export const sampleWithPartialData: IBlogPost = {
-  id: 3625,
-  wpId: 1632,
-  title: 'braid',
+  id: 1632,
+  wpId: 8103,
+  title: 'mountain er waterspout',
   content: '../fake-data/blob/hipster.txt',
-  thumbnail: 'er waterspout',
-  status: 'failing vice tank',
-  viewCount: 30032,
-  publishedAt: dayjs('2026-09-30T17:18'),
-  createdAt: dayjs('2026-09-30T05:37'),
-  updatedAt: dayjs('2026-10-01T01:34'),
+  thumbnail: 'failing vice tank',
+  status: 'hastily of yowza',
+  viewCount: 23755,
+  publishedAt: dayjs('2026-09-30T07:37'),
+  createdAt: dayjs('2026-09-30T20:10'),
+  updatedAt: dayjs('2026-09-30T04:49'),
+  authorName: 'bah um',
 };
 
 export const sampleWithFullData: IBlogPost = {
@@ -34,6 +35,7 @@ export const sampleWithFullData: IBlogPost = {
   publishedAt: dayjs('2026-09-30T12:15'),
   createdAt: dayjs('2026-10-01T03:06'),
   updatedAt: dayjs('2026-09-30T08:40'),
+  authorName: 'versus even frightfully',
 };
 
 export const sampleWithNewData: NewBlogPost = {

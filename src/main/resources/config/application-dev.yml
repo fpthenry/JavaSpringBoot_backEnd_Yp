@@ -112,3 +112,6 @@ application:
   public-api:
     keys:
       - dev-public-api-key-doi-khi-trien-khai
+  # Site WordPress cũ để đồng bộ bài viết: POST /api/admin/wordpress/sync-posts
+  wordpress:
+    base-url: https://yp.com.vn

@@ -48,6 +48,7 @@
       "fieldType": "Instant"
     }
   ],
+  "incrementalChangelog": false,
   "jpaMetamodelFiltering": true,
   "name": "Category",
   "pagination": "pagination",

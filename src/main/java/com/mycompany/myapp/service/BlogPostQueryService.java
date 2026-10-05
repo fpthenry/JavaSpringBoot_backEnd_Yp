@@ -7,6 +7,7 @@ import com.mycompany.myapp.repository.search.BlogPostSearchRepository;
 import com.mycompany.myapp.service.criteria.BlogPostCriteria;
 import com.mycompany.myapp.service.dto.BlogPostDTO;
 import com.mycompany.myapp.service.mapper.BlogPostMapper;
+import jakarta.persistence.criteria.JoinType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -54,7 +55,7 @@ public class BlogPostQueryService extends QueryService<BlogPost> {
     public Page<BlogPostDTO> findByCriteria(BlogPostCriteria criteria, Pageable page) {
         LOG.debug("find by criteria : {}, page: {}", criteria, page);
         final Specification<BlogPost> specification = createSpecification(criteria);
-        return blogPostRepository.findAll(specification, page).map(blogPostMapper::toDto);
+        return blogPostRepository.fetchBagRelationships(blogPostRepository.findAll(specification, page)).map(blogPostMapper::toDto);
     }
 
     /**
@@ -90,7 +91,12 @@ public class BlogPostQueryService extends QueryService<BlogPost> {
                     buildRangeSpecification(criteria.getViewCount(), BlogPost_.viewCount),
                     buildRangeSpecification(criteria.getPublishedAt(), BlogPost_.publishedAt),
                     buildRangeSpecification(criteria.getCreatedAt(), BlogPost_.createdAt),
-                    buildRangeSpecification(criteria.getUpdatedAt(), BlogPost_.updatedAt)
+                    buildRangeSpecification(criteria.getUpdatedAt(), BlogPost_.updatedAt),
+                    buildStringSpecification(criteria.getAuthorName(), BlogPost_.authorName),
+                    buildSpecification(criteria.getCategoryId(), root ->
+                        root.join(BlogPost_.categories, JoinType.LEFT).get(BlogCategory_.id)
+                    ),
+                    buildSpecification(criteria.getTagId(), root -> root.join(BlogPost_.tags, JoinType.LEFT).get(Tag_.id))
                 )
             );
         }

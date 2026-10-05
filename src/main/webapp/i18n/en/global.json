@@ -12,8 +12,8 @@
         "listing": "Listing",
         "category": "Category",
         "location": "Location",
-        "blogPost": "Blog Post",
-        "tag": "Tag",
+        "blogPost": "Posts",
+        "tag": "Tags",
         "locationGroup": "Locations",
         "locationTree": "Administrative units",
         "locationProvince": "Provinces",
@@ -24,7 +24,9 @@
         "categoryList": "Industry list",
         "gallery": "Banner positions",
         "galleryImage": "Banner images",
-        "galleryGroup": "Ad banners"
+        "galleryGroup": "Ad banners",
+        "blogCategory": "Post categories",
+        "blogGroup": "Blogs"
       },
       "account": {
         "main": "Account",
@@ -145,6 +147,31 @@
     "tree": {
       "empty": "No data",
       "viewListings": "View listings"
+    },
+    "richText": {
+      "format": "Format",
+      "paragraph": "Paragraph",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "quote": "Quote",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strike": "Strikethrough",
+      "bulletList": "Bulleted list",
+      "numberList": "Numbered list",
+      "alignLeft": "Align left",
+      "alignCenter": "Align center",
+      "alignRight": "Align right",
+      "hr": "Horizontal line",
+      "removeFormat": "Clear formatting",
+      "undo": "Undo",
+      "redo": "Redo",
+      "link": "Insert link",
+      "unlink": "Remove link",
+      "image": "Insert image from URL",
+      "pasteHint": "You can paste (Ctrl+V) content copied from a website or Word: text, images, tables and links are kept; unsafe code and junk formatting are removed."
     }
   },
   "error": {

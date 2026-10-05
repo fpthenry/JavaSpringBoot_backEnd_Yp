@@ -177,6 +177,7 @@
       "fieldType": "Boolean"
     }
   ],
+  "incrementalChangelog": false,
   "jpaMetamodelFiltering": true,
   "name": "Listing",
   "pagination": "pagination",

@@ -23,6 +23,7 @@ describe('Tag Form Service', () => {
             wpTermId: expect.any(Object),
             name: expect.any(Object),
             slug: expect.any(Object),
+            blogPosts: expect.any(Object),
           }),
         );
       });
@@ -36,6 +37,7 @@ describe('Tag Form Service', () => {
             wpTermId: expect.any(Object),
             name: expect.any(Object),
             slug: expect.any(Object),
+            blogPosts: expect.any(Object),
           }),
         );
       });

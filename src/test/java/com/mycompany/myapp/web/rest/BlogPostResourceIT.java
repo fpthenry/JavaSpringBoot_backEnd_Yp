@@ -10,13 +10,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.mycompany.myapp.IntegrationTest;
+import com.mycompany.myapp.domain.BlogCategory;
 import com.mycompany.myapp.domain.BlogPost;
+import com.mycompany.myapp.domain.Tag;
 import com.mycompany.myapp.repository.BlogPostRepository;
 import com.mycompany.myapp.repository.search.BlogPostSearchRepository;
+import com.mycompany.myapp.service.BlogPostService;
 import com.mycompany.myapp.service.dto.BlogPostDTO;
 import com.mycompany.myapp.service.mapper.BlogPostMapper;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -25,8 +29,13 @@ import org.assertj.core.util.IterableUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Streamable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -38,6 +47,7 @@ import tools.jackson.databind.ObjectMapper;
  * Integration tests for the {@link BlogPostResource} REST controller.
  */
 @IntegrationTest
+@ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
 @WithMockUser
 class BlogPostResourceIT {
@@ -77,6 +87,9 @@ class BlogPostResourceIT {
     private static final Instant DEFAULT_UPDATED_AT = Instant.ofEpochMilli(0L);
     private static final Instant UPDATED_UPDATED_AT = Instant.ofEpochMilli(1790760789812L);
 
+    private static final String DEFAULT_AUTHOR_NAME = "AAAAAAAAAA";
+    private static final String UPDATED_AUTHOR_NAME = "BBBBBBBBBB";
+
     private static final String ENTITY_API_URL = "/api/blog-posts";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{id}";
     private static final String ENTITY_SEARCH_API_URL = "/api/blog-posts/_search";
@@ -90,8 +103,14 @@ class BlogPostResourceIT {
     @Autowired
     private BlogPostRepository blogPostRepository;
 
+    @Mock
+    private BlogPostRepository blogPostRepositoryMock;
+
     @Autowired
     private BlogPostMapper blogPostMapper;
+
+    @Mock
+    private BlogPostService blogPostServiceMock;
 
     @Autowired
     private BlogPostSearchRepository blogPostSearchRepository;
@@ -124,7 +143,8 @@ class BlogPostResourceIT {
             .viewCount(DEFAULT_VIEW_COUNT)
             .publishedAt(DEFAULT_PUBLISHED_AT)
             .createdAt(DEFAULT_CREATED_AT)
-            .updatedAt(DEFAULT_UPDATED_AT);
+            .updatedAt(DEFAULT_UPDATED_AT)
+            .authorName(DEFAULT_AUTHOR_NAME);
     }
 
     /**
@@ -145,7 +165,8 @@ class BlogPostResourceIT {
             .viewCount(UPDATED_VIEW_COUNT)
             .publishedAt(UPDATED_PUBLISHED_AT)
             .createdAt(UPDATED_CREATED_AT)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .updatedAt(UPDATED_UPDATED_AT)
+            .authorName(UPDATED_AUTHOR_NAME);
     }
 
     @BeforeEach
@@ -215,26 +236,7 @@ class BlogPostResourceIT {
         assertThat(searchDatabaseSizeAfter).isEqualTo(searchDatabaseSizeBefore);
     }
 
-    @Test
-    @Transactional
-    void checkWpIdIsRequired() throws Exception {
-        long databaseSizeBeforeTest = getRepositoryCount();
-        int searchDatabaseSizeBefore = IterableUtil.sizeOf(blogPostSearchRepository.findAll());
-        // set the field null
-        blogPost.setWpId(null);
-
-        // Create the BlogPost, which fails.
-        BlogPostDTO blogPostDTO = blogPostMapper.toDto(blogPost);
-
-        restBlogPostMockMvc
-            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(blogPostDTO)))
-            .andExpect(status().isBadRequest());
-
-        assertSameRepositoryCount(databaseSizeBeforeTest);
-
-        int searchDatabaseSizeAfter = IterableUtil.sizeOf(blogPostSearchRepository.findAll());
-        assertThat(searchDatabaseSizeAfter).isEqualTo(searchDatabaseSizeBefore);
-    }
+    // Sửa tay: wpId không còn bắt buộc (bài soạn mới trên trang quản trị không có id WordPress), bỏ checkWpIdIsRequired
 
     @Test
     @Transactional
@@ -279,7 +281,25 @@ class BlogPostResourceIT {
             .andExpect(jsonPath("$.[*].viewCount").value(hasItem(DEFAULT_VIEW_COUNT)))
             .andExpect(jsonPath("$.[*].publishedAt").value(hasItem(DEFAULT_PUBLISHED_AT.toString())))
             .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
-            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));
+            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())))
+            .andExpect(jsonPath("$.[*].authorName").value(hasItem(DEFAULT_AUTHOR_NAME)));
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    void getAllBlogPostsWithEagerRelationshipsIsEnabled() throws Exception {
+        when(blogPostServiceMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
+
+        restBlogPostMockMvc.perform(get(ENTITY_API_URL + "?eagerload=true")).andExpect(status().isOk());
+
+        verify(blogPostServiceMock, times(1)).findAllWithEagerRelationships(any());
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    void getAllBlogPostsWithEagerRelationshipsIsNotEnabled() throws Exception {
+        when(blogPostServiceMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
+
+        restBlogPostMockMvc.perform(get(ENTITY_API_URL + "?eagerload=false")).andExpect(status().isOk());
+        verify(blogPostRepositoryMock, times(1)).findAll(any(Pageable.class));
     }
 
     @Test
@@ -304,7 +324,8 @@ class BlogPostResourceIT {
             .andExpect(jsonPath("$.viewCount").value(DEFAULT_VIEW_COUNT))
             .andExpect(jsonPath("$.publishedAt").value(DEFAULT_PUBLISHED_AT.toString()))
             .andExpect(jsonPath("$.createdAt").value(DEFAULT_CREATED_AT.toString()))
-            .andExpect(jsonPath("$.updatedAt").value(DEFAULT_UPDATED_AT.toString()));
+            .andExpect(jsonPath("$.updatedAt").value(DEFAULT_UPDATED_AT.toString()))
+            .andExpect(jsonPath("$.authorName").value(DEFAULT_AUTHOR_NAME));
     }
 
     @Test
@@ -758,6 +779,103 @@ class BlogPostResourceIT {
         defaultBlogPostFiltering("updatedAt.specified=true", "updatedAt.specified=false");
     }
 
+    @Test
+    @Transactional
+    void getAllBlogPostsByAuthorNameIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedBlogPost = blogPostRepository.saveAndFlush(blogPost);
+
+        // Get all the blogPostList where authorName equals to
+        defaultBlogPostFiltering("authorName.equals=" + DEFAULT_AUTHOR_NAME, "authorName.equals=" + UPDATED_AUTHOR_NAME);
+    }
+
+    @Test
+    @Transactional
+    void getAllBlogPostsByAuthorNameIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedBlogPost = blogPostRepository.saveAndFlush(blogPost);
+
+        // Get all the blogPostList where authorName in
+        defaultBlogPostFiltering(
+            "authorName.in=" + DEFAULT_AUTHOR_NAME + "," + UPDATED_AUTHOR_NAME,
+            "authorName.in=" + UPDATED_AUTHOR_NAME
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllBlogPostsByAuthorNameIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedBlogPost = blogPostRepository.saveAndFlush(blogPost);
+
+        // Get all the blogPostList where authorName is not null
+        defaultBlogPostFiltering("authorName.specified=true", "authorName.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllBlogPostsByAuthorNameContainsSomething() throws Exception {
+        // Initialize the database
+        insertedBlogPost = blogPostRepository.saveAndFlush(blogPost);
+
+        // Get all the blogPostList where authorName contains
+        defaultBlogPostFiltering("authorName.contains=" + DEFAULT_AUTHOR_NAME, "authorName.contains=" + UPDATED_AUTHOR_NAME);
+    }
+
+    @Test
+    @Transactional
+    void getAllBlogPostsByAuthorNameNotContainsSomething() throws Exception {
+        // Initialize the database
+        insertedBlogPost = blogPostRepository.saveAndFlush(blogPost);
+
+        // Get all the blogPostList where authorName does not contain
+        defaultBlogPostFiltering("authorName.doesNotContain=" + UPDATED_AUTHOR_NAME, "authorName.doesNotContain=" + DEFAULT_AUTHOR_NAME);
+    }
+
+    @Test
+    @Transactional
+    void getAllBlogPostsByCategoryIsEqualToSomething() throws Exception {
+        BlogCategory category;
+        if (TestUtil.findAll(em, BlogCategory.class).isEmpty()) {
+            blogPostRepository.saveAndFlush(blogPost);
+            category = BlogCategoryResourceIT.createEntity();
+        } else {
+            category = TestUtil.findAll(em, BlogCategory.class).get(0);
+        }
+        em.persist(category);
+        em.flush();
+        blogPost.addCategory(category);
+        blogPostRepository.saveAndFlush(blogPost);
+        Long categoryId = category.getId();
+        // Get all the blogPostList where category equals to categoryId
+        defaultBlogPostShouldBeFound("categoryId.equals=" + categoryId);
+
+        // Get all the blogPostList where category equals to (categoryId + 1)
+        defaultBlogPostShouldNotBeFound("categoryId.equals=" + (categoryId + 1));
+    }
+
+    @Test
+    @Transactional
+    void getAllBlogPostsByTagIsEqualToSomething() throws Exception {
+        Tag tag;
+        if (TestUtil.findAll(em, Tag.class).isEmpty()) {
+            blogPostRepository.saveAndFlush(blogPost);
+            tag = TagResourceIT.createEntity();
+        } else {
+            tag = TestUtil.findAll(em, Tag.class).get(0);
+        }
+        em.persist(tag);
+        em.flush();
+        blogPost.addTag(tag);
+        blogPostRepository.saveAndFlush(blogPost);
+        Long tagId = tag.getId();
+        // Get all the blogPostList where tag equals to tagId
+        defaultBlogPostShouldBeFound("tagId.equals=" + tagId);
+
+        // Get all the blogPostList where tag equals to (tagId + 1)
+        defaultBlogPostShouldNotBeFound("tagId.equals=" + (tagId + 1));
+    }
+
     private void defaultBlogPostFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
         defaultBlogPostShouldBeFound(shouldBeFound);
         defaultBlogPostShouldNotBeFound(shouldNotBeFound);
@@ -782,7 +900,8 @@ class BlogPostResourceIT {
             .andExpect(jsonPath("$.[*].viewCount").value(hasItem(DEFAULT_VIEW_COUNT)))
             .andExpect(jsonPath("$.[*].publishedAt").value(hasItem(DEFAULT_PUBLISHED_AT.toString())))
             .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
-            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));
+            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())))
+            .andExpect(jsonPath("$.[*].authorName").value(hasItem(DEFAULT_AUTHOR_NAME)));
 
         // Check, that the count call also returns 1
         restBlogPostMockMvc
@@ -843,7 +962,8 @@ class BlogPostResourceIT {
             .viewCount(UPDATED_VIEW_COUNT)
             .publishedAt(UPDATED_PUBLISHED_AT)
             .createdAt(UPDATED_CREATED_AT)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .updatedAt(UPDATED_UPDATED_AT)
+            .authorName(UPDATED_AUTHOR_NAME);
         BlogPostDTO blogPostDTO = blogPostMapper.toDto(updatedBlogPost);
 
         restBlogPostMockMvc
@@ -998,7 +1118,8 @@ class BlogPostResourceIT {
             .viewCount(UPDATED_VIEW_COUNT)
             .publishedAt(UPDATED_PUBLISHED_AT)
             .createdAt(UPDATED_CREATED_AT)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .updatedAt(UPDATED_UPDATED_AT)
+            .authorName(UPDATED_AUTHOR_NAME);
 
         restBlogPostMockMvc
             .perform(
@@ -1131,7 +1252,8 @@ class BlogPostResourceIT {
             .andExpect(jsonPath("$.[*].viewCount").value(hasItem(DEFAULT_VIEW_COUNT)))
             .andExpect(jsonPath("$.[*].publishedAt").value(hasItem(DEFAULT_PUBLISHED_AT.toString())))
             .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
-            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));
+            .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())))
+            .andExpect(jsonPath("$.[*].authorName").value(hasItem(DEFAULT_AUTHOR_NAME)));
     }
 
     protected long getRepositoryCount() {
