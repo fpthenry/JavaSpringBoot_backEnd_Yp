@@ -40,7 +40,11 @@ public class BlogPost implements Serializable {
     @NotNull
     @Size(max = 500)
     @Column(name = "title", length = 500, nullable = false)
-    // Sửa tay: title tìm không dấu; title.exact giữ dấu để bài đúng dấu xếp trước; title.keyword để sắp xếp
+    // Sửa tay: title tìm không dấu; title.exact giữ dấu (từ có dấu phải khớp đúng dấu); title.keyword để sắp xếp
+    // Sửa tay: chuẩn hóa tiếng Việt (NFC, kiểu đặt dấu mới) khi ghi vào ES, để tìm đúng dấu không sót bài
+    @org.springframework.data.elasticsearch.annotations.ValueConverter(
+        com.mycompany.myapp.repository.search.VietnameseText.EsConverter.class
+    )
     @org.springframework.data.elasticsearch.annotations.MultiField(
         mainField = @org.springframework.data.elasticsearch.annotations.Field(
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
@@ -80,6 +84,10 @@ public class BlogPost implements Serializable {
     @Lob
     @Column(name = "content")
     // Sửa tay: nội dung là HTML, bỏ thẻ khi index (html_strip) rồi tìm không dấu; .exact giữ dấu
+    // Sửa tay: chuẩn hóa tiếng Việt (NFC, kiểu đặt dấu mới) khi ghi vào ES, để tìm đúng dấu không sót bài
+    @org.springframework.data.elasticsearch.annotations.ValueConverter(
+        com.mycompany.myapp.repository.search.VietnameseText.EsConverter.class
+    )
     @org.springframework.data.elasticsearch.annotations.MultiField(
         mainField = @org.springframework.data.elasticsearch.annotations.Field(
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
@@ -100,6 +108,10 @@ public class BlogPost implements Serializable {
     @Lob
     @Column(name = "excerpt")
     // Sửa tay: nội dung là HTML, bỏ thẻ khi index (html_strip) rồi tìm không dấu; .exact giữ dấu
+    // Sửa tay: chuẩn hóa tiếng Việt (NFC, kiểu đặt dấu mới) khi ghi vào ES, để tìm đúng dấu không sót bài
+    @org.springframework.data.elasticsearch.annotations.ValueConverter(
+        com.mycompany.myapp.repository.search.VietnameseText.EsConverter.class
+    )
     @org.springframework.data.elasticsearch.annotations.MultiField(
         mainField = @org.springframework.data.elasticsearch.annotations.Field(
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
@@ -225,9 +237,18 @@ public class BlogPost implements Serializable {
     private Set<Long> categoryIds = new HashSet<>();
 
     @jakarta.persistence.Transient
-    @org.springframework.data.elasticsearch.annotations.Field(
-        type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
-        analyzer = "vi_folding"
+    @org.springframework.data.elasticsearch.annotations.MultiField(
+        mainField = @org.springframework.data.elasticsearch.annotations.Field(
+            type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+            analyzer = "vi_folding"
+        ),
+        otherFields = {
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "exact",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_exact"
+            ),
+        }
     )
     private Set<String> categoryNames = new HashSet<>();
 
@@ -236,9 +257,18 @@ public class BlogPost implements Serializable {
     private Set<Long> tagIds = new HashSet<>();
 
     @jakarta.persistence.Transient
-    @org.springframework.data.elasticsearch.annotations.Field(
-        type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
-        analyzer = "vi_folding"
+    @org.springframework.data.elasticsearch.annotations.MultiField(
+        mainField = @org.springframework.data.elasticsearch.annotations.Field(
+            type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+            analyzer = "vi_folding"
+        ),
+        otherFields = {
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "exact",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_exact"
+            ),
+        }
     )
     private Set<String> tagNames = new HashSet<>();
 

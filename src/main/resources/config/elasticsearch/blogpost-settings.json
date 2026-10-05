@@ -5,29 +5,36 @@
         "type": "pattern_replace",
         "pattern": "\\[/?vc_[^\\]\\[]*\\]?",
         "replacement": " "
+      },
+      "dot_split": {
+        "type": "pattern_replace",
+        "pattern": "(?<=\\p{L})\\.(?=\\p{L})",
+        "replacement": " "
       }
     },
     "analyzer": {
       "vi_folding": {
         "type": "custom",
         "tokenizer": "standard",
-        "filter": ["lowercase", "asciifolding"]
+        "filter": ["lowercase", "asciifolding"],
+        "char_filter": ["dot_split"]
       },
       "vi_html_folding": {
         "type": "custom",
         "tokenizer": "standard",
-        "char_filter": ["html_strip", "wp_shortcode"],
+        "char_filter": ["html_strip", "wp_shortcode", "dot_split"],
         "filter": ["lowercase", "asciifolding"]
       },
       "vi_exact": {
         "type": "custom",
         "tokenizer": "standard",
-        "filter": ["lowercase"]
+        "filter": ["lowercase"],
+        "char_filter": ["dot_split"]
       },
       "vi_html_exact": {
         "type": "custom",
         "tokenizer": "standard",
-        "char_filter": ["html_strip", "wp_shortcode"],
+        "char_filter": ["html_strip", "wp_shortcode", "dot_split"],
         "filter": ["lowercase"]
       }
     }

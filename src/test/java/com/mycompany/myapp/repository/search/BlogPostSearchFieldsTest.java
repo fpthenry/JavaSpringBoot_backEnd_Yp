@@ -7,6 +7,8 @@ import com.mycompany.myapp.domain.BlogPost;
 import com.mycompany.myapp.domain.Tag;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 class BlogPostSearchFieldsTest {
@@ -63,13 +65,32 @@ class BlogPostSearchFieldsTest {
             new BlogPostSearchFilter(" khuyen mai ", 2L, 9L, "publish")
         ).toString();
         assertThat(json)
-            .contains("\"query\":\"khuyen mai\"")
-            .contains("\"type\":\"cross_fields\"")
-            .contains("\"operator\":\"and\"")
-            .contains("title.exact^3")
+            .contains("\"query\":\"khuyen\"")
+            .contains("\"query\":\"mai\"")
+            .doesNotContain("title.exact^3")
             .contains("{\"term\":{\"categoryIds\":{\"value\":2}}}")
             .contains("{\"term\":{\"tagIds\":{\"value\":9}}}")
             .contains("{\"term\":{\"status.keyword\":{\"value\":\"publish\"}}}");
+    }
+
+    @Test
+    void tuCoDauTimTrenFieldGiuDauTuKhongDauTimTrenFieldBoDau() {
+        // "khuyến" có dấu -> .exact; "mai" không dấu -> field bỏ dấu; "hoà" kiểu cũ được đổi thành "hòa"
+        String json = BlogPostSearchRepositoryInternalImpl.buildQuery(BlogPostSearchFilter.ofQuery("khuyến mai, hoà")).toString();
+        // Mỗi từ là một multi_match riêng; gom theo từ để kiểm tra field, không phụ thuộc thứ tự key trong JSON
+        Map<String, String> byWord = new HashMap<>();
+        Matcher multiMatch = Pattern.compile("\\{\"multi_match\":\\{[^}]*\\}").matcher(json);
+        while (multiMatch.find()) {
+            Matcher word = Pattern.compile("\"query\":\"([^\"]*)\"").matcher(multiMatch.group());
+            if (word.find()) {
+                byWord.put(word.group(1), multiMatch.group());
+            }
+        }
+        assertThat(byWord).containsOnlyKeys("khuyến", "mai", "hòa");
+        assertThat(byWord.get("khuyến")).contains("title.exact^3").contains("categoryNames.exact^2");
+        assertThat(byWord.get("hòa")).contains("content.exact");
+        assertThat(byWord.get("mai")).contains("\"title^3\"").doesNotContain(".exact");
+        assertThat(json).contains("\"query\":\"khuyến mai hòa\"");
     }
 
     @Test

@@ -72,7 +72,7 @@ public class BlogPostSearchFields {
         for (BlogCategory category : post.getCategories()) {
             CategoryNode node = categories.get(category.getId());
             if (node != null && node.name() != null) {
-                categoryNames.add(node.name());
+                categoryNames.add(VietnameseText.normalize(node.name()));
             }
             // Đi ngược lên gốc; add() trả false khi đã gặp, nên cây lỗi có vòng lặp cũng không treo
             Long id = category.getId();
@@ -90,6 +90,7 @@ public class BlogPostSearchFields {
                 .stream()
                 .map(tag -> tagNames.get(tag.getId()))
                 .filter(Objects::nonNull)
+                .map(VietnameseText::normalize)
                 .collect(Collectors.toSet())
         );
     }

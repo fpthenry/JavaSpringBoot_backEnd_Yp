@@ -1120,13 +1120,18 @@ Menu **Thực thể → Blog Post → Thêm mới / Sửa**: route `new` và `:i
 | Các từ không bắt buộc cùng có | "khuyến mại" ra cả bài chỉ có "khuyến" hoặc chỉ có "mại" |
 | Kết quả không có danh mục, thẻ; không lọc được | `categories: []`, `tags: []` |
 
-**Sau khi sửa:**
+**Sau khi sửa** (lần 2, cùng ngày: tìm có dấu phải đúng dấu). Cột "Đếm từ MySQL" do script đếm trực tiếp trên nội dung bài (bỏ HTML, chuẩn hóa như ES), để chắc ES không sót, không thừa:
 
-| Truy vấn | Kết quả |
-|---|---|
-| "khuyến mại" / "khuyen mai" | 154 / 154 |
-| "Hà Nội" / "ha noi" | 511 / 511 |
-| "chăn nuôi gia cầm" / "chan nuoi gia cam" | 42 / 42 |
+| Truy vấn | ES | Đếm từ MySQL |
+|---|---|---|
+| "khuyen mai" (không dấu: mọi dấu) | 154 | 154 |
+| "khuyến mại" / "khuyến mãi" (có dấu: đúng dấu) | 108 / 33 | 108 / 33 |
+| "khuyến mai" (lẫn: "khuyến" đúng dấu, "mai" mọi dấu) | 136 | 136 |
+| "da" / "đá" | 2.111 / 95 | – / 95 |
+| "bàn" / "bán" | 458 / 578 | 458 / 572 (6 bài thêm nhờ tên danh mục "Cà phê - sản xuất buôn bán") |
+| "Hà Nội" (kể cả "TP.Hà Nội", chữ gõ Unicode tổ hợp) | 262 | 262 |
+| "hoà bình" / "hòa bình" (hai kiểu đặt dấu) | 175 / 175 | 175 |
+| "thuỷ sản" | 243 | 243 |
 | "div", "nbsp", "vc_row", "vc_column" | 0 |
 | "class" | 4 (đều là chữ "class" thật trong bài) |
 | `categoryId=1500` (danh mục gốc, gồm danh mục con) | 1.820, khớp đúng số đếm trên MySQL |
@@ -1139,7 +1144,7 @@ Menu **Thực thể → Blog Post → Thêm mới / Sửa**: route `new` và `:i
 
 | Tham số | Ý nghĩa |
 |---|---|
-| `query` | Từ khóa, có dấu hay không dấu đều được. Bài phải chứa **đủ mọi từ**, ở tiêu đề, tóm tắt, nội dung, tên danh mục hoặc tên thẻ (các từ có thể nằm ở các field khác nhau). Bỏ trống thì lấy tất cả |
+| `query` | Từ khóa. Bài phải chứa **đủ mọi từ**, ở tiêu đề, tóm tắt, nội dung, tên danh mục hoặc tên thẻ (các từ có thể nằm ở các field khác nhau). **Từ có dấu phải khớp đúng dấu** ("đá" không ra "da", "đa"); **từ không dấu khớp mọi dấu** ("da" ra cả "đá", "da", "dạ"). Kiểu đặt dấu cũ/mới coi như nhau ("hoà" = "hòa"). Bỏ trống thì lấy tất cả |
 | `categoryId` | Bài thuộc danh mục này **hoặc danh mục con** |
 | `tagId` | Bài có thẻ này |
 | `status` | `publish` / `draft` |
@@ -1155,17 +1160,18 @@ Trang danh sách bài viết trong quản trị dùng sẵn API này qua ô tìm
 
 | Phần | File | Nội dung |
 |---|---|---|
-| Analyzer | [`config/elasticsearch/blogpost-settings.json`](../src/main/resources/config/elasticsearch/blogpost-settings.json), gắn vào entity bằng `@Setting` | `vi_folding`: chữ thường + `asciifolding` (bỏ dấu, `đ` → `d`). `vi_html_folding`: thêm `html_strip` (bỏ thẻ HTML, giải mã `&nbsp;`…) và `wp_shortcode` (bỏ `[vc_…]`, kể cả shortcode bị cắt cụt trong tóm tắt). `vi_exact`, `vi_html_exact`: giữ dấu |
+| Analyzer | [`config/elasticsearch/blogpost-settings.json`](../src/main/resources/config/elasticsearch/blogpost-settings.json), gắn vào entity bằng `@Setting` | `vi_folding`: chữ thường + `asciifolding` (bỏ dấu, `đ` → `d`). `vi_html_folding`: thêm `html_strip` (bỏ thẻ HTML, giải mã `&nbsp;`…) và `wp_shortcode` (bỏ `[vc_…]`, kể cả shortcode bị cắt cụt trong tóm tắt). `vi_exact`, `vi_html_exact`: giữ dấu. Mọi analyzer có `dot_split`: tách dấu chấm giữa hai chữ cái ("TP.Hà" → "TP Hà"; nếu không, tokenizer giữ "tp.hà" thành một từ) |
+| Chuẩn hóa tiếng Việt | [`repository/search/VietnameseText.java`](../src/main/java/com/mycompany/myapp/repository/search/VietnameseText.java), gắn vào `title`, `content`, `excerpt` bằng `@ValueConverter`; tên danh mục, thẻ chuẩn hóa trong `BlogPostSearchFields`; truy vấn chuẩn hóa trong `buildQuery` | **NFC**: 111 bài (18 tiêu đề) có chữ gõ kiểu Unicode tổ hợp (dấu rời, ví dụ `ô` + U+0323), khác byte với chữ dựng sẵn nên tìm đúng dấu sẽ sót. **Kiểu đặt dấu mới** cho vần mở oa, oe, uy: `hoà → hòa`, `thuỷ → thủy`, `uỷ → ủy` (trừ `quý`); dữ liệu có 2.225 bài kiểu cũ, 1.771 bài kiểu mới. Chỉ áp dụng cho ES, **không sửa dữ liệu MySQL** (ES chỉ trả id nên bản chuẩn hóa trong `_source` không hiện ra) |
 | Mapping | [`domain/BlogPost.java`](../src/main/java/com/mycompany/myapp/domain/BlogPost.java) | `title`: `vi_folding` + `title.exact` (giữ dấu) + `title.keyword` (sắp xếp). `content`, `excerpt`: index bằng `vi_html_folding`, tìm bằng `vi_folding` + `.exact` (giữ dấu). Bỏ `content.keyword` (vô nghĩa với HTML) |
-| Field chỉ có trong ES | `BlogPost`: `categoryIds`, `categoryNames`, `tagIds`, `tagNames` (`@jakarta.persistence.Transient`, không phải cột DB) | `categoryIds` gồm cả **id danh mục cha** (đi ngược lên gốc), nên lọc theo danh mục cha ra cả bài của danh mục con |
+| Field chỉ có trong ES | `BlogPost`: `categoryIds`, `categoryNames` (+ `.exact`), `tagIds`, `tagNames` (+ `.exact`) (`@jakarta.persistence.Transient`, không phải cột DB) | `categoryIds` gồm cả **id danh mục cha** (đi ngược lên gốc), nên lọc theo danh mục cha ra cả bài của danh mục con |
 | Điền field | [`repository/search/BlogPostSearchFields.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchFields.java) | Đọc cả cây danh mục (`BlogCategoryRepository.findAllTreeRows()`, vài chục dòng) và tên thẻ theo id |
-| Truy vấn | [`repository/search/BlogPostSearchRepository.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchRepository.java), [`BlogPostSearchFilter.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchFilter.java) | `bool`: **must** `multi_match` `cross_fields`, `operator: and` trên field không dấu (`title^3`, `excerpt^2`, `content`, `categoryNames^2`, `tagNames^2`); **should** cùng truy vấn trên field `.exact` (bài đúng dấu được cộng điểm) và `match_phrase` tiêu đề (khớp cả cụm được cộng điểm); **filter** `term` theo `categoryIds`, `tagIds`, `status.keyword` |
+| Truy vấn | [`repository/search/BlogPostSearchRepository.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchRepository.java), [`BlogPostSearchFilter.java`](../src/main/java/com/mycompany/myapp/repository/search/BlogPostSearchFilter.java) | Tách truy vấn thành từng từ (tối đa 20). `bool`: mỗi từ một **must** `multi_match` (`best_fields`, `tie_breaker 0.3`): từ **có dấu** trên field giữ dấu (`title.exact^3`, `excerpt.exact^2`, `content.exact`, `categoryNames.exact^2`, `tagNames.exact^2`), từ **không dấu** trên field bỏ dấu (`title^3`, `excerpt^2`, `content`, `categoryNames^2`, `tagNames^2`); **should** `match_phrase` cả cụm trên tiêu đề (`title.exact` nếu có từ có dấu) để bài khớp cả cụm ở tiêu đề xếp trước; **filter** `term` theo `categoryIds`, `tagIds`, `status.keyword` |
 | Kết quả | như trên | ES chỉ trả `id` (`_source` lọc còn `id`); bài viết đọc lại từ MySQL kèm danh mục, thẻ, giữ thứ tự của ES |
 | Lưu bài | [`service/impl/BlogPostServiceImpl.java`](../src/main/java/com/mycompany/myapp/service/impl/BlogPostServiceImpl.java) | `save`/`update`/`partialUpdate` gọi `BlogPostSearchFields.fill()` **trong transaction lưu bài**, rồi `index()` (chạy nền) chỉ ghi document lên ES, không đọc lại DB |
 | Reindex | [`service/ElasticsearchReindexService.java`](../src/main/java/com/mycompany/myapp/service/ElasticsearchReindexService.java) | Với `blogpost`: mỗi lô nạp danh mục, thẻ bằng `fetchBagRelationships` (2 câu query) rồi `fill()` |
 | API | [`web/rest/BlogPostResource.java`](../src/main/java/com/mycompany/myapp/web/rest/BlogPostResource.java), [`service/BlogPostService.java`](../src/main/java/com/mycompany/myapp/service/BlogPostService.java) | Thêm `categoryId`, `tagId`, `status`; `query` không bắt buộc; mô tả Swagger tiếng Việt |
 
-Vì sao `cross_fields` dùng được: các field trong nhóm tìm kiếm đều có **cùng search analyzer** (`vi_folding`), nên ES coi chúng như một field lớn. Từ "khuyến mại" ở tiêu đề và "Hà Nội" ở nội dung vẫn khớp truy vấn "khuyen mai ha noi". Nếu thêm field có search analyzer khác vào nhóm này, ES sẽ tách thành nhóm riêng và mỗi nhóm phải đủ mọi từ.
+Vì sao tách từng từ thay cho một `multi_match` `cross_fields` (bản đầu): mỗi từ cần chọn nhóm field riêng tùy có dấu hay không ("khuyến mai" = "khuyến" đúng dấu + "mai" mọi dấu). Mỗi từ là một điều kiện **must** riêng nên các từ vẫn có thể nằm ở các field khác nhau ("khuyến mại" ở tiêu đề, "Hà Nội" ở nội dung). Tách từ trong Java (`VietnameseText.words`: theo ký tự không phải chữ, số) khớp với cách tokenizer `standard` + `dot_split` tách trong ES.
 
 > ⚠️ **Khi nào phải reindex `blogpost`** (`POST /api/admin/elasticsearch/reindex?entities=blogpost`, khoảng 8 giây):
 > - Sửa `blogpost-settings.json` hoặc annotation ES trong `BlogPost.java`. Spring Data **không** cập nhật index đã tồn tại; job reindex xóa và tạo lại index theo mapping mới.
@@ -1176,7 +1182,9 @@ Vì sao `cross_fields` dùng được: các field trong nhóm tìm kiếm đều
 
 | Test | Kết quả |
 |---|---|
-| [`BlogPostSearchFieldsTest`](../src/test/java/com/mycompany/myapp/repository/search/BlogPostSearchFieldsTest.java): `categoryIds` gồm danh mục cha, cây có vòng lặp không treo, tên lấy theo id; truy vấn có từ khóa và bộ lọc; truy vấn rỗng = `match_all` | 4/4 ✅ |
+| [`BlogPostSearchFieldsTest`](../src/test/java/com/mycompany/myapp/repository/search/BlogPostSearchFieldsTest.java): `categoryIds` gồm danh mục cha, cây có vòng lặp không treo, tên lấy theo id; truy vấn có từ khóa và bộ lọc; từ có dấu dùng field `.exact`, từ không dấu dùng field bỏ dấu; truy vấn rỗng = `match_all` | 5/5 ✅ |
+| [`VietnameseTextTest`](../src/test/java/com/mycompany/myapp/repository/search/VietnameseTextTest.java): ghép dấu tổ hợp (NFC); đổi kiểu đặt dấu cũ (hoà, thuỷ, uỷ, khoẻ, HOÀ); giữ nguyên hoàn, xoáy, quý, quà, huỳnh; bỏ dấu; tách từ | 5/5 ✅ |
+| Đối chiếu ES với số đếm từ MySQL cho 11 truy vấn có dấu, không dấu, lẫn (bảng "Sau khi sửa"); bài thử tạo/sửa/xóa qua API (id 2447, đã xóa) | ✅ |
 | `blog-post.spec.ts` (danh sách): tìm kiếm không gửi sort, xóa từ khóa về `id,asc`. Cả thư mục `entities/blog-post` | 60/60 ✅ |
 | Chrome headless: tìm trên 6 trang (bài viết, danh mục bài viết, thẻ, ngành nghề, địa phương, listing) rồi bấm menu sang trang khác: không đơ, chuyển trang 0,3–0,8 s | ✅ |
 | `BlogPostResourceIT` (Testcontainers MySQL + ES). Riêng `searchBlogPost` sửa từ `query=id:…` (cú pháp `query_string`, không còn dùng) sang tìm theo tiêu đề | 68/68 ✅ |
@@ -1236,9 +1244,9 @@ Lưu ý:
 | `entities/blog-post/blog-post.routes.ts` | Route `new`, `:id/edit` trỏ tới `editor/blog-post-editor` | Sinh lại BlogPost sẽ trỏ về form JHipster |
 | `service/ElasticsearchReindexService.java` | Thêm entity `blogcategory` | |
 | `config/ApplicationProperties.java` (`wordpress.baseUrl`, `pageSize`), `application-dev.yml` | Địa chỉ WordPress để đồng bộ | |
-| `domain/BlogPost.java` (`@Setting`, mapping `title`/`content`/`excerpt`, field `categoryIds`, `categoryNames`, `tagIds`, `tagNames`), `repository/search/BlogPostSearchRepository.java`, `service/BlogPostService.java`, `service/impl/BlogPostServiceImpl.java`, `web/rest/BlogPostResource.java` (`_search` thêm bộ lọc), `repository/BlogCategoryRepository.java` (`findAllTreeRows`), `BlogPostResourceIT.java` (`searchBlogPost`) | Tìm kiếm bài viết không dấu, lọc theo danh mục, thẻ | [Mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch). **Sinh lại BlogPost hoặc BlogCategory sẽ mất, phải sửa lại** (sinh lại `BlogPostSearchRepository` sẽ quay về `query_string` và đọc lại DB khi index). |
+| `domain/BlogPost.java` (`@Setting`, mapping và `@ValueConverter` của `title`/`content`/`excerpt`, field `categoryIds`, `categoryNames`, `tagIds`, `tagNames`), `repository/search/BlogPostSearchRepository.java`, `service/BlogPostService.java`, `service/impl/BlogPostServiceImpl.java`, `web/rest/BlogPostResource.java` (`_search` thêm bộ lọc), `repository/BlogCategoryRepository.java` (`findAllTreeRows`), `BlogPostResourceIT.java` (`searchBlogPost`) | Tìm kiếm bài viết không dấu, lọc theo danh mục, thẻ | [Mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch). **Sinh lại BlogPost hoặc BlogCategory sẽ mất, phải sửa lại** (sinh lại `BlogPostSearchRepository` sẽ quay về `query_string` và đọc lại DB khi index). |
 | `entities/blog-post/list/blog-post.ts`, `blog-post.spec.ts` | Tìm kiếm không gửi sort mặc định `id,asc` | Kết quả theo độ liên quan ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)). Sinh lại BlogPost sẽ mất |
-| `config/elasticsearch/blogpost-settings.json`, `repository/search/BlogPostSearchFields.java`, `BlogPostSearchFilter.java`, `BlogPostSearchFieldsTest.java` (file mới) | Analyzer, điền field tìm kiếm, điều kiện tìm | File viết tay |
+| `config/elasticsearch/blogpost-settings.json`, `repository/search/BlogPostSearchFields.java`, `BlogPostSearchFilter.java`, `VietnameseText.java`, `BlogPostSearchFieldsTest.java`, `VietnameseTextTest.java` (file mới) | Analyzer, chuẩn hóa tiếng Việt, điền field tìm kiếm, điều kiện tìm | File viết tay |
 | `src/test/java/.../config/ElasticsearchTestContainer.java` | `ES_JAVA_OPTS=-Xms512m -Xmx512m` | ES test mặc định lấy heap 2 GB, không khởi động kịp khi ES dev đang chạy ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)) |
 | `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
 

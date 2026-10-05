@@ -1,6 +1,5 @@
 package com.mycompany.myapp.repository.search;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import com.mycompany.myapp.domain.BlogPost;
 import com.mycompany.myapp.repository.BlogPostRepository;
@@ -46,7 +45,8 @@ interface BlogPostSearchRepositoryInternal {
 /**
  * Sửa tay so với bản JHipster sinh ra:
  * <ul>
- *   <li>Tìm bằng multi_match (không dấu, phải có đủ mọi từ) thay cho query_string; bài đúng dấu và khớp cả cụm ở tiêu đề xếp trước.</li>
+ *   <li>Tìm theo từng từ thay cho query_string, phải có đủ mọi từ: từ có dấu khớp đúng dấu (field .exact),
+ *   từ không dấu khớp mọi dấu; khớp cả cụm ở tiêu đề xếp trước. Truy vấn và dữ liệu đều qua {@link VietnameseText#normalize}.</li>
  *   <li>Lọc theo danh mục (gồm danh mục con), thẻ, trạng thái.</li>
  *   <li>Elasticsearch chỉ trả id; bài viết đọc lại từ MySQL kèm danh mục, thẻ (ES không lưu quan hệ).</li>
  *   <li>index() ghi nguyên entity đã được service điền sẵn field tìm kiếm, không đọc lại DB: chạy @Async nên lúc đó
@@ -55,13 +55,16 @@ interface BlogPostSearchRepositoryInternal {
  */
 class BlogPostSearchRepositoryInternalImpl implements BlogPostSearchRepositoryInternal {
 
-    /**
-     * Field tìm không dấu. Cùng search analyzer vi_folding nên cross_fields coi như một field lớn:
-     * từ này ở tiêu đề, từ kia ở nội dung vẫn khớp.
-     */
+    /** Field cho từ không dấu: khớp mọi dấu (khuyen = khuyến = khuyên). */
     static final List<String> FOLDED_FIELDS = List.of("title^3", "excerpt^2", "content", "categoryNames^2", "tagNames^2");
-    /** Field giữ dấu, chỉ để cộng điểm cho bài đúng dấu. */
-    static final List<String> EXACT_FIELDS = List.of("title.exact^3", "excerpt.exact^2", "content.exact");
+    /** Field cho từ có dấu: phải đúng dấu (đá không khớp da, đa). */
+    static final List<String> EXACT_FIELDS = List.of(
+        "title.exact^3",
+        "excerpt.exact^2",
+        "content.exact",
+        "categoryNames.exact^2",
+        "tagNames.exact^2"
+    );
 
     private final ElasticsearchTemplate elasticsearchTemplate;
     private final BlogPostRepository repository;
@@ -97,19 +100,28 @@ class BlogPostSearchRepositoryInternalImpl implements BlogPostSearchRepositoryIn
     }
 
     static co.elastic.clients.elasticsearch._types.query_dsl.Query buildQuery(BlogPostSearchFilter filter) {
-        String text = filter.query() == null ? "" : filter.query().trim();
+        String text = filter.query() == null ? "" : VietnameseText.normalize(filter.query().trim());
+        List<String> words = VietnameseText.words(text);
+        boolean anyAccent = words.stream().anyMatch(VietnameseText::hasDiacritics);
         return co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q ->
             q.bool(b -> {
-                if (text.isEmpty()) {
+                if (words.isEmpty()) {
                     b.must(m -> m.matchAll(all -> all));
                 } else {
-                    b.must(m ->
-                        m.multiMatch(mm -> mm.query(text).fields(FOLDED_FIELDS).type(TextQueryType.CrossFields).operator(Operator.And))
-                    );
+                    // Mỗi từ phải có ở ít nhất một field; từ có dấu tìm trên field giữ dấu, từ không dấu trên field bỏ dấu
+                    for (String word : words) {
+                        List<String> fields = VietnameseText.hasDiacritics(word) ? EXACT_FIELDS : FOLDED_FIELDS;
+                        b.must(m -> m.multiMatch(mm -> mm.query(word).fields(fields).type(TextQueryType.BestFields).tieBreaker(0.3)));
+                    }
+                    String phrase = String.join(" ", words);
                     b.should(s ->
-                        s.multiMatch(mm -> mm.query(text).fields(EXACT_FIELDS).type(TextQueryType.CrossFields).operator(Operator.And))
+                        s.matchPhrase(mp ->
+                            mp
+                                .field(anyAccent ? "title.exact" : "title")
+                                .query(phrase)
+                                .boost(3f)
+                        )
                     );
-                    b.should(s -> s.matchPhrase(mp -> mp.field("title").query(text).boost(3f)));
                 }
                 if (filter.categoryId() != null) {
                     b.filter(f -> f.term(t -> t.field("categoryIds").value(filter.categoryId())));
