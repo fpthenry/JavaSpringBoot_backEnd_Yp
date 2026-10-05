@@ -128,12 +128,26 @@ entity BlogPost(blog_post) {
     slug String maxlength(500)
     content TextBlob
     excerpt TextBlob
+    /** URL ảnh đại diện (featured image) */
     thumbnail String maxlength(500)
     status String maxlength(50)
     viewCount Integer
     publishedAt Instant
     createdAt Instant
     updatedAt Instant
+    /** Tên tác giả trên WordPress, vd: ADMIN HCM */
+    authorName String maxlength(255)
+}
+
+/** Danh mục bài viết (taxonomy category của WordPress), dạng cây. Đồng bộ từ WordPress, xem jdl/blog.jdl */
+entity BlogCategory(blog_category) {
+    /** wp_terms.term_id */
+    wpTermId Long unique
+    name String required maxlength(255)
+    slug String maxlength(255)
+    description TextBlob
+    /** Số bài viết theo WordPress */
+    postCount Integer
 }
 
 /** Thẻ (bảng tag) */
@@ -186,6 +200,17 @@ entity GalleryImage(gallery_image) {
 // RELATIONSHIPS
 // =====================================================
 
+// blog_category.parent_id: cây danh mục bài viết
+relationship ManyToOne {
+    BlogCategory{parent(name)} to BlogCategory
+}
+
+// rel_blog_post__category, rel_blog_post__tag: bài viết N - N danh mục / thẻ
+relationship ManyToMany {
+    BlogPost{category(name)} to BlogCategory
+    BlogPost{tag(name)} to Tag
+}
+
 // gallery_image.gallery_id: mỗi ảnh thuộc một vị trí banner
 relationship ManyToOne {
     GalleryImage{gallery(name) required} to Gallery
@@ -220,10 +245,10 @@ dto * with mapstruct
 
 service * with serviceImpl
 
-paginate Listing, Category, Location, BlogPost, Gallery, GalleryImage with pagination
+paginate Listing, Category, Location, BlogPost, BlogCategory, Gallery, GalleryImage with pagination
 paginate Tag with infinite-scroll
 
-filter Listing, Category, Location, BlogPost, Gallery, GalleryImage
+filter Listing, Category, Location, BlogPost, BlogCategory, Gallery, GalleryImage
 
 // Ứng dụng dùng searchEngine elasticsearch (.yo-rc.json); ảnh nhị phân của gallery không đưa vào ES
 search * with elasticsearch except Gallery, GalleryImage

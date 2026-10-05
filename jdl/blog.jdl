@@ -1,0 +1,65 @@
+/**
+ * Bài viết tin tức: thêm danh mục (dạng cây), thẻ và tác giả để đồng bộ đầy đủ từ WordPress yp.com.vn
+ * (REST API ?rest_route=/wp/v2/posts, /categories, /tags).
+ *
+ * File này chỉ chứa 3 entity liên quan để sinh code RIÊNG, không sinh lại các entity khác (có code sửa tay):
+ *   npx jhipster jdl jdl/blog.jdl --force --incremental-changelog
+ * BlogPost đã có dữ liệu nên bắt buộc --incremental-changelog: Liquibase chỉ thêm cột/bảng mới.
+ * Định nghĩa giống hệt cũng được chép vào yp-schema.jdl.
+ */
+
+/** Bài viết tin tức (bảng blog_post) */
+entity BlogPost(blog_post) {
+    /** wp_posts.ID */
+    wpId Long required unique
+    title String required maxlength(500)
+    slug String maxlength(500)
+    content TextBlob
+    excerpt TextBlob
+    /** URL ảnh đại diện (featured image) */
+    thumbnail String maxlength(500)
+    status String maxlength(50)
+    viewCount Integer
+    publishedAt Instant
+    createdAt Instant
+    updatedAt Instant
+    /** Tên tác giả trên WordPress, vd: ADMIN HCM */
+    authorName String maxlength(255)
+}
+
+/** Danh mục bài viết (taxonomy category của WordPress), dạng cây */
+entity BlogCategory(blog_category) {
+    /** wp_terms.term_id */
+    wpTermId Long unique
+    name String required maxlength(255)
+    slug String maxlength(255)
+    description TextBlob
+    /** Số bài viết theo WordPress */
+    postCount Integer
+}
+
+/** Thẻ (bảng tag) */
+entity Tag(tag) {
+    /** wp_terms.term_id */
+    wpTermId Long unique
+    name String required maxlength(255)
+    slug String maxlength(255)
+}
+
+// blog_category.parent_id: cây danh mục bài viết
+relationship ManyToOne {
+    BlogCategory{parent(name)} to BlogCategory
+}
+
+// rel_blog_post__category, rel_blog_post__tag: bài viết N - N danh mục / thẻ
+relationship ManyToMany {
+    BlogPost{category(name)} to BlogCategory
+    BlogPost{tag(name)} to Tag
+}
+
+dto BlogPost, BlogCategory, Tag with mapstruct
+service BlogPost, BlogCategory, Tag with serviceImpl
+paginate BlogPost, BlogCategory with pagination
+paginate Tag with infinite-scroll
+filter BlogPost, BlogCategory
+search BlogPost, BlogCategory, Tag with elasticsearch
