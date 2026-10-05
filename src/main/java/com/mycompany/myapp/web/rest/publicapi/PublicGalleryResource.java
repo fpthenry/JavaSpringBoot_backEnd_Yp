@@ -86,7 +86,7 @@ public class PublicGalleryResource {
     }
 
     /** URL tuyệt đối tới endpoint ảnh, theo địa chỉ server mà FE đang gọi. */
-    private static LongFunction<String> uploadedImageUrl() {
+    public static LongFunction<String> uploadedImageUrl() {
         String base = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
         return id -> base + MEDIA_PATH.replace("{id}", String.valueOf(id));
     }

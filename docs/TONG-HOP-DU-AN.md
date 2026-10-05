@@ -965,6 +965,17 @@ Ví dụ (đã chạy thật trên dev):
 
 `imageUrl` của ảnh upload là URL tuyệt đối, dựng theo địa chỉ server mà FE gọi tới. Chạy sau reverse proxy thì proxy phải gửi `X-Forwarded-Host`/`X-Forwarded-Proto` (dev đã bật `server.forward-headers-strategy: native`).
 
+**API quản trị: tất cả banner kèm ảnh** (JWT, dùng trong Swagger: Quản trị → API, nhóm **gallery-admin-resource**, bấm Execute là có):
+
+| Endpoint | Trả về |
+|---|---|
+| `GET /api/galleries/with-images` | **Mọi** vị trí banner (kể cả đang tắt), mỗi vị trí kèm `imageCount` và **mọi** ảnh (kể cả tắt, hết hạn) với đủ thông tin: `uploaded`, `imageContentType`, **`previewUrl`** (mở được trên trình duyệt; ảnh upload dùng endpoint media, không trả base64), `imageUrl`, `linkUrl`, `altText`, `displayOrder`, `active`, `startAt`, `endAt`, `openInNewTab`, **`showingNow`** (ảnh có đang hiện trên FE không, cùng điều kiện với API công khai) |
+
+API CRUD JHipster sinh (`GET /api/galleries`, `GET /api/gallery-images`) vẫn giữ nguyên: có phân trang, và `/api/gallery-images` trả ảnh dạng base64.
+Code: [`GalleryAdminResource.java`](../src/main/java/com/mycompany/myapp/web/rest/GalleryAdminResource.java) → [`GalleryAdminService.java`](../src/main/java/com/mycompany/myapp/service/GalleryAdminService.java) → [`GalleryAdminRepository.java`](../src/main/java/com/mycompany/myapp/repository/GalleryAdminRepository.java) (không tải ảnh nhị phân). Test: [`GalleryAdminServiceTest`](../src/test/java/com/mycompany/myapp/service/GalleryAdminServiceTest.java).
+
+> ⚠️ **Form thêm ảnh banner của JHipster tự điền "Bắt đầu hiển thị" = "Ngừng hiển thị" = giờ hiện tại**, nên ảnh mới **hết hạn ngay khi tạo** (khung hiển thị dài 0 giây). Đã sửa từ 2026-10-05: hai ô để trống khi thêm mới; ô trống được lưu `null` (= hiện ngay, không hết hạn). Ảnh tạo **trước** khi sửa cần mở lại và **xóa trắng** hai ô này. API `with-images` giúp phát hiện các ảnh như vậy: `active: true` nhưng `showingNow: false`.
+
 **Gọi từ Next.js** (phía server, khóa trong biến môi trường của Next.js):
 
 ```ts
@@ -1053,6 +1064,8 @@ Lưu ý:
 | `layouts/navbar/navbar.html` (mục Gallery), `i18n/{vi,en}/global.json`, `gallery.json`, `galleryImage.json`, `config/font-awesome-icons.ts` | Gom 2 mục JHipster sinh cho Gallery thành nhóm **Banner quảng cáo**; dịch nhãn tiếng Việt; icon `image`, `images` | Sinh lại Gallery thì JHipster thêm lại 2 mục menu rời và nhãn tiếng Anh |
 | `config/ApplicationProperties.java` (`publicApi.keys`), `security/AuthoritiesConstants.java` (`PUBLIC_API`), `application-dev.yml`, `application-prod.yml`, `src/test/resources/config/application.yml` | Cấu hình khóa API công khai | [Mục 10.2](#102-cơ-chế-x-api-key) |
 | `config/PublicApiSecurityConfiguration.java`, `security/PublicApiKeyFilter.java`, `repository/GalleryPublicRepository.java`, `GalleryPublicRow.java`, `service/PublicGalleryService.java`, `service/dto/publicapi/*`, `web/rest/publicapi/*` (file mới) | API công khai, gallery | File viết tay, không bị ghi đè |
+| `entities/gallery-image/update/gallery-image-form.service.ts` (+ `gallery-image-form.dates.spec.ts` mới) | Ảnh mới để trống `startAt`/`endAt`; ô trống lưu `null` | JHipster mặc định cả hai = giờ hiện tại, làm ảnh hết hạn ngay ([mục 10.3](#103-banner-quảng-cáo-gallery)). **Sinh lại GalleryImage sẽ mất, phải sửa lại.** |
+| `web/rest/GalleryAdminResource.java`, `service/GalleryAdminService.java`, `service/dto/GalleryWithImagesDTO.java`, `repository/GalleryAdminRepository.java`, `GalleryImageAdminRow.java` (file mới) | API quản trị `GET /api/galleries/with-images` | File viết tay |
 | `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
 
 ---
@@ -1078,6 +1091,8 @@ Lưu ý:
 | Reindex listing dừng ở 423.000/1.855.619; index kẹt `refresh_interval: -1` | App bị tắt giữa lúc job chạy nên bước đặt lại refresh không chạy | Đặt lại `PUT listing/_settings {"index":{"refresh_interval":"1s"}}`, chạy lại job. Từ 2026-10-02 app tự đặt lại khi khởi động ([mục 8.4](#84-job-reindex-giai-đoạn-1)). |
 | Máy chậm, CPU cao sau khi bật ES và Kibana | Hết RAM (còn trống 0,5/15,7 GB): Docker 4,2 GB, cộng app, IDE, trình duyệt | Tắt Kibana khi không dùng; giới hạn RAM WSL ([mục 8.5](#85-cpu-ram-và-triển-khai-production)) |
 | Gọi `POST /api/public/...` có khóa đúng nhận 401 thay vì 403 | Mặc định Spring từ chối bằng `sendError(403)`, chuyển sang `/error`; `/error` do chuỗi bảo mật JWT xử lý nên thành 401 | Chuỗi API công khai đặt mã trạng thái trực tiếp (`accessDeniedHandler` gọi `response.setStatus(403)`) |
+| Ảnh banner đã bật nhưng FE không hiển thị | Form JHipster tự điền `startAt = endAt =` giờ tạo nên khung hiển thị dài 0 giây | Đã sửa form; ảnh cũ thì xóa trắng hai ô ngày giờ. Kiểm tra bằng `GET /api/galleries/with-images` (`showingNow`). |
+| Script test xóa nhầm dữ liệu banner thật đang nhập (2026-10-05) | Bước dọn dẹp dùng `DELETE FROM gallery_image; DELETE FROM gallery;` trong lúc người dùng đang nhập trên trang quản trị | Khôi phục bằng binlog (ROW/FULL): `mysqlbinlog` lấy từ image `percona/percona-server:8.0` (chạy `--user 0`, gắn volume chỉ đọc), vì image `mysql:26.7`/`8.4` không có. **Không dọn dẹp bằng xóa cả bảng**: chỉ xóa đúng id mà test tạo, hoặc kiểm thử chỉ đọc. |
 | Sau khi thêm chuỗi bảo mật mới, app (DevTools) mất vài phút mới chạy lại cổng 8081 | DevTools khởi động lại chậm khi đổi cấu hình bảo mật và file yml | Chờ, hoặc Ctrl+C rồi chạy lại `./mvnw`. Chạy thử một bản trên cổng khác (`-Dspring-boot.run.arguments=--server.port=8082`) để xem lỗi khởi động. |
 | Kibana báo `healthy` trong khi `/api/status` vẫn là `unavailable` | Healthcheck `grep available` khớp luôn chuỗi `unavailable` | Khớp đúng `'"level":"available"'` |
 | Tiếng Việt bị lỗi (`Ð?a phuong`) khi gửi JSON bằng `curl -d "..."` trong Git Bash | Git Bash chuyển tham số dòng lệnh sang code page Windows | Gửi bằng file (`curl --data-binary @file.json`) hoặc script Node/PowerShell `-Encoding utf8` |

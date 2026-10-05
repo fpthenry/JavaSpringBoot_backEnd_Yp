@@ -107,13 +107,13 @@ export class GalleryImageFormService {
   }
 
   private getFormDefaults(): GalleryImageFormDefaults {
-    const currentTime = dayjs();
-
+    // Sửa tay: JHipster mặc định startAt = endAt = giờ hiện tại, làm ảnh mới hết hạn ngay khi tạo.
+    // Để trống = hiển thị ngay, không hết hạn.
     return {
       id: null,
       active: false,
-      startAt: currentTime,
-      endAt: currentTime,
+      startAt: null,
+      endAt: null,
       openInNewTab: false,
     };
   }
@@ -123,8 +123,9 @@ export class GalleryImageFormService {
   ): IGalleryImage | NewGalleryImage {
     return {
       ...rawGalleryImage,
-      startAt: dayjs(rawGalleryImage.startAt, DATE_TIME_FORMAT),
-      endAt: dayjs(rawGalleryImage.endAt, DATE_TIME_FORMAT),
+      // Sửa tay: ô trống phải lưu null; dayjs(undefined) trả giờ hiện tại
+      startAt: rawGalleryImage.startAt ? dayjs(rawGalleryImage.startAt, DATE_TIME_FORMAT) : null,
+      endAt: rawGalleryImage.endAt ? dayjs(rawGalleryImage.endAt, DATE_TIME_FORMAT) : null,
     };
   }
 
