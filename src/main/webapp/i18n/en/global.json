@@ -21,7 +21,10 @@
         "locationWard": "Wards",
         "categoryGroup": "Industries",
         "categoryTree": "Industry tree",
-        "categoryList": "Industry list"
+        "categoryList": "Industry list",
+        "gallery": "Banner positions",
+        "galleryImage": "Banner images",
+        "galleryGroup": "Ad banners"
       },
       "account": {
         "main": "Account",

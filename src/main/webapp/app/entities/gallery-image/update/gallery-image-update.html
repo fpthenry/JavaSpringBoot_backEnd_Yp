@@ -1,0 +1,290 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
+      <h2
+        id="jhi-gallery-image-heading"
+        data-cy="GalleryImageCreateUpdateHeading"
+        jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.createOrEditLabel"
+      >
+        Create or edit a Gallery Image
+      </h2>
+
+      <div>
+        <jhi-alert-error />
+
+        @if (editForm.controls.id.value !== null) {
+          <div class="mb-3">
+            <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
+            <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
+          </div>
+        }
+
+        @let titleRef = editForm.get('title')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_title" jhiTranslate="javaSpringBootBackEndApp.galleryImage.title">Title</label>
+          <input type="text" class="form-control" name="title" id="field_title" data-cy="title" formControlName="title" />
+          @if (titleRef.invalid && (titleRef.dirty || titleRef.touched)) {
+            <div>
+              @if (titleRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
+                  >This field cannot be longer than 255 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let imageRef = editForm.get('image')!;
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_image"
+            [ngbTooltip]="'javaSpringBootBackEndApp.galleryImage.help.image' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.galleryImage.image"
+            >Image</label
+          >
+          <div>
+            @if (imageRef.value) {
+              <img
+                [src]="'data:' + editForm.get('imageContentType')!.value + ';base64,' + imageRef.value"
+                style="max-height: 100px"
+                alt="galleryImage"
+              />
+            }
+            @if (imageRef.value) {
+              <div class="form-text text-danger clearfix">
+                <span class="pull-start">{{ editForm.get('imageContentType')!.value }}, {{ byteSize(imageRef.value!) }}</span>
+                <button
+                  type="button"
+                  (click)="clearInputImage('image', 'imageContentType', 'file_image')"
+                  class="btn btn-secondary btn-xs pull-end"
+                >
+                  <fa-icon icon="times" />
+                </button>
+              </div>
+            }
+            <input
+              type="file"
+              id="file_image"
+              data-cy="image"
+              (change)="setFileData($event, 'image', true)"
+              accept="image/*"
+              jhiTranslate="entity.action.addimage"
+              aria-label="Image"
+            />
+          </div>
+          <input type="hidden" class="form-control" name="image" id="field_image" data-cy="image" formControlName="image" />
+          <input
+            type="hidden"
+            class="form-control"
+            name="imageContentType"
+            id="field_imageContentType"
+            formControlName="imageContentType"
+          />
+        </div>
+
+        @let imageUrlRef = editForm.get('imageUrl')!;
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_imageUrl"
+            [ngbTooltip]="'javaSpringBootBackEndApp.galleryImage.help.imageUrl' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.galleryImage.imageUrl"
+            >Image Url</label
+          >
+          <input type="text" class="form-control" name="imageUrl" id="field_imageUrl" data-cy="imageUrl" formControlName="imageUrl" />
+          @if (imageUrlRef.invalid && (imageUrlRef.dirty || imageUrlRef.touched)) {
+            <div>
+              @if (imageUrlRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '1000' }"
+                  >This field cannot be longer than 1000 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let linkUrlRef = editForm.get('linkUrl')!;
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_linkUrl"
+            [ngbTooltip]="'javaSpringBootBackEndApp.galleryImage.help.linkUrl' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.galleryImage.linkUrl"
+            >Link Url</label
+          >
+          <input type="text" class="form-control" name="linkUrl" id="field_linkUrl" data-cy="linkUrl" formControlName="linkUrl" />
+          @if (linkUrlRef.invalid && (linkUrlRef.dirty || linkUrlRef.touched)) {
+            <div>
+              @if (linkUrlRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '1000' }"
+                  >This field cannot be longer than 1000 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let altTextRef = editForm.get('altText')!;
+        <div class="mb-3">
+          <label class="form-label" for="field_altText" jhiTranslate="javaSpringBootBackEndApp.galleryImage.altText">Alt Text</label>
+          <input type="text" class="form-control" name="altText" id="field_altText" data-cy="altText" formControlName="altText" />
+          @if (altTextRef.invalid && (altTextRef.dirty || altTextRef.touched)) {
+            <div>
+              @if (altTextRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
+                  >This field cannot be longer than 255 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        @let displayOrderRef = editForm.get('displayOrder')!;
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_displayOrder"
+            [ngbTooltip]="'javaSpringBootBackEndApp.galleryImage.help.displayOrder' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.galleryImage.displayOrder"
+            >Display Order</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            name="displayOrder"
+            id="field_displayOrder"
+            data-cy="displayOrder"
+            formControlName="displayOrder"
+          />
+          @if (displayOrderRef.invalid && (displayOrderRef.dirty || displayOrderRef.touched)) {
+            <div>
+              @if (displayOrderRef.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
+              }
+              @if (displayOrderRef.errors?.min) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.min" [translateValues]="{ min: '0' }"
+                  >This field should be at least 0.</small
+                >
+              }
+              <small class="form-text text-danger" [hidden]="!displayOrderRef.errors?.number" jhiTranslate="entity.validation.number"
+                >This field should be a number.</small
+              >
+            </div>
+          }
+        </div>
+
+        @let activeRef = editForm.get('active')!;
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" name="active" id="field_active" data-cy="active" formControlName="active" />
+          <label class="form-check-label" for="field_active" jhiTranslate="javaSpringBootBackEndApp.galleryImage.active">Active</label>
+          @if (activeRef.invalid && (activeRef.dirty || activeRef.touched)) {
+            <div>
+              @if (activeRef.errors?.required) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_startAt"
+            [ngbTooltip]="'javaSpringBootBackEndApp.galleryImage.help.startAt' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.galleryImage.startAt"
+            >Start At</label
+          >
+          <div class="d-flex">
+            <input
+              id="field_startAt"
+              data-cy="startAt"
+              type="datetime-local"
+              class="form-control"
+              name="startAt"
+              formControlName="startAt"
+              placeholder="YYYY-MM-DD HH:mm"
+            />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label
+            class="form-label"
+            for="field_endAt"
+            [ngbTooltip]="'javaSpringBootBackEndApp.galleryImage.help.endAt' | translate"
+            jhiTranslate="javaSpringBootBackEndApp.galleryImage.endAt"
+            >End At</label
+          >
+          <div class="d-flex">
+            <input
+              id="field_endAt"
+              data-cy="endAt"
+              type="datetime-local"
+              class="form-control"
+              name="endAt"
+              formControlName="endAt"
+              placeholder="YYYY-MM-DD HH:mm"
+            />
+          </div>
+        </div>
+
+        <div class="mb-3 form-check">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            name="openInNewTab"
+            id="field_openInNewTab"
+            data-cy="openInNewTab"
+            formControlName="openInNewTab"
+          />
+          <label class="form-check-label" for="field_openInNewTab" jhiTranslate="javaSpringBootBackEndApp.galleryImage.openInNewTab"
+            >Open In New Tab</label
+          >
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="field_gallery" jhiTranslate="javaSpringBootBackEndApp.galleryImage.gallery">Gallery</label>
+          <select
+            class="form-control"
+            id="field_gallery"
+            data-cy="gallery"
+            name="gallery"
+            formControlName="gallery"
+            [compareWith]="compareGallery"
+          >
+            @if (!editForm.get('gallery')!.value) {
+              <option [ngValue]="null" selected></option>
+            }
+            @for (galleryOption of galleriesSharedCollection(); track $index) {
+              <option [ngValue]="galleryOption">{{ galleryOption.name }}</option>
+            }
+          </select>
+        </div>
+        @if (editForm.get(['gallery'])!.invalid && (editForm.get(['gallery'])!.dirty || editForm.get(['gallery'])!.touched)) {
+          <div>
+            @if (editForm.get(['gallery'])?.errors?.required) {
+              <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
+            }
+          </div>
+        }
+      </div>
+
+      <div>
+        <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-secondary" (click)="previousState()">
+          <fa-icon icon="ban" />&nbsp;<span jhiTranslate="entity.action.cancel">Cancel</span>
+        </button>
+
+        <button
+          type="submit"
+          id="save-entity"
+          data-cy="entityCreateSaveButton"
+          [disabled]="editForm.invalid || isSaving()"
+          class="btn btn-primary"
+        >
+          <fa-icon icon="save" />&nbsp;<span jhiTranslate="entity.action.save">Save</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

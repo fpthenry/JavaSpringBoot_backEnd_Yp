@@ -1,0 +1,83 @@
+{
+  "annotations": {
+    "changelogDate": "20261005064656"
+  },
+  "applications": ["*"],
+  "documentation": "Ảnh quảng cáo trong một vị trí banner",
+  "dto": "mapstruct",
+  "entityTableName": "gallery_image",
+  "fields": [
+    {
+      "fieldName": "title",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "255"
+    },
+    {
+      "documentation": "Ảnh upload lên (lưu trong database)",
+      "fieldName": "image",
+      "fieldType": "ImageBlob"
+    },
+    {
+      "documentation": "Hoặc link ảnh có sẵn (CDN, wp-content/uploads...); dùng khi không upload",
+      "fieldName": "imageUrl",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "1000"
+    },
+    {
+      "documentation": "Bấm vào ảnh thì mở link này",
+      "fieldName": "linkUrl",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "1000"
+    },
+    {
+      "fieldName": "altText",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "255"
+    },
+    {
+      "documentation": "Thứ tự hiển thị, nhỏ đứng trước",
+      "fieldName": "displayOrder",
+      "fieldType": "Integer",
+      "fieldValidateRules": ["required", "min"],
+      "fieldValidateRulesMin": "0"
+    },
+    {
+      "fieldName": "active",
+      "fieldType": "Boolean",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "documentation": "Hẹn giờ: chỉ hiển thị từ thời điểm này (bỏ trống = ngay)",
+      "fieldName": "startAt",
+      "fieldType": "Instant"
+    },
+    {
+      "documentation": "Hẹn giờ: ngừng hiển thị sau thời điểm này (bỏ trống = không hết hạn)",
+      "fieldName": "endAt",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "openInNewTab",
+      "fieldType": "Boolean"
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "name": "GalleryImage",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityField": "name",
+      "otherEntityName": "gallery",
+      "relationshipName": "gallery",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

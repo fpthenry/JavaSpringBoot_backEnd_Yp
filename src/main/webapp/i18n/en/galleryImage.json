@@ -1,0 +1,42 @@
+{
+  "javaSpringBootBackEndApp": {
+    "galleryImage": {
+      "home": {
+        "title": "Gallery Images",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Gallery Image",
+        "createOrEditLabel": "Create or edit a Gallery Image",
+        "notFound": "No Gallery Images found"
+      },
+      "created": "A new Gallery Image is created with identifier {{ param }}",
+      "updated": "A Gallery Image is updated with identifier {{ param }}",
+      "deleted": "A Gallery Image is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Gallery Image {{ id }}?"
+      },
+      "detail": {
+        "title": "Gallery Image"
+      },
+      "id": "ID",
+      "title": "Title",
+      "image": "Image",
+      "imageUrl": "Image Url",
+      "linkUrl": "Link Url",
+      "altText": "Alt Text",
+      "displayOrder": "Display Order",
+      "active": "Active",
+      "startAt": "Start At",
+      "endAt": "End At",
+      "openInNewTab": "Open In New Tab",
+      "gallery": "Gallery",
+      "help": {
+        "image": "Ảnh upload lên (lưu trong database)",
+        "imageUrl": "Hoặc link ảnh có sẵn (CDN, wp-content/uploads...); dùng khi không upload",
+        "linkUrl": "Bấm vào ảnh thì mở link này",
+        "displayOrder": "Thứ tự hiển thị, nhỏ đứng trước",
+        "startAt": "Hẹn giờ: chỉ hiển thị từ thời điểm này (bỏ trống = ngay)",
+        "endAt": "Hẹn giờ: ngừng hiển thị sau thời điểm này (bỏ trống = không hết hạn)"
+      }
+    }
+  }
+}

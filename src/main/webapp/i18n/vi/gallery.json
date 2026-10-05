@@ -1,0 +1,34 @@
+{
+  "javaSpringBootBackEndApp": {
+    "gallery": {
+      "home": {
+        "title": "Vị trí banner",
+        "refreshListLabel": "Làm mới",
+        "createLabel": "Thêm vị trí banner",
+        "createOrEditLabel": "Thêm hoặc sửa vị trí banner",
+        "notFound": "Chưa có vị trí banner nào"
+      },
+      "created": "Đã tạo vị trí banner {{ param }}",
+      "updated": "Đã cập nhật vị trí banner {{ param }}",
+      "deleted": "Đã xóa vị trí banner {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc muốn xóa vị trí banner {{ id }}? Các ảnh thuộc vị trí này phải được xóa trước."
+      },
+      "detail": {
+        "title": "Vị trí banner"
+      },
+      "id": "ID",
+      "name": "Tên",
+      "code": "Mã (FE dùng)",
+      "description": "Mô tả",
+      "active": "Đang bật",
+      "wpId": "ID WordPress cũ",
+      "help": {
+        "name": "Tên hiển thị, vd: footer banner",
+        "code": "Mã duy nhất FE dùng để lấy, chữ thường, số và gạch ngang, vd: footer-banner",
+        "active": "Tắt thì API công khai không trả vị trí này",
+        "wpId": "ID gallery cũ trên WordPress (wp_posts.ID), để đối chiếu"
+      }
+    }
+  }
+}

@@ -1,0 +1,190 @@
+<div>
+  <h2 id="page-heading" data-cy="GalleryImageHeading">
+    <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.title">Gallery Images</span>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading()">
+        <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.refreshListLabel">Refresh list</span>
+      </button>
+
+      <button
+        id="jh-create-entity"
+        data-cy="entityCreateButton"
+        class="btn btn-primary jh-create-entity create-gallery-image"
+        [routerLink]="['/gallery-image/new']"
+      >
+        <fa-icon icon="plus" />
+        <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.createLabel">Create a new Gallery Image</span>
+      </button>
+    </div>
+  </h2>
+
+  <jhi-alert-error />
+
+  <jhi-alert />
+
+  <jhi-filter [filters]="filters" />
+
+  @if (galleryImages().length === 0) {
+    <div class="alert alert-warning" id="no-result">
+      <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.notFound">No Gallery Images found</span>
+    </div>
+  } @else {
+    <div class="table-responsive table-entities" id="entities">
+      <table class="table table-striped" aria-describedby="page-heading">
+        <thead>
+          <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
+            <th scope="col" jhiSortBy="id">
+              <div class="d-flex">
+                <span jhiTranslate="global.field.id">ID</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="title">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.title">Title</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="image">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.image">Image</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="imageUrl">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.imageUrl">Image Url</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="linkUrl">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.linkUrl">Link Url</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="altText">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.altText">Alt Text</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="displayOrder">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.displayOrder">Display Order</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="active">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.active">Active</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="startAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.startAt">Start At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="endAt">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.endAt">End At</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="openInNewTab">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.openInNewTab">Open In New Tab</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="gallery.name">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.gallery">Gallery</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (galleryImage of galleryImages(); track trackId(galleryImage)) {
+            <tr data-cy="entityTable">
+              <td>
+                <a [routerLink]="['/gallery-image', galleryImage.id, 'view']">{{ galleryImage.id }}</a>
+              </td>
+              <td>{{ galleryImage.title }}</td>
+              <td>
+                @if (galleryImage.image) {
+                  <a (click)="openFile(galleryImage.image, galleryImage.imageContentType)">
+                    <img
+                      [src]="'data:' + galleryImage.imageContentType + ';base64,' + galleryImage.image"
+                      style="max-height: 30px"
+                      alt="galleryImage"
+                    />
+                  </a>
+                  <span>{{ galleryImage.imageContentType }}, {{ byteSize(galleryImage.image) }}</span>
+                }
+              </td>
+              <td>{{ galleryImage.imageUrl }}</td>
+              <td>{{ galleryImage.linkUrl }}</td>
+              <td>{{ galleryImage.altText }}</td>
+              <td>{{ galleryImage.displayOrder }}</td>
+              <td>{{ galleryImage.active }}</td>
+              <td>{{ galleryImage.startAt | formatMediumDatetime }}</td>
+              <td>{{ galleryImage.endAt | formatMediumDatetime }}</td>
+              <td>{{ galleryImage.openInNewTab }}</td>
+              <td>
+                @if (galleryImage.gallery) {
+                  <div>
+                    <a [routerLink]="['/gallery', galleryImage.gallery.id, 'view']">{{ galleryImage.gallery.name }}</a>
+                  </div>
+                }
+              </td>
+              <td class="text-end">
+                <div class="btn-group">
+                  <a [routerLink]="['/gallery-image', galleryImage.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">
+                    <fa-icon icon="eye" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
+                  </a>
+
+                  <a [routerLink]="['/gallery-image', galleryImage.id, 'edit']" class="btn btn-primary btn-sm" data-cy="entityEditButton">
+                    <fa-icon icon="pencil-alt" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
+                  </a>
+
+                  <button type="submit" (click)="delete(galleryImage)" class="btn btn-danger btn-sm" data-cy="entityDeleteButton">
+                    <fa-icon icon="times" />
+                    <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (galleryImages().length > 0) {
+    <div>
+      <div class="d-flex justify-content-center">
+        <jhi-item-count [params]="{ page: page(), totalItems: totalItems(), itemsPerPage: itemsPerPage() }" />
+      </div>
+
+      <div class="d-flex justify-content-center">
+        <ngb-pagination
+          [collectionSize]="totalItems()"
+          [page]="page()"
+          [pageSize]="itemsPerPage()"
+          [maxSize]="5"
+          [rotate]="true"
+          [boundaryLinks]="true"
+          (pageChange)="navigateToPage($event)"
+        />
+      </div>
+    </div>
+  }
+</div>

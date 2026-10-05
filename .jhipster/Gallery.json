@@ -1,0 +1,48 @@
+{
+  "annotations": {
+    "changelogDate": "20261005064655"
+  },
+  "applications": ["*"],
+  "documentation": "Vị trí banner (gallery)",
+  "dto": "mapstruct",
+  "entityTableName": "gallery",
+  "fields": [
+    {
+      "documentation": "Tên hiển thị, vd: footer banner",
+      "fieldName": "name",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "maxlength"],
+      "fieldValidateRulesMaxlength": "255"
+    },
+    {
+      "documentation": "Mã duy nhất FE dùng để lấy, chữ thường, số và gạch ngang, vd: footer-banner",
+      "fieldName": "code",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "unique", "maxlength", "pattern"],
+      "fieldValidateRulesMaxlength": "100",
+      "fieldValidateRulesPattern": "^[a-z0-9-]+$"
+    },
+    {
+      "fieldName": "description",
+      "fieldType": "TextBlob"
+    },
+    {
+      "documentation": "Tắt thì API công khai không trả vị trí này",
+      "fieldName": "active",
+      "fieldType": "Boolean",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "documentation": "ID gallery cũ trên WordPress (wp_posts.ID), để đối chiếu",
+      "fieldName": "wpId",
+      "fieldType": "Long",
+      "fieldValidateRules": ["unique"]
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "name": "Gallery",
+  "pagination": "pagination",
+  "relationships": [],
+  "searchEngine": "no",
+  "service": "serviceImpl"
+}

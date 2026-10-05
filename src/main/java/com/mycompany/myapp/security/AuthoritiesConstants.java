@@ -11,5 +11,8 @@ public final class AuthoritiesConstants {
 
     public static final String ANONYMOUS = "ROLE_ANONYMOUS";
 
+    /** Sửa tay: client của API công khai /api/public/** (FE Next.js) đã gửi đúng X-API-Key. */
+    public static final String PUBLIC_API = "ROLE_PUBLIC_API";
+
     private AuthoritiesConstants() {}
 }

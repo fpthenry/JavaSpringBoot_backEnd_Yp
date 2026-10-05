@@ -36,6 +36,16 @@ const routes: Routes = [
     title: 'javaSpringBootBackEndApp.tag.home.title',
     loadChildren: () => import('./tag/tag.routes'),
   },
+  {
+    path: 'gallery',
+    title: 'javaSpringBootBackEndApp.gallery.home.title',
+    loadChildren: () => import('./gallery/gallery.routes'),
+  },
+  {
+    path: 'gallery-image',
+    title: 'javaSpringBootBackEndApp.galleryImage.home.title',
+    loadChildren: () => import('./gallery-image/gallery-image.routes'),
+  },
   // jhipster-needle-add-entity-route - JHipster will add entity modules routes here
 ];
 

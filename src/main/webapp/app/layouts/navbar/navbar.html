@@ -145,6 +145,38 @@
                   <span jhiTranslate="global.menu.entities.tag">Tag</span>
                 </a>
               </li>
+              <!-- Gallery: nhóm Banner quảng cáo (vị trí banner + ảnh banner) -->
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <h6 class="dropdown-header">
+                  <fa-icon icon="images" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.galleryGroup">Banner quảng cáo</span>
+                </h6>
+              </li>
+              <li>
+                <a
+                  class="dropdown-item ps-4"
+                  routerLink="/gallery"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  (click)="collapseNavbar()"
+                >
+                  <fa-icon icon="map" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.gallery">Vị trí banner</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  class="dropdown-item ps-4"
+                  routerLink="/gallery-image"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  (click)="collapseNavbar()"
+                >
+                  <fa-icon icon="image" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.galleryImage">Ảnh banner</span>
+                </a>
+              </li>
               <!-- jhipster-needle-add-entity-to-menu - JHipster will add entities to the menu here -->
             </ul>
           </li>

@@ -1,0 +1,34 @@
+{
+  "javaSpringBootBackEndApp": {
+    "gallery": {
+      "home": {
+        "title": "Galleries",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Gallery",
+        "createOrEditLabel": "Create or edit a Gallery",
+        "notFound": "No Galleries found"
+      },
+      "created": "A new Gallery is created with identifier {{ param }}",
+      "updated": "A Gallery is updated with identifier {{ param }}",
+      "deleted": "A Gallery is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Gallery {{ id }}?"
+      },
+      "detail": {
+        "title": "Gallery"
+      },
+      "id": "ID",
+      "name": "Name",
+      "code": "Code",
+      "description": "Description",
+      "active": "Active",
+      "wpId": "Wp Id",
+      "help": {
+        "name": "Tên hiển thị, vd: footer banner",
+        "code": "Mã duy nhất FE dùng để lấy, chữ thường, số và gạch ngang, vd: footer-banner",
+        "active": "Tắt thì API công khai không trả vị trí này",
+        "wpId": "ID gallery cũ trên WordPress (wp_posts.ID), để đối chiếu"
+      }
+    }
+  }
+}

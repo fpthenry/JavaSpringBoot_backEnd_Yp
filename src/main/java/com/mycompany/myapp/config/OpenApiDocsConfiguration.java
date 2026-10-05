@@ -29,6 +29,8 @@ public class OpenApiDocsConfiguration {
 
     private static final String JWT_SCHEME = "jwt";
 
+    private static final String API_KEY_SCHEME = "apiKey";
+
     /** Tiền tố đường dẫn entity -> tên tiếng Việt, dùng để sinh summary CRUD. */
     private static final Map<String, String> ENTITY_NAMES = Map.of(
         "/api/listings",
@@ -40,30 +42,26 @@ public class OpenApiDocsConfiguration {
         "/api/blog-posts",
         "bài viết",
         "/api/tags",
-        "thẻ"
+        "thẻ",
+        "/api/galleries",
+        "vị trí banner",
+        "/api/gallery-images",
+        "ảnh banner"
     );
 
-    private static final Map<String, String> TAG_DESCRIPTIONS = Map.of(
-        "listing-resource",
-        "Doanh nghiệp (1,86 triệu). Lọc theo cây địa phương/ngành nghề bằng locationTreeId, categoryTreeId.",
-        "category-resource",
-        "Ngành nghề, dạng cây tối đa 4 cấp (nhóm Yellow Pages và hệ thống ngành VSIC).",
-        "location-resource",
-        "Địa phương, dạng cây: tỉnh/thành -> quận/huyện -> phường/xã.",
-        "blog-post-resource",
-        "Bài viết tin tức.",
-        "tag-resource",
-        "Thẻ bài viết.",
-        "authenticate-controller",
-        "Đăng nhập, lấy JWT. Gửi JWT ở header Authorization: Bearer <token>.",
-        "account-resource",
-        "Tài khoản của người dùng đang đăng nhập: đăng ký, kích hoạt, đổi/đặt lại mật khẩu.",
-        "user-resource",
-        "Quản lý người dùng (ROLE_ADMIN).",
-        "public-user-resource",
-        "Danh sách người dùng công khai (chỉ id và login).",
-        "authority-resource",
-        "Quyền (ROLE_ADMIN, ROLE_USER)."
+    private static final Map<String, String> TAG_DESCRIPTIONS = Map.ofEntries(
+        Map.entry("listing-resource", "Doanh nghiệp (1,86 triệu). Lọc theo cây địa phương/ngành nghề bằng locationTreeId, categoryTreeId."),
+        Map.entry("category-resource", "Ngành nghề, dạng cây tối đa 4 cấp (nhóm Yellow Pages và hệ thống ngành VSIC)."),
+        Map.entry("location-resource", "Địa phương, dạng cây: tỉnh/thành -> quận/huyện -> phường/xã."),
+        Map.entry("blog-post-resource", "Bài viết tin tức."),
+        Map.entry("tag-resource", "Thẻ bài viết."),
+        Map.entry("authenticate-controller", "Đăng nhập, lấy JWT. Gửi JWT ở header Authorization: Bearer <token>."),
+        Map.entry("account-resource", "Tài khoản của người dùng đang đăng nhập: đăng ký, kích hoạt, đổi/đặt lại mật khẩu."),
+        Map.entry("user-resource", "Quản lý người dùng (ROLE_ADMIN)."),
+        Map.entry("public-user-resource", "Danh sách người dùng công khai (chỉ id và login)."),
+        Map.entry("authority-resource", "Quyền (ROLE_ADMIN, ROLE_USER)."),
+        Map.entry("gallery-resource", "Quản trị vị trí banner quảng cáo (gallery)."),
+        Map.entry("gallery-image-resource", "Quản trị ảnh banner: upload ảnh hoặc dán link ảnh, link đích, thứ tự, hẹn giờ.")
     );
 
     /** Summary cho các API không theo mẫu CRUD entity. Khóa: "METHOD path". */
@@ -130,6 +128,16 @@ public class OpenApiDocsConfiguration {
                     .description("Lấy token bằng POST /api/authenticate, rồi bấm Authorize và dán id_token.")
             );
         openApi.addSecurityItem(new SecurityRequirement().addList(JWT_SCHEME));
+        openApi
+            .getComponents()
+            .addSecuritySchemes(
+                API_KEY_SCHEME,
+                new SecurityScheme()
+                    .type(SecurityScheme.Type.APIKEY)
+                    .in(SecurityScheme.In.HEADER)
+                    .name("X-API-Key")
+                    .description("Khóa API công khai cho FE (Next.js), cấu hình application.public-api.keys.")
+            );
     }
 
     private void addTagDescriptions(OpenAPI openApi) {
@@ -158,6 +166,11 @@ public class OpenApiDocsConfiguration {
                 operation.setSummary(summary);
             }
             describeParameters(operation);
+            if (path.startsWith("/api/public/")) {
+                operation.setSecurity(
+                    path.startsWith("/api/public/v1/media/") ? List.of() : List.of(new SecurityRequirement().addList(API_KEY_SCHEME))
+                );
+            }
         });
     }
 

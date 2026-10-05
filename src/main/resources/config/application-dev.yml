@@ -106,4 +106,9 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  # API công khai /api/public/** cho FE Next.js: gửi header X-API-Key bằng một trong các khóa dưới.
+  # Khóa DEV, chỉ dùng trên máy dev; production đặt khóa riêng bằng biến môi trường APPLICATION_PUBLIC_API_KEYS
+  public-api:
+    keys:
+      - dev-public-api-key-doi-khi-trien-khai

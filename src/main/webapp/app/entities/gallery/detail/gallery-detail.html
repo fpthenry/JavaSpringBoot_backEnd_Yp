@@ -1,0 +1,74 @@
+<div class="d-flex justify-content-center">
+  <div class="col-8">
+    @if (gallery(); as galleryRef) {
+      <div>
+        <h2 data-cy="galleryDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.gallery.detail.title">Gallery</span></h2>
+
+        <hr />
+
+        <jhi-alert-error />
+
+        <jhi-alert />
+
+        <dl class="row-md jh-entity-details">
+          <dt><span jhiTranslate="global.field.id">ID</span></dt>
+          <dd>
+            <span>{{ galleryRef.id }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.gallery.help.name' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.gallery.name"
+              >Name</span
+            >
+          </dt>
+          <dd>
+            <span>{{ galleryRef.name }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.gallery.help.code' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.gallery.code"
+              >Code</span
+            >
+          </dt>
+          <dd>
+            <span>{{ galleryRef.code }}</span>
+          </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.gallery.description">Description</span></dt>
+          <dd>
+            <span>{{ galleryRef.description }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.gallery.help.active' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.gallery.active"
+              >Active</span
+            >
+          </dt>
+          <dd>
+            <span>{{ galleryRef.active }}</span>
+          </dd>
+          <dt>
+            <span
+              [ngbTooltip]="'javaSpringBootBackEndApp.gallery.help.wpId' | translate"
+              jhiTranslate="javaSpringBootBackEndApp.gallery.wpId"
+              >Wp Id</span
+            >
+          </dt>
+          <dd>
+            <span>{{ galleryRef.wpId }}</span>
+          </dd>
+        </dl>
+
+        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
+          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
+        </button>
+
+        <button type="button" [routerLink]="['/gallery', galleryRef.id, 'edit']" class="btn btn-primary">
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

@@ -114,4 +114,9 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  # API công khai /api/public/** cho FE Next.js. KHÔNG ghi khóa vào file:
+  # đặt biến môi trường APPLICATION_PUBLIC_API_KEYS=khoa1,khoa2 (tạo khóa: openssl rand -base64 32).
+  # Không đặt thì mọi request tới API công khai bị từ chối (401).
+  public-api:
+    keys: ${APPLICATION_PUBLIC_API_KEYS:}

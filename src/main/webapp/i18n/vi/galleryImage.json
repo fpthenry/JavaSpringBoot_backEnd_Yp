@@ -1,0 +1,42 @@
+{
+  "javaSpringBootBackEndApp": {
+    "galleryImage": {
+      "home": {
+        "title": "Ảnh banner",
+        "refreshListLabel": "Làm mới",
+        "createLabel": "Thêm ảnh banner",
+        "createOrEditLabel": "Thêm hoặc sửa ảnh banner",
+        "notFound": "Chưa có ảnh banner nào"
+      },
+      "created": "Đã tạo ảnh banner {{ param }}",
+      "updated": "Đã cập nhật ảnh banner {{ param }}",
+      "deleted": "Đã xóa ảnh banner {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc muốn xóa ảnh banner {{ id }}?"
+      },
+      "detail": {
+        "title": "Ảnh banner"
+      },
+      "id": "ID",
+      "title": "Tiêu đề",
+      "image": "Ảnh upload",
+      "imageUrl": "Link ảnh",
+      "linkUrl": "Link khi bấm",
+      "altText": "Mô tả ảnh (alt)",
+      "displayOrder": "Thứ tự",
+      "active": "Đang bật",
+      "startAt": "Bắt đầu hiển thị",
+      "endAt": "Ngừng hiển thị",
+      "openInNewTab": "Mở tab mới",
+      "gallery": "Vị trí banner",
+      "help": {
+        "image": "Ảnh upload lên (lưu trong database)",
+        "imageUrl": "Hoặc link ảnh có sẵn (CDN, wp-content/uploads...); dùng khi không upload",
+        "linkUrl": "Bấm vào ảnh thì mở link này",
+        "displayOrder": "Thứ tự hiển thị, nhỏ đứng trước",
+        "startAt": "Hẹn giờ: chỉ hiển thị từ thời điểm này (bỏ trống = ngay)",
+        "endAt": "Hẹn giờ: ngừng hiển thị sau thời điểm này (bỏ trống = không hết hạn)"
+      }
+    }
+  }
+}

@@ -21,7 +21,10 @@
         "locationWard": "Phường xã",
         "categoryGroup": "Ngành nghề",
         "categoryTree": "Cây ngành nghề",
-        "categoryList": "Danh sách ngành nghề"
+        "categoryList": "Danh sách ngành nghề",
+        "gallery": "Vị trí banner",
+        "galleryImage": "Ảnh banner",
+        "galleryGroup": "Banner quảng cáo"
       },
       "account": {
         "main": "Tài khoản",

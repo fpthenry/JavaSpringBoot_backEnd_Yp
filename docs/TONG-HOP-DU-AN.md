@@ -13,10 +13,11 @@
 7. [Chức năng phân cấp và lọc theo cây](#7-chức-năng-phân-cấp-và-lọc-theo-cây)
 8. [Elasticsearch](#8-elasticsearch)
 9. [Xác thực và JWT](#9-xác-thực-và-jwt)
-10. [Sinh lại code khi sửa JDL](#10-sinh-lại-code-khi-sửa-jdl)
-11. [Lỗi đã gặp và cách xử lý](#11-lỗi-đã-gặp-và-cách-xử-lý)
-12. [Việc còn tồn đọng](#12-việc-còn-tồn-đọng)
-13. [Lệnh hay dùng](#13-lệnh-hay-dùng)
+10. [API công khai cho FE (Next.js)](#10-api-công-khai-cho-fe-nextjs)
+11. [Sinh lại code khi sửa JDL](#11-sinh-lại-code-khi-sửa-jdl)
+12. [Lỗi đã gặp và cách xử lý](#12-lỗi-đã-gặp-và-cách-xử-lý)
+13. [Việc còn tồn đọng](#13-việc-còn-tồn-đọng)
+14. [Lệnh hay dùng](#14-lệnh-hay-dùng)
 
 ---
 
@@ -279,11 +280,11 @@ search * with elasticsearch
 | Giới hạn | Cách xử lý |
 |---|---|
 | Bảng nối luôn có tiền tố `rel_` (`rel_listing__category`); JDL không đổi được, vì generator ghi đè tên | Script đồng bộ map `listing_category` → `rel_listing__category` |
-| Không khai báo được index thường (`slug`, `status`, `tax_code`, `api_id`, `is_featured`, `type`) | Viết thêm changelog Liquibase tay (xem [mục 12](#12-việc-còn-tồn-đọng)) |
+| Không khai báo được index thường (`slug`, `status`, `tax_code`, `api_id`, `is_featured`, `type`) | Viết thêm changelog Liquibase tay (xem [mục 13](#13-việc-còn-tồn-đọng)) |
 | Không khai báo được `ON DELETE CASCADE` và `DEFAULT` | Như trên |
 | Không thêm được cột vào entity built-in `User` (`jhi_user.wp_user_id` của nguồn) | Chưa chuyển user từ nguồn |
 | Bảng không có cột `id` làm khóa chính (`staging_listing` dùng `wp_id`) | Không đưa vào app |
-| Comment `/** … */` trên field được chép nguyên vào file i18n JSON **mà không escape** | **Không dùng dấu `"` trong comment JDL** (xem [mục 11](#11-lỗi-đã-gặp-và-cách-xử-lý)) |
+| Comment `/** … */` trên field được chép nguyên vào file i18n JSON **mà không escape** | **Không dùng dấu `"` trong comment JDL** (xem [mục 12](#12-lỗi-đã-gặp-và-cách-xử-lý)) |
 
 ---
 
@@ -308,7 +309,7 @@ search * with elasticsearch
 
 1. **`parent_id` ở nguồn trỏ tới `wp_term_id`, không phải `id`.** Ví dụ: `category.parent_id = 523` nghĩa là cha có `wp_term_id = 523`. Khi chép phải tra cha theo `wp_term_id` rồi gán `id` của cha. Đã kiểm tra: 2.354/2.354 category và 15.215/15.215 location có cha đều tìm được cha.
 2. **Giữ nguyên `id` gốc.** Quan hệ và đường dẫn cũ vẫn đúng. Entity dùng `GenerationType.IDENTITY`, nên MySQL tự đẩy `AUTO_INCREMENT` lên sau id lớn nhất.
-3. **Datetime chép nguyên giá trị, không đổi múi giờ.** App đọc `DATETIME` theo UTC (`hibernate.jdbc.time_zone: UTC`). Nếu dữ liệu nguồn là giờ Việt Nam thì giao diện sẽ hiển thị lệch 7 tiếng (xem [mục 12](#12-việc-còn-tồn-đọng)).
+3. **Datetime chép nguyên giá trị, không đổi múi giờ.** App đọc `DATETIME` theo UTC (`hibernate.jdbc.time_zone: UTC`). Nếu dữ liệu nguồn là giờ Việt Nam thì giao diện sẽ hiển thị lệch 7 tiếng (xem [mục 13](#13-việc-còn-tồn-đọng)).
 4. **Ảnh doanh nghiệp chưa dùng được.** `thumbnail` và `images` chỉ chứa ID attachment của WordPress. Muốn có URL ảnh cần thêm dữ liệu `wp_posts.guid` từ WordPress.
 5. **Tiếng Việt** ở nguồn là UTF-8 chuẩn (`utf8mb4`). Dấu `?` thấy trong PowerShell chỉ là lỗi hiển thị của console.
 
@@ -358,7 +359,7 @@ docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/sync_from_jh
 docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/verify_sync.sql
 ```
 
-**Bước 4: reindex Elasticsearch.** Dữ liệu chép bằng SQL không đi qua tầng service nên ES không được cập nhật (xem [mục 12](#12-việc-còn-tồn-đọng)).
+**Bước 4: reindex Elasticsearch.** Dữ liệu chép bằng SQL không đi qua tầng service nên ES không được cập nhật (xem [mục 13](#13-việc-còn-tồn-đọng)).
 
 > Nếu terminal bị ngắt giữa chừng, câu lệnh SQL vẫn chạy tiếp trong MySQL. Kiểm tra bằng `SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE command <> 'Sleep';` trước khi chạy lại, tránh chèn trùng.
 
@@ -489,7 +490,7 @@ Vì vậy `findInTree()` **đếm bằng cấu hình mặc định**, rồi:
 | "Công nghiệp chế biến, chế tạo" (VSIC) | 717.984 | ~8 s |
 | "Bán buôn và bán lẻ…" (VSIC) | 1.088.771 | **~33 s** |
 
-Nhóm VSIC lớn chậm vì **phần đếm** phải loại trùng hàng triệu liên kết (7,7 triệu với "Bán buôn và bán lẻ"). Không chỉnh được bằng cách viết lại truy vấn; hướng xử lý ở [mục 12](#12-việc-còn-tồn-đọng).
+Nhóm VSIC lớn chậm vì **phần đếm** phải loại trùng hàng triệu liên kết (7,7 triệu với "Bán buôn và bán lẻ"). Không chỉnh được bằng cách viết lại truy vấn; hướng xử lý ở [mục 13](#13-việc-còn-tồn-đọng).
 
 ### 7.5 Frontend: component dùng chung `shared/tree`
 
@@ -555,11 +556,11 @@ Backend: kiểm tra thủ công bằng API ở [mục 7.3](#73-api), so với SQ
 
 ### 7.8 Lưu ý và bẫy thường gặp
 
-- **Không map `listings` trong `LocationMapper` / `CategoryMapper`.** JHipster 9.3.0 luôn sinh chiều ngược của ManyToMany. Nếu map, `/api/locations` sẽ tải hàng trăm nghìn doanh nghiệp cho mỗi nút và bị treo. Sau mỗi lần `jhipster jdl --force`, kiểm tra lại (xem [mục 10](#10-sinh-lại-code-khi-sửa-jdl)).
+- **Không map `listings` trong `LocationMapper` / `CategoryMapper`.** JHipster 9.3.0 luôn sinh chiều ngược của ManyToMany. Nếu map, `/api/locations` sẽ tải hàng trăm nghìn doanh nghiệp cho mỗi nút và bị treo. Sau mỗi lần `jhipster jdl --force`, kiểm tra lại (xem [mục 11](#11-sinh-lại-code-khi-sửa-jdl)).
 - **Độ sâu cây đang cố định** trong JPQL `findSubtreeIds`: địa phương 3 cấp, ngành nghề 4 cấp. Dữ liệu sâu hơn sẽ bị thiếu nút con khi lọc.
 - **Mỗi cấp tải tối đa 1.000 nút con** (`CHILDREN_PAGE_SIZE`). Hiện nhiều nhất là 415.
 - **`SET SESSION optimizer_switch` phải luôn được bật lại** (`finally`), nếu không connection trong pool sẽ giữ `semijoin=off` cho các truy vấn khác.
-- **Sắp xếp theo cột không có index** (ví dụ `name`) rất chậm với tập lớn: TP.HCM sắp theo tên mất ~44 s. Cần changelog index (xem [mục 12](#12-việc-còn-tồn-đọng)).
+- **Sắp xếp theo cột không có index** (ví dụ `name`) rất chậm với tập lớn: TP.HCM sắp theo tên mất ~44 s. Cần changelog index (xem [mục 13](#13-việc-còn-tồn-đọng)).
 - **Tên ngành có `&amp;`** (ví dụ `SỨC KHỎE &amp; LÀM ĐẸP`): dữ liệu WordPress lưu sẵn trong `jhipster_vnyp`. Giao diện hiển thị nguyên văn.
 - **Tìm kiếm Elasticsearch không kết hợp với lọc theo cây** (xem [mục 7.3](#73-api)).
 
@@ -721,7 +722,7 @@ Cách làm ([`ElasticsearchReindexService.java`](../src/main/java/com/mycompany/
 | Entity | Tài liệu | Thời gian |
 |---|---:|---:|
 | category, location, tag, blogpost, user | 2.394 / 15.313 / 0 / 2.288 / 2 | **15 s** cho cả 5 |
-| listing | 1.855.619 | **8 phút 14 giây** (2026-10-02, trung bình ~3.760 tài liệu/giây; ES dùng 36–73% CPU, MySQL ~3%). Index 1,2 GB. Lần chạy đầu (2026-10-01) bị ngắt ở 423.000 tài liệu vì app tắt giữa chừng (xem [mục 11](#11-lỗi-đã-gặp-và-cách-xử-lý)). |
+| listing | 1.855.619 | **8 phút 14 giây** (2026-10-02, trung bình ~3.760 tài liệu/giây; ES dùng 36–73% CPU, MySQL ~3%). Index 1,2 GB. Lần chạy đầu (2026-10-01) bị ngắt ở 423.000 tài liệu vì app tắt giữa chừng (xem [mục 12](#12-lỗi-đã-gặp-và-cách-xử-lý)). |
 
 #### Biết index đã đủ chưa
 
@@ -868,12 +869,148 @@ Chạy trên app dev ngày 2026-10-05:
 | 4 | **Không thu hồi được token** | Đăng xuất chỉ xóa token ở trình duyệt; token bị lộ hoặc sau khi đổi mật khẩu vẫn dùng được tới hết hạn (24 giờ, "Remember me" 30 ngày) | Rút ngắn hạn "Remember me"; thêm danh sách token bị thu hồi, hoặc lưu "phiên bản token" theo user để vô hiệu khi đổi mật khẩu |
 | 5 | **Không có refresh token** | Muốn hạn ngắn thì người dùng phải đăng nhập lại thường xuyên | Thêm access token ngắn hạn (15–60 phút) và refresh token có thể thu hồi |
 | 6 | Token "Remember me" nằm trong `localStorage` | Nếu trang bị XSS thì token có thể bị đọc | Giữ CSP chặt (đang có), không chèn HTML chưa lọc (ví dụ `description` của doanh nghiệp) |
-| 7 | **Mọi API đọc dữ liệu đều phải đăng nhập** | Khách vãng lai không xem được doanh nghiệp. Đúng cho trang quản trị, nhưng sai nếu app phục vụ người xem công khai. | Cần quyết định: nếu công khai thì `permitAll` cho `GET /api/listings/**`, `/api/categories/**`, `/api/locations/**` |
+| 7 | ~~Mọi API đọc dữ liệu đều phải đăng nhập~~ | | **Đã chọn (2026-10-05):** quản trị viên dùng JWT như cũ; FE Next.js dùng API công khai chỉ đọc `/api/public/v1/**` với `X-API-Key` ([mục 10](#10-api-công-khai-cho-fe-nextjs)) |
 | 8 | HTTPS | Token gửi bằng HTTP có thể bị nghe lén | Production bắt buộc HTTPS (reverse proxy hoặc profile `tls`) |
 
 ---
 
-## 10. Sinh lại code khi sửa JDL
+## 10. API công khai cho FE (Next.js)
+
+> Bắt đầu 2026-10-05. Thay cho cách FE Next.js cũ gửi thẳng truy vấn Elasticsearch qua proxy `/api/ypvn-post-1/_search`, `/api/ypvn-term-1/_search` (file Postman `yp.vn.postman_collection`, 35 request).
+
+### 10.1 Kiến trúc
+
+| Người dùng | Cách vào | Xác thực |
+|---|---|---|
+| **Quản trị viên** | Trang quản trị JHipster, API `/api/**` | JWT (đăng nhập, [mục 9](#9-xác-thực-và-jwt)) |
+| **FE Next.js** | API công khai **chỉ đọc** `/api/public/v1/**` | Header **`X-API-Key`**. Chỉ gọi từ **server** Next.js (SSR, Route Handler), không để lộ khóa ra trình duyệt. |
+| Trình duyệt (thẻ `<img>`) | File ảnh `/api/public/v1/media/**` | Không cần, vì ảnh quảng cáo vốn công khai |
+
+**Không dùng lại kiểu proxy Elasticsearch của FE cũ**, vì FE được gửi truy vấn tùy ý (rủi ro quá tải, lộ mọi field) và bị trói vào cấu trúc WordPress (`post_type`, `terms.pointfinderltypes`…).
+
+### 10.2 Cơ chế X-API-Key
+
+| Thành phần | File | Việc làm |
+|---|---|---|
+| Cấu hình khóa | `application.public-api.keys` trong [`ApplicationProperties.java`](../src/main/java/com/mycompany/myapp/config/ApplicationProperties.java) | Danh sách khóa; nhiều khóa để đổi khóa không gián đoạn |
+| Bộ lọc | [`PublicApiKeyFilter.java`](../src/main/java/com/mycompany/myapp/security/PublicApiKeyFilter.java) | So khóa theo thời gian hằng (`MessageDigest.isEqual`); đúng thì gán quyền `ROLE_PUBLIC_API` |
+| Chuỗi bảo mật riêng | [`PublicApiSecurityConfiguration.java`](../src/main/java/com/mycompany/myapp/config/PublicApiSecurityConfiguration.java) | `@Order(1)`, chỉ cho `/api/public/**`, stateless. Không sửa `SecurityConfiguration` của JHipster. |
+
+| Môi trường | Khóa |
+|---|---|
+| Dev | `dev-public-api-key-doi-khi-trien-khai` trong `application-dev.yml` (chỉ dùng trên máy dev) |
+| Test | `test-public-api-key` trong `src/test/resources/config/application.yml` |
+| **Production** | Biến môi trường `APPLICATION_PUBLIC_API_KEYS=khoa1,khoa2` (tạo khóa bằng `openssl rand -base64 32`). **Không đặt thì mọi request bị từ chối** và app ghi cảnh báo khi khởi động. |
+
+Quy tắc phân quyền:
+
+| Request | Kết quả |
+|---|---|
+| `GET /api/public/v1/media/**` | Ai cũng tải được |
+| `GET /api/public/**` có khóa đúng | 200 |
+| `GET /api/public/**` không có hoặc sai khóa; chỉ gửi JWT | **401** |
+| `POST`/`PUT`/`DELETE`/`PATCH` `/api/public/**` | **403** có khóa, **401** không khóa: API công khai chỉ đọc |
+
+Swagger: nhóm **public-gallery**, khai báo xác thực `apiKey` (bấm Authorize, nhập vào ô `X-API-Key`).
+
+### 10.3 Banner quảng cáo (Gallery)
+
+Thay cho `post_type=gallery` của WordPress. Ví dụ các vị trí trên WordPress: footer banner, quảng cáo listing, right banner 1, left center banner, right-banner-2. Mỗi vị trí có nhiều ảnh, mỗi ảnh có link đích; trên WordPress, link đích nằm trong ô "Mô tả ngắn", mỗi dòng một URL. Dữ liệu do **quản trị viên tự nhập**, không chuyển từ WordPress.
+
+**Mô hình** (sinh từ [`jdl/gallery.jdl`](../jdl/gallery.jdl), cũng có trong `yp-schema.jdl`):
+
+| Entity / bảng | Field | Ghi chú |
+|---|---|---|
+| **Gallery** / `gallery` (vị trí banner) | `name`, **`code`** (duy nhất, `^[a-z0-9-]+$`), `description`, `active`, `wpId` | FE lấy theo `code`, ví dụ `footer-banner` |
+| **GalleryImage** / `gallery_image` (ảnh) | `title`, **`image`** (upload, `LONGBLOB` + `image_content_type`) **hoặc** **`imageUrl`** (link ảnh có sẵn), **`linkUrl`**, `altText`, `displayOrder`, `active`, `startAt`, `endAt`, `openInNewTab`, `gallery` (bắt buộc) | Có cả hai thì ưu tiên ảnh upload |
+
+Không đưa vào Elasticsearch (`search ... with no`), vì không cần tìm kiếm và không nên index ảnh nhị phân.
+
+**Quản trị viên nhập banner:** menu **Thực thể → Banner quảng cáo**:
+
+1. **Vị trí banner** → Thêm mới: nhập Tên (ví dụ `footer banner`), Mã (ví dụ `footer-banner`, FE dùng mã này), tick **Đang bật**.
+2. **Ảnh banner** → Thêm mới, cho từng ảnh:
+   - Chọn **Vị trí banner**.
+   - **Upload ảnh** *hoặc* dán **Link ảnh**.
+   - **Link khi bấm**: lấy từ dòng tương ứng trong "Mô tả ngắn" trên WordPress.
+   - **Thứ tự** (nhỏ đứng trước), tick **Đang bật**.
+   - Có thể hẹn giờ bằng **Bắt đầu hiển thị** / **Ngừng hiển thị**.
+
+**API cho FE:**
+
+| Endpoint | Trả về |
+|---|---|
+| `GET /api/public/v1/galleries` | Mọi vị trí đang bật, mỗi vị trí kèm ảnh đang chạy |
+| `GET /api/public/v1/galleries?codes=footer-banner,right-banner-1` | Chỉ các vị trí được chỉ định |
+| `GET /api/public/v1/galleries/{code}` | Một vị trí; **404** nếu không có hoặc đang tắt |
+| `GET /api/public/v1/media/gallery-images/{id}` | File ảnh upload; `Content-Type` theo ảnh, `ETag` (trả 304 khi không đổi), `Cache-Control: max-age=3600` |
+
+"Ảnh đang chạy" nghĩa là: ảnh `active`, vị trí `active`, `startAt` ≤ hiện tại < `endAt` (bỏ trống = không giới hạn), và có ảnh upload hoặc link ảnh. Sắp theo `displayOrder`, rồi theo `id`. JSON có `Cache-Control: max-age=60`: quản trị viên đổi banner thì tối đa 1 phút sau FE mới thấy.
+
+Ví dụ (đã chạy thật trên dev):
+
+```json
+{
+  "code": "footer-banner",
+  "name": "footer banner",
+  "description": null,
+  "images": [
+    { "id": 1501, "title": "Ảnh có sẵn", "imageUrl": "https://yp.com.vn/wp-content/uploads/banner-vnpt.jpg",
+      "linkUrl": "https://www.vienthonglaocai.vn/", "altText": null, "openInNewTab": false, "displayOrder": 1 },
+    { "id": 1500, "title": "Ảnh upload", "imageUrl": "http://localhost:8081/api/public/v1/media/gallery-images/1500",
+      "linkUrl": "https://brgshopping.vn/new_detail/khuyen-mai.html", "altText": "BRG khuyến mãi", "openInNewTab": true, "displayOrder": 2 }
+  ]
+}
+```
+
+`imageUrl` của ảnh upload là URL tuyệt đối, dựng theo địa chỉ server mà FE gọi tới. Chạy sau reverse proxy thì proxy phải gửi `X-Forwarded-Host`/`X-Forwarded-Proto` (dev đã bật `server.forward-headers-strategy: native`).
+
+**Gọi từ Next.js** (phía server, khóa trong biến môi trường của Next.js):
+
+```ts
+// app/lib/yp-api.ts (chỉ chạy trên server)
+export async function getGallery(code: string) {
+  const res = await fetch(`${process.env.YP_API_URL}/api/public/v1/galleries/${code}`, {
+    headers: { 'X-API-Key': process.env.YP_API_KEY! },
+    next: { revalidate: 60 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`YP API ${res.status}`);
+  return res.json();
+}
+```
+
+**Code:** [`PublicGalleryResource.java`](../src/main/java/com/mycompany/myapp/web/rest/publicapi/PublicGalleryResource.java) → [`PublicGalleryService.java`](../src/main/java/com/mycompany/myapp/service/PublicGalleryService.java) → [`GalleryPublicRepository.java`](../src/main/java/com/mycompany/myapp/repository/GalleryPublicRepository.java). Truy vấn danh sách trả dòng rút gọn [`GalleryPublicRow`](../src/main/java/com/mycompany/myapp/repository/GalleryPublicRow.java), **không tải ảnh nhị phân**; chỉ endpoint media mới đọc ảnh. Mọi file đều viết tay, `jhipster --force` không ghi đè. Các file do JHipster sinh cho Gallery/GalleryImage (CRUD quản trị) giữ nguyên.
+
+**Kiểm thử (2026-10-05):**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| [`PublicApiKeyFilterTest`](../src/test/java/com/mycompany/myapp/security/PublicApiKeyFilterTest.java): khóa đúng, khóa có khoảng trắng, thiếu, sai, rỗng, không cấu hình khóa | 4/4 ✅ |
+| Test sinh sẵn của Gallery/GalleryImage (domain, criteria, DTO) + `TechnicalStructureTest` | 16/16 ✅ |
+| Frontend: menu, trang Gallery/GalleryImage (vitest) | 101/101 ✅ |
+| Thủ công trên app dev: không/sai key → 401; chỉ JWT → 401; đúng key → 200; ảnh tắt, hết hạn, thuộc vị trí tắt không xuất hiện; đúng thứ tự; URL ảnh tuyệt đối; ảnh không cần key; `ETag` → 304; vị trí tắt → 404; POST/PUT/DELETE có key → 403 | 15/15 ✅ |
+
+### 10.4 Kế hoạch các API còn lại
+
+Đối chiếu với 35 request của FE cũ:
+
+| Nhóm | API dự kiến | Dữ liệu | Trạng thái |
+|---|---|---|---|
+| Banner, gallery | `/galleries` | Quản trị viên nhập | ✅ Xong |
+| Chi tiết doanh nghiệp theo slug hoặc id WordPress | `/listings/{slug}`, `/listings/wp/{wpId}` | ✅ | Chưa làm |
+| Danh sách doanh nghiệp theo ngành, khu vực, nổi bật; tìm theo tên, mã số thuế, địa chỉ | `/listings?category=&location=&q=&featured=` | ✅ (tìm kiếm cần Elasticsearch giai đoạn 2–3) | Chưa làm |
+| Doanh nghiệp liên quan; số doanh nghiệp theo tỉnh trong một ngành | `/listings/{slug}/related`, `/listings/facets` | ✅ | Chưa làm |
+| Ngành nghề (slug, id, chữ cái đầu, con) | `/categories` | ✅ | Chưa làm |
+| Địa phương (cấp 1, con, slug) | `/locations` | ✅ | Chưa làm |
+| Tin tức, sự kiện | `/posts` | ⚠️ Thiếu chuyên mục bài viết | Chờ dữ liệu WordPress |
+| Mã ngành (`industry_code`) của ngành nghề | | ⚠️ Không có trong `jhipster_vnyp` | Chờ dữ liệu |
+
+> ⚠️ File Postman của FE cũ chứa **JWT RS256 không có hạn dùng** của hệ thống cũ. Không commit hay gửi file này; nên thu hồi hoặc đổi khóa ở hệ thống cũ.
+
+---
+
+## 11. Sinh lại code khi sửa JDL
 
 ```powershell
 # 1. Commit trước để có thể quay lại
@@ -902,7 +1039,7 @@ Lưu ý:
 | `service/mapper/LocationMapper.java`, `CategoryMapper.java` | `toDto` và `partialUpdate` bỏ qua `listings` (`@Mapping(target = "listings", ignore = true)`) | JHipster 9.3.0 **luôn** sinh chiều ngược của ManyToMany, kể cả khi JDL khai báo một chiều. Nếu map `listings`, mỗi địa phương hoặc ngành tải hàng trăm nghìn listing, và `/api/locations` bị treo. |
 | `service/criteria/ListingCriteria.java` | Thêm filter `locationTreeId`, `categoryTreeId` | Lọc listing theo cả cây. Mỗi listing chỉ gắn vào **một** cấp địa phương (tỉnh 1,46 triệu, phường/xã 319 nghìn, quận/huyện 23 nghìn) và gần như chỉ gắn vào **ngành lá** (24,4/25,2 triệu liên kết), nên lọc theo một nút phải gồm cả cây con. |
 | `repository/LocationRepository.java`, `CategoryRepository.java` | `findSubtreeIds(id)` | Lấy id của nút và mọi cấp con (địa phương 3 cấp, ngành nghề 4 cấp) |
-| `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 12) |
+| `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 13) |
 | `shared/tree/*` | Dùng chung: `createTreeSource()`, `jhi-tree-view` (cây tải dần, link "Xem doanh nghiệp"), `jhi-tree-filter` (dãy ô chọn theo số cấp thực tế, đồng bộ với URL `filter[...]`) | Dùng cho cả địa phương và ngành nghề |
 | `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | 2 bộ lọc `jhi-tree-filter` (địa phương, ngành nghề); trong spec thay bằng stub | |
 | `entities/location/tree/*`, `entities/category/tree/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Cây ngành nghề) | |
@@ -913,11 +1050,14 @@ Lưu ý:
 | `src/main/docker/kibana.yml` (file mới) | Kibana 9.4.5 cho dev | |
 | `domain/Listing.java` (`categories`, `locations`), `domain/Category.java` (`parent`), `domain/Location.java` (`parent`) | Thêm `@org.springframework.data.annotation.Transient` | Không ghi quan hệ vào ES, để reindex không lazy-load ([mục 8.4](#84-job-reindex-giai-đoạn-1)). **`jhipster --force` sẽ xóa, phải thêm lại.** |
 | `service/ElasticsearchReindexService.java`, `web/rest/ElasticsearchReindexResource.java` (file mới) | Job và API reindex | File viết tay, không bị ghi đè |
+| `layouts/navbar/navbar.html` (mục Gallery), `i18n/{vi,en}/global.json`, `gallery.json`, `galleryImage.json`, `config/font-awesome-icons.ts` | Gom 2 mục JHipster sinh cho Gallery thành nhóm **Banner quảng cáo**; dịch nhãn tiếng Việt; icon `image`, `images` | Sinh lại Gallery thì JHipster thêm lại 2 mục menu rời và nhãn tiếng Anh |
+| `config/ApplicationProperties.java` (`publicApi.keys`), `security/AuthoritiesConstants.java` (`PUBLIC_API`), `application-dev.yml`, `application-prod.yml`, `src/test/resources/config/application.yml` | Cấu hình khóa API công khai | [Mục 10.2](#102-cơ-chế-x-api-key) |
+| `config/PublicApiSecurityConfiguration.java`, `security/PublicApiKeyFilter.java`, `repository/GalleryPublicRepository.java`, `GalleryPublicRow.java`, `service/PublicGalleryService.java`, `service/dto/publicapi/*`, `web/rest/publicapi/*` (file mới) | API công khai, gallery | File viết tay, không bị ghi đè |
 | `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
 
 ---
 
-## 11. Lỗi đã gặp và cách xử lý
+## 12. Lỗi đã gặp và cách xử lý
 
 | Lỗi | Nguyên nhân | Cách xử lý |
 |---|---|---|
@@ -937,12 +1077,14 @@ Lưu ý:
 | `GROUP_CONCAT` trả thiếu id, số liệu đo sai | Mặc định `group_concat_max_len = 1024` | `SET SESSION group_concat_max_len = 1000000` |
 | Reindex listing dừng ở 423.000/1.855.619; index kẹt `refresh_interval: -1` | App bị tắt giữa lúc job chạy nên bước đặt lại refresh không chạy | Đặt lại `PUT listing/_settings {"index":{"refresh_interval":"1s"}}`, chạy lại job. Từ 2026-10-02 app tự đặt lại khi khởi động ([mục 8.4](#84-job-reindex-giai-đoạn-1)). |
 | Máy chậm, CPU cao sau khi bật ES và Kibana | Hết RAM (còn trống 0,5/15,7 GB): Docker 4,2 GB, cộng app, IDE, trình duyệt | Tắt Kibana khi không dùng; giới hạn RAM WSL ([mục 8.5](#85-cpu-ram-và-triển-khai-production)) |
+| Gọi `POST /api/public/...` có khóa đúng nhận 401 thay vì 403 | Mặc định Spring từ chối bằng `sendError(403)`, chuyển sang `/error`; `/error` do chuỗi bảo mật JWT xử lý nên thành 401 | Chuỗi API công khai đặt mã trạng thái trực tiếp (`accessDeniedHandler` gọi `response.setStatus(403)`) |
+| Sau khi thêm chuỗi bảo mật mới, app (DevTools) mất vài phút mới chạy lại cổng 8081 | DevTools khởi động lại chậm khi đổi cấu hình bảo mật và file yml | Chờ, hoặc Ctrl+C rồi chạy lại `./mvnw`. Chạy thử một bản trên cổng khác (`-Dspring-boot.run.arguments=--server.port=8082`) để xem lỗi khởi động. |
 | Kibana báo `healthy` trong khi `/api/status` vẫn là `unavailable` | Healthcheck `grep available` khớp luôn chuỗi `unavailable` | Khớp đúng `'"level":"available"'` |
 | Tiếng Việt bị lỗi (`Ð?a phuong`) khi gửi JSON bằng `curl -d "..."` trong Git Bash | Git Bash chuyển tham số dòng lệnh sang code page Windows | Gửi bằng file (`curl --data-binary @file.json`) hoặc script Node/PowerShell `-Encoding utf8` |
 
 ---
 
-## 12. Việc còn tồn đọng
+## 13. Việc còn tồn đọng
 
 | # | Việc | Ghi chú |
 |---|---|---|
@@ -957,10 +1099,13 @@ Lưu ý:
 | 9 | Tên ngành có `&amp;` | Dữ liệu gốc của WordPress. Có thể viết script SQL đổi thành `&` |
 | 10 | Integration test backend cho `locationTreeId`, `categoryTreeId` | Hiện chỉ kiểm tra thủ công bằng API |
 | 11 | Kết hợp tìm kiếm (Elasticsearch) với lọc theo cây | `/api/listings/_search` bỏ qua filter |
+| 12 | **Các API công khai còn lại cho FE Next.js** (doanh nghiệp, ngành nghề, địa phương, tin tức) | Xem [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
+| 13 | Chuyên mục bài viết, mã ngành của ngành nghề | Cần dữ liệu WordPress (`wp_term_relationships` của bài viết, `termmeta industry_code`) |
+| 14 | Quản trị viên nhập banner thật | Theo các vị trí trên WordPress: footer banner, quảng cáo listing, right banner 1, left center banner, right-banner-2 ([mục 10.3](#103-banner-quảng-cáo-gallery)) |
 
 ---
 
-## 13. Lệnh hay dùng
+## 14. Lệnh hay dùng
 
 ```bash
 # Chạy ứng dụng (dev)
@@ -975,6 +1120,9 @@ echo "SELECT COUNT(*) FROM javaspringbootbackend.listing;" | docker exec -i java
 # Xem câu SQL đang chạy
 echo "SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE command <> 'Sleep';" \
   | docker exec -i javaspringbootbackend-mysql-1 mysql -uroot
+
+# Gọi API công khai (khóa dev)
+curl.exe -H "X-API-Key: dev-public-api-key-doi-khi-trien-khai" http://localhost:8081/api/public/v1/galleries
 
 # Bật / tắt Kibana (http://localhost:5601)
 docker compose -f src/main/docker/services.yml --profile kibana up -d kibana
