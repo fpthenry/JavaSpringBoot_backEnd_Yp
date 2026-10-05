@@ -9,3 +9,16 @@ services:
     extends:
       file: ./elasticsearch.yml
       service: elasticsearch
+  # Sửa tay: Kibana chỉ chạy khi bật profile "kibana", Spring Docker Compose (./mvnw) không tự khởi động
+  kibana:
+    extends:
+      file: ./kibana.yml
+      service: kibana
+    profiles: ['kibana']
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+# Sửa tay: volume khai báo trong elasticsearch.yml không được kế thừa qua extends, phải khai báo lại ở đây
+volumes:
+  elasticsearch-data:

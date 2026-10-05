@@ -145,8 +145,51 @@ entity Tag(tag) {
 }
 
 // =====================================================
+// 4. BANNER QUẢNG CÁO (entity mới, không có trong jhipster_vnyp)
+// Sinh code riêng bằng jdl/gallery.jdl (giống hệt định nghĩa dưới đây), xem docs mục Gallery.
+// =====================================================
+
+/** Vị trí banner (gallery) */
+entity Gallery(gallery) {
+    /** Tên hiển thị, vd: footer banner */
+    name String required maxlength(255)
+    /** Mã duy nhất FE dùng để lấy, chữ thường, số và gạch ngang, vd: footer-banner */
+    code String required unique maxlength(100) pattern(/^[a-z0-9-]+$/)
+    description TextBlob
+    /** Tắt thì API công khai không trả vị trí này */
+    active Boolean required
+    /** ID gallery cũ trên WordPress (wp_posts.ID), để đối chiếu */
+    wpId Long unique
+}
+
+/** Ảnh quảng cáo trong một vị trí banner */
+entity GalleryImage(gallery_image) {
+    title String maxlength(255)
+    /** Ảnh upload lên (lưu trong database) */
+    image ImageBlob
+    /** Hoặc link ảnh có sẵn (CDN, wp-content/uploads...); dùng khi không upload */
+    imageUrl String maxlength(1000)
+    /** Bấm vào ảnh thì mở link này */
+    linkUrl String maxlength(1000)
+    altText String maxlength(255)
+    /** Thứ tự hiển thị, nhỏ đứng trước */
+    displayOrder Integer required min(0)
+    active Boolean required
+    /** Hẹn giờ: chỉ hiển thị từ thời điểm này (bỏ trống = ngay) */
+    startAt Instant
+    /** Hẹn giờ: ngừng hiển thị sau thời điểm này (bỏ trống = không hết hạn) */
+    endAt Instant
+    openInNewTab Boolean
+}
+
+// =====================================================
 // RELATIONSHIPS
 // =====================================================
+
+// gallery_image.gallery_id: mỗi ảnh thuộc một vị trí banner
+relationship ManyToOne {
+    GalleryImage{gallery(name) required} to Gallery
+}
 
 // listing_category: Listing N - N Category (một chiều: Category không giữ danh sách listings,
 // tránh API /api/categories tải hàng trăm nghìn doanh nghiệp mỗi ngành)
@@ -177,10 +220,10 @@ dto * with mapstruct
 
 service * with serviceImpl
 
-paginate Listing, Category, Location, BlogPost with pagination
+paginate Listing, Category, Location, BlogPost, Gallery, GalleryImage with pagination
 paginate Tag with infinite-scroll
 
-filter Listing, Category, Location, BlogPost
+filter Listing, Category, Location, BlogPost, Gallery, GalleryImage
 
-// Ứng dụng dùng searchEngine elasticsearch (.yo-rc.json)
-search * with elasticsearch
+// Ứng dụng dùng searchEngine elasticsearch (.yo-rc.json); ảnh nhị phân của gallery không đưa vào ES
+search * with elasticsearch except Gallery, GalleryImage

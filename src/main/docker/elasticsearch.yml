@@ -3,19 +3,25 @@ name: javaspringbootbackend
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.4.5
-    # volumes:
-    #   - ~/volumes/jhipster/javaSpringBootBackEnd/elasticsearch/:/usr/share/elasticsearch/data/
+    # Sửa tay: lưu dữ liệu ES vào named volume để không mất index (1,86 triệu listing) khi tạo lại container
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
     # If you want to expose these ports outside your dev PC,
     # remove the "127.0.0.1:" prefix
     ports:
       - 127.0.0.1:9200:9200
       - 127.0.0.1:9300:9300
     environment:
-      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m'
+      # Sửa tay: 256m không đủ cho reindex 1,86 triệu listing và aggregation khi lọc theo cây
+      - 'ES_JAVA_OPTS=-Xms1g -Xmx1g'
       - 'discovery.type=single-node'
       - 'xpack.security.enabled=false'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9200/_cluster/health?wait_for_status=green&timeout=10s']
+      # Sửa tay: một node không cấp được replica nên cluster chỉ đạt yellow; chờ green thì luôn unhealthy
+      test: ['CMD', 'curl', '-f', 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=10s']
       interval: 5s
       timeout: 10s
       retries: 10
+
+volumes:
+  elasticsearch-data:

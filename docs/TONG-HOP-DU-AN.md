@@ -11,10 +11,12 @@
 5. [Map dữ liệu jhipster_vnyp → dự án](#5-map-dữ-liệu-jhipster_vnyp--dự-án)
 6. [Quy trình đồng bộ dữ liệu](#6-quy-trình-đồng-bộ-dữ-liệu)
 7. [Chức năng phân cấp và lọc theo cây](#7-chức-năng-phân-cấp-và-lọc-theo-cây)
-8. [Sinh lại code khi sửa JDL](#8-sinh-lại-code-khi-sửa-jdl)
-9. [Lỗi đã gặp và cách xử lý](#9-lỗi-đã-gặp-và-cách-xử-lý)
-10. [Việc còn tồn đọng](#10-việc-còn-tồn-đọng)
-11. [Lệnh hay dùng](#11-lệnh-hay-dùng)
+8. [Elasticsearch](#8-elasticsearch)
+9. [Xác thực và JWT](#9-xác-thực-và-jwt)
+10. [Sinh lại code khi sửa JDL](#10-sinh-lại-code-khi-sửa-jdl)
+11. [Lỗi đã gặp và cách xử lý](#11-lỗi-đã-gặp-và-cách-xử-lý)
+12. [Việc còn tồn đọng](#12-việc-còn-tồn-đọng)
+13. [Lệnh hay dùng](#13-lệnh-hay-dùng)
 
 ---
 
@@ -50,11 +52,11 @@ Khi chạy `./mvnw`, Spring Docker Compose tự bật các container trong [`src
 | Container | Image | Cổng | Ghi chú |
 |---|---|---|---|
 | `javaspringbootbackend-mysql-1` | `mysql:26.7.0` | `127.0.0.1:3306` | user `root`, mật khẩu rỗng (chỉ dùng cho dev) |
-| `javaspringbootbackend-elasticsearch-1` | `elasticsearch:9.4.5` | `127.0.0.1:9200` | 1 node, trạng thái `yellow` là bình thường |
+| `javaspringbootbackend-elasticsearch-1` | `elasticsearch:9.4.5` | `127.0.0.1:9200` | 1 node, heap 1 GB, dữ liệu lưu ở volume `javaspringbootbackend_elasticsearch-data`; trạng thái `yellow` là bình thường (xem [mục 8.3](#83-cấu-hình-container-giai-đoạn-0-xong-2026-10-01)) |
 
 > ⚠️ Dữ liệu MySQL nằm trong **anonymous volume** của Docker. Xóa container bằng `docker compose down -v` hoặc `docker rm -v` sẽ **mất toàn bộ dữ liệu**, gồm cả `jhipster_vnyp`.
 
-> Healthcheck của container Elasticsearch thường báo `unhealthy` do quá thời gian chờ. ES vẫn hoạt động bình thường: kiểm tra bằng `curl.exe http://localhost:9200/_cluster/health`.
+> Elasticsearch không có giao diện riêng: `http://localhost:9200` chỉ trả JSON. Công cụ xem dữ liệu ở [mục 8.2](#82-giao-diện-quản-trị-elasticsearch).
 
 ### 2.2 Hai database trong cùng một MySQL server
 
@@ -277,11 +279,11 @@ search * with elasticsearch
 | Giới hạn | Cách xử lý |
 |---|---|
 | Bảng nối luôn có tiền tố `rel_` (`rel_listing__category`); JDL không đổi được, vì generator ghi đè tên | Script đồng bộ map `listing_category` → `rel_listing__category` |
-| Không khai báo được index thường (`slug`, `status`, `tax_code`, `api_id`, `is_featured`, `type`) | Viết thêm changelog Liquibase tay (xem [mục 10](#10-việc-còn-tồn-đọng)) |
+| Không khai báo được index thường (`slug`, `status`, `tax_code`, `api_id`, `is_featured`, `type`) | Viết thêm changelog Liquibase tay (xem [mục 12](#12-việc-còn-tồn-đọng)) |
 | Không khai báo được `ON DELETE CASCADE` và `DEFAULT` | Như trên |
 | Không thêm được cột vào entity built-in `User` (`jhi_user.wp_user_id` của nguồn) | Chưa chuyển user từ nguồn |
 | Bảng không có cột `id` làm khóa chính (`staging_listing` dùng `wp_id`) | Không đưa vào app |
-| Comment `/** … */` trên field được chép nguyên vào file i18n JSON **mà không escape** | **Không dùng dấu `"` trong comment JDL** (xem [mục 9](#9-lỗi-đã-gặp-và-cách-xử-lý)) |
+| Comment `/** … */` trên field được chép nguyên vào file i18n JSON **mà không escape** | **Không dùng dấu `"` trong comment JDL** (xem [mục 11](#11-lỗi-đã-gặp-và-cách-xử-lý)) |
 
 ---
 
@@ -306,7 +308,7 @@ search * with elasticsearch
 
 1. **`parent_id` ở nguồn trỏ tới `wp_term_id`, không phải `id`.** Ví dụ: `category.parent_id = 523` nghĩa là cha có `wp_term_id = 523`. Khi chép phải tra cha theo `wp_term_id` rồi gán `id` của cha. Đã kiểm tra: 2.354/2.354 category và 15.215/15.215 location có cha đều tìm được cha.
 2. **Giữ nguyên `id` gốc.** Quan hệ và đường dẫn cũ vẫn đúng. Entity dùng `GenerationType.IDENTITY`, nên MySQL tự đẩy `AUTO_INCREMENT` lên sau id lớn nhất.
-3. **Datetime chép nguyên giá trị, không đổi múi giờ.** App đọc `DATETIME` theo UTC (`hibernate.jdbc.time_zone: UTC`). Nếu dữ liệu nguồn là giờ Việt Nam thì giao diện sẽ hiển thị lệch 7 tiếng (xem [mục 10](#10-việc-còn-tồn-đọng)).
+3. **Datetime chép nguyên giá trị, không đổi múi giờ.** App đọc `DATETIME` theo UTC (`hibernate.jdbc.time_zone: UTC`). Nếu dữ liệu nguồn là giờ Việt Nam thì giao diện sẽ hiển thị lệch 7 tiếng (xem [mục 12](#12-việc-còn-tồn-đọng)).
 4. **Ảnh doanh nghiệp chưa dùng được.** `thumbnail` và `images` chỉ chứa ID attachment của WordPress. Muốn có URL ảnh cần thêm dữ liệu `wp_posts.guid` từ WordPress.
 5. **Tiếng Việt** ở nguồn là UTF-8 chuẩn (`utf8mb4`). Dấu `?` thấy trong PowerShell chỉ là lỗi hiển thị của console.
 
@@ -356,7 +358,7 @@ docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/sync_from_jh
 docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/verify_sync.sql
 ```
 
-**Bước 4: reindex Elasticsearch.** Dữ liệu chép bằng SQL không đi qua tầng service nên ES không được cập nhật (xem [mục 10](#10-việc-còn-tồn-đọng)).
+**Bước 4: reindex Elasticsearch.** Dữ liệu chép bằng SQL không đi qua tầng service nên ES không được cập nhật (xem [mục 12](#12-việc-còn-tồn-đọng)).
 
 > Nếu terminal bị ngắt giữa chừng, câu lệnh SQL vẫn chạy tiếp trong MySQL. Kiểm tra bằng `SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE command <> 'Sleep';` trước khi chạy lại, tránh chèn trùng.
 
@@ -487,7 +489,7 @@ Vì vậy `findInTree()` **đếm bằng cấu hình mặc định**, rồi:
 | "Công nghiệp chế biến, chế tạo" (VSIC) | 717.984 | ~8 s |
 | "Bán buôn và bán lẻ…" (VSIC) | 1.088.771 | **~33 s** |
 
-Nhóm VSIC lớn chậm vì **phần đếm** phải loại trùng hàng triệu liên kết (7,7 triệu với "Bán buôn và bán lẻ"). Không chỉnh được bằng cách viết lại truy vấn; hướng xử lý ở [mục 10](#10-việc-còn-tồn-đọng).
+Nhóm VSIC lớn chậm vì **phần đếm** phải loại trùng hàng triệu liên kết (7,7 triệu với "Bán buôn và bán lẻ"). Không chỉnh được bằng cách viết lại truy vấn; hướng xử lý ở [mục 12](#12-việc-còn-tồn-đọng).
 
 ### 7.5 Frontend: component dùng chung `shared/tree`
 
@@ -553,17 +555,325 @@ Backend: kiểm tra thủ công bằng API ở [mục 7.3](#73-api), so với SQ
 
 ### 7.8 Lưu ý và bẫy thường gặp
 
-- **Không map `listings` trong `LocationMapper` / `CategoryMapper`.** JHipster 9.3.0 luôn sinh chiều ngược của ManyToMany. Nếu map, `/api/locations` sẽ tải hàng trăm nghìn doanh nghiệp cho mỗi nút và bị treo. Sau mỗi lần `jhipster jdl --force`, kiểm tra lại (xem [mục 8](#8-sinh-lại-code-khi-sửa-jdl)).
+- **Không map `listings` trong `LocationMapper` / `CategoryMapper`.** JHipster 9.3.0 luôn sinh chiều ngược của ManyToMany. Nếu map, `/api/locations` sẽ tải hàng trăm nghìn doanh nghiệp cho mỗi nút và bị treo. Sau mỗi lần `jhipster jdl --force`, kiểm tra lại (xem [mục 10](#10-sinh-lại-code-khi-sửa-jdl)).
 - **Độ sâu cây đang cố định** trong JPQL `findSubtreeIds`: địa phương 3 cấp, ngành nghề 4 cấp. Dữ liệu sâu hơn sẽ bị thiếu nút con khi lọc.
 - **Mỗi cấp tải tối đa 1.000 nút con** (`CHILDREN_PAGE_SIZE`). Hiện nhiều nhất là 415.
 - **`SET SESSION optimizer_switch` phải luôn được bật lại** (`finally`), nếu không connection trong pool sẽ giữ `semijoin=off` cho các truy vấn khác.
-- **Sắp xếp theo cột không có index** (ví dụ `name`) rất chậm với tập lớn: TP.HCM sắp theo tên mất ~44 s. Cần changelog index (xem [mục 10](#10-việc-còn-tồn-đọng)).
+- **Sắp xếp theo cột không có index** (ví dụ `name`) rất chậm với tập lớn: TP.HCM sắp theo tên mất ~44 s. Cần changelog index (xem [mục 12](#12-việc-còn-tồn-đọng)).
 - **Tên ngành có `&amp;`** (ví dụ `SỨC KHỎE &amp; LÀM ĐẸP`): dữ liệu WordPress lưu sẵn trong `jhipster_vnyp`. Giao diện hiển thị nguyên văn.
 - **Tìm kiếm Elasticsearch không kết hợp với lọc theo cây** (xem [mục 7.3](#73-api)).
 
 ---
 
-## 8. Sinh lại code khi sửa JDL
+## 8. Elasticsearch
+
+### 8.1 Elasticsearch được tích hợp thế nào
+
+JHipster sinh sẵn toàn bộ phần tích hợp, vì `.yo-rc.json` đặt `searchEngine: elasticsearch` và JDL có `search * with elasticsearch`:
+
+| Thành phần | Ở đâu | Việc làm |
+|---|---|---|
+| Thư viện | `spring-boot-starter-data-elasticsearch` trong [`pom.xml`](../pom.xml) | Spring Data Elasticsearch |
+| Kết nối | `spring.elasticsearch.uris: http://localhost:9200` trong [`application-dev.yml`](../src/main/resources/config/application-dev.yml) | |
+| Mapping | `@Document(indexName = "listing")`, `@Field`/`@MultiField` trên entity (ví dụ [`Listing.java`](../src/main/java/com/mycompany/myapp/domain/Listing.java)) | Field chuỗi được index 2 kiểu: `text` để tìm kiếm và `.keyword` để sắp xếp. Quan hệ (`categories`, `locations`, `parent`) có `@Transient` nên **không** được index. |
+| Repository | [`repository/search/`](../src/main/java/com/mycompany/myapp/repository/search/): `Listing`, `Category`, `Location`, `BlogPost`, `Tag`, `User` + `SearchRepository` | `search(query, pageable)` dùng `query_string` (cú pháp Lucene); `index(entity)`, `deleteFromIndexById(id)` chạy `@Async` |
+| Đồng bộ DB → ES | `*ServiceImpl.save/update/partialUpdate/delete`, `UserService` | Mỗi lần lưu hoặc xóa qua service thì ghi hoặc xóa trên ES. **Chép dữ liệu bằng SQL thì ES không biết**, nên phải reindex. |
+| API | `GET /api/<entity>/_search?query=...&page=&size=` | Ví dụ `/api/listings/_search?query=xây dựng` |
+| Giao diện | Ô tìm kiếm trên trang danh sách mỗi entity | Có nội dung tìm kiếm thì gọi `/_search`, ô trống thì gọi API thường (MySQL) |
+| Tạo index | Spring Data tự tạo index kèm mapping **khi app khởi động**, nếu index chưa có | |
+
+> ⚠️ Nếu index bị xóa trong lúc app đang chạy, lần lưu tiếp theo qua service sẽ để Elasticsearch **tự tạo index với mapping động** (sai kiểu). Sau khi xóa index, khởi động lại app trước khi sửa dữ liệu.
+
+### 8.2 Giao diện quản trị Elasticsearch
+
+Bản thân Elasticsearch **không có giao diện**: `http://127.0.0.1:9200` chỉ trả JSON thông tin node. Các lựa chọn để xem index và dữ liệu:
+
+| Công cụ | Cách dùng | Ghi chú |
+|---|---|---|
+| **Kibana** (giao diện chính thức), **đã thêm vào dự án** | `http://localhost:5601`, xem cách bật bên dưới | Đầy đủ nhất. RAM khoảng 1,7 GB khi chạy. |
+| **Elasticvue** | Tiện ích trình duyệt hoặc app desktop, kết nối `http://localhost:9200` | Nhẹ, không cài gì trên server |
+| `curl.exe` | `curl.exe "http://localhost:9200/_cat/indices?v"`, `curl.exe "http://localhost:9200/listing/_search?q=xay+dung&size=3&pretty"` | Có sẵn |
+
+#### Kibana
+
+Khai báo trong [`src/main/docker/kibana.yml`](../src/main/docker/kibana.yml), gắn vào [`services.yml`](../src/main/docker/services.yml) với **profile `kibana`**. Vì vậy `./mvnw` (Spring Docker Compose) **không** tự bật Kibana, không tốn RAM khi không dùng.
+
+```powershell
+# Bật (chờ khoảng 1 phút tới khi container báo healthy)
+docker compose -f src/main/docker/services.yml --profile kibana up -d kibana
+# Tắt
+docker compose -f src/main/docker/services.yml --profile kibana stop kibana
+```
+
+| Cấu hình | Giá trị |
+|---|---|
+| Image | `docker.elastic.co/kibana/kibana:9.4.5` (cùng phiên bản với ES) |
+| Kết nối ES | `ELASTICSEARCH_HOSTS=http://elasticsearch:9200` (cùng network của project compose) |
+| Cổng | `127.0.0.1:5601`, chỉ truy cập từ máy dev |
+| Đăng nhập | Không cần (ES tắt `xpack.security`) |
+| Healthcheck | `GET /api/status` có `"level":"available"` |
+| Phụ thuộc | Chỉ khởi động khi container `elasticsearch` đã healthy |
+
+**Data view đã tạo sẵn** (để mở **Discover** là xem được ngay): `listing` (Doanh nghiệp), `category` (Ngành nghề), `location` (Địa phương), `blogpost` (Bài viết), `tag` (Thẻ), `user` (Người dùng). Data view lưu trong index hệ thống `.kibana*` của ES. Nếu mất (ví dụ xóa volume ES), tạo lại trong **Stack Management → Data Views** hoặc qua API `POST /api/data_views/data_view`.
+
+#### Dùng Kibana để làm gì
+
+Kibana **không cần cho app chạy**. App gọi thẳng Elasticsearch, có hay không có Kibana đều chạy được. Kibana là công cụ cho dev và quản trị:
+
+| Việc | Màn hình | Ví dụ trong dự án |
+|---|---|---|
+| Kiểm tra reindex đã đủ chưa | Dev Tools, Index Management | So số tài liệu `listing` với số dòng MySQL (1.855.619) |
+| Tìm hiểu vì sao tìm kiếm không ra kết quả | Dev Tools | Chạy đúng truy vấn app gửi đi, xem tài liệu được index thế nào (`_analyze`) |
+| Xem nhanh dữ liệu trong index | Discover | Xem một doanh nghiệp có đủ field không |
+| Thử truy vấn trước khi viết code Java | Dev Tools | Viết truy vấn cho giai đoạn 2 và 3 |
+
+**Discover** (Menu → Discover):
+
+1. Chọn data view **Doanh nghiệp (listing)** ở góc trên bên trái.
+2. Gõ truy vấn KQL vào ô tìm kiếm, ví dụ `name : "xây dựng"` hoặc `status : "draft"`, rồi Enter.
+3. Bấm vào một dòng để xem đủ mọi field của tài liệu. Bấm `+` cạnh tên field để thêm thành cột.
+
+Data view của dự án không có field thời gian nên không có bộ chọn khoảng thời gian; mọi tài liệu đều hiện.
+
+**Dev Tools** (Menu → Management → Dev Tools): dán từng khối vào khung bên trái, đặt con trỏ trong khối rồi bấm ▶. Các câu dưới đây đã chạy thử trên dữ liệu thật:
+
+```text
+# Số tài liệu và dung lượng từng index
+GET _cat/indices?v&s=index
+
+# Đếm doanh nghiệp (so với MySQL)
+GET listing/_count
+
+# Tìm theo tên; track_total_hits để đếm đủ (mặc định ES chỉ đếm tới 10.000)
+GET listing/_search
+{
+  "track_total_hits": true,
+  "size": 5,
+  "_source": ["name", "address", "phone"],
+  "query": { "match": { "name": "xây dựng" } }
+}
+
+# Thống kê theo trạng thái (field chuỗi dùng .keyword để gom nhóm/sắp xếp)
+GET listing/_search
+{
+  "size": 0,
+  "aggs": { "theo_trang_thai": { "terms": { "field": "status.keyword" } } }
+}
+
+# Xem ES tách từ thế nào (giai đoạn 2 sẽ thêm bỏ dấu)
+POST _analyze
+{ "analyzer": "standard", "text": "Hà Nội" }
+
+# Mapping của index
+GET listing/_mapping
+```
+
+**Index Management** (Menu → Stack Management → Index Management): danh sách index, số tài liệu, dung lượng, trạng thái. Bấm tên index để xem Settings (ví dụ `refresh_interval`) và Mappings.
+
+### 8.3 Cấu hình container (giai đoạn 0, xong 2026-10-01)
+
+Sửa trong [`src/main/docker/elasticsearch.yml`](../src/main/docker/elasticsearch.yml) và [`services.yml`](../src/main/docker/services.yml):
+
+| Sửa | Trước | Sau | Lý do |
+|---|---|---|---|
+| Heap | `-Xms256m -Xmx256m` | `-Xms1g -Xmx1g` | Đủ cho 1,86 triệu listing và aggregation |
+| Dữ liệu | Nằm trong container, mất khi tạo lại | Named volume `javaspringbootbackend_elasticsearch-data` | Không phải reindex mỗi lần tạo lại container |
+| Healthcheck | Chờ `green` (luôn `unhealthy`) | Chờ `yellow` | Một node không cấp được replica nên chỉ đạt `yellow` khi có index |
+
+`extends` không kế thừa phần `volumes` ở cấp cao nhất, nên `services.yml` phải khai báo lại `elasticsearch-data`. Tạo lại container (chỉ ES, không đụng MySQL):
+
+```powershell
+docker compose -f src/main/docker/services.yml up -d elasticsearch
+```
+
+### 8.4 Job reindex (giai đoạn 1)
+
+Đưa dữ liệu MySQL vào Elasticsearch. Cần chạy sau mỗi lần [đồng bộ dữ liệu bằng SQL](#6-quy-trình-đồng-bộ-dữ-liệu), hoặc khi đổi mapping.
+
+| API (chỉ `ROLE_ADMIN`) | Việc làm |
+|---|---|
+| `POST /api/admin/elasticsearch/reindex` | Reindex tất cả, theo thứ tự `category`, `location`, `tag`, `blogpost`, `user`, `listing`. Trả **202** ngay, job chạy nền. |
+| `POST /api/admin/elasticsearch/reindex?entities=category,location` | Chỉ reindex các entity được chỉ định. Tên sai trả **400**; đang có job chạy trả **409**. |
+| `GET /api/admin/elasticsearch/reindex` | Trạng thái (`IDLE`/`RUNNING`/`DONE`/`FAILED`), tiến độ `done/total` từng entity, lỗi nếu có. Chỉ lưu trong bộ nhớ, khởi động lại app thì về `IDLE`. |
+| `GET /api/admin/elasticsearch/indices` | **Kiểm tra index đã đủ chưa**: với mỗi entity trả `dbCount` (MySQL), `esCount` (ES, `-1` nếu chưa có index), `complete` (`true` khi bằng nhau) |
+
+Gọi được từ Swagger (nhóm `elasticsearch-admin`), hoặc:
+
+```powershell
+$token = (Invoke-RestMethod -Method Post http://localhost:8081/api/authenticate -ContentType 'application/json' -Body '{"username":"admin","password":"admin"}').id_token
+Invoke-RestMethod -Method Post http://localhost:8081/api/admin/elasticsearch/reindex -Headers @{ Authorization = "Bearer $token" }
+Invoke-RestMethod http://localhost:8081/api/admin/elasticsearch/reindex -Headers @{ Authorization = "Bearer $token" }
+```
+
+Cách làm ([`ElasticsearchReindexService.java`](../src/main/java/com/mycompany/myapp/service/ElasticsearchReindexService.java), [`ElasticsearchReindexResource.java`](../src/main/java/com/mycompany/myapp/web/rest/ElasticsearchReindexResource.java)):
+
+1. **Xóa và tạo lại index** với mapping từ annotation của entity.
+2. Đặt `refresh_interval = -1` để ghi nhanh.
+3. **Đọc DB theo lô 1.000 dòng**, phân trang keyset (`where id > :lastId order by id`). Mỗi lô chạy trong một transaction chỉ đọc; ghi ES bằng **bulk**, rồi `entityManager.clear()` để không đầy RAM.
+4. Đặt lại `refresh_interval = 1s`, refresh index.
+5. Chạy trên **luồng riêng** `elasticsearch-reindex`, không dùng pool `@Async` mà JHipster dùng để index khi lưu dữ liệu; mỗi lúc chỉ một job.
+6. **Khi app khởi động**, index nào còn kẹt `refresh_interval = -1` (do job trước bị ngắt) được tự đặt lại `1s` và ghi cảnh báo vào log.
+
+Để reindex nhanh và mapping gọn, 4 quan hệ `Listing.categories`, `Listing.locations`, `Category.parent`, `Location.parent` được đánh dấu `@org.springframework.data.annotation.Transient`. Annotation này **chỉ bỏ quan hệ khỏi ES**; JPA và API vẫn như cũ. Nếu không, mỗi doanh nghiệp sẽ kéo theo các entity ngành nghề và địa phương lồng nhau, và Hibernate phải lazy-load từng dòng. Giai đoạn 3 sẽ index các quan hệ này dưới dạng danh sách id.
+
+**Kết quả đo:**
+
+| Entity | Tài liệu | Thời gian |
+|---|---:|---:|
+| category, location, tag, blogpost, user | 2.394 / 15.313 / 0 / 2.288 / 2 | **15 s** cho cả 5 |
+| listing | 1.855.619 | **8 phút 14 giây** (2026-10-02, trung bình ~3.760 tài liệu/giây; ES dùng 36–73% CPU, MySQL ~3%). Index 1,2 GB. Lần chạy đầu (2026-10-01) bị ngắt ở 423.000 tài liệu vì app tắt giữa chừng (xem [mục 11](#11-lỗi-đã-gặp-và-cách-xử-lý)). |
+
+#### Biết index đã đủ chưa
+
+| Cách | Xem gì |
+|---|---|
+| **`GET /api/admin/elasticsearch/indices`** (Swagger, nhóm `elasticsearch-admin`) | Cách chính. Mọi dòng `complete: true` là đủ. Ngày 2026-10-02 sau reindex: cả 6 entity `true` (listing 1.855.619 = 1.855.619). |
+| `GET /api/admin/elasticsearch/reindex` | Job vừa chạy: `state: DONE` và `done = total` ở mọi entity |
+| Kibana Dev Tools: `GET _cat/indices?v&s=index` | Cột `docs.count`, đem so với `SELECT COUNT(*)` trong MySQL |
+| Kibana: Stack Management → Index Management | Số tài liệu và dung lượng từng index |
+
+Lệch vài tài liệu so với MySQL trong lúc có người đang sửa dữ liệu là bình thường, vì JHipster index **bất đồng bộ** (`@Async`). Lệch nhiều hoặc `esCount = -1` thì chạy lại reindex cho entity đó.
+
+#### Khi nào mất index, khi nào phải reindex
+
+Dữ liệu ES nằm trong volume `javaspringbootbackend_elasticsearch-data`, **không** nằm trong app hay trong container.
+
+| Thao tác | Mất index? | Phải reindex? |
+|---|---|---|
+| Khởi động lại app, `./mvnw`, build lại (`mvnw package`), DevTools tự khởi động lại | Không. Spring Data chỉ tạo index khi **chưa có**, không xóa index đang có. (Đã kiểm tra: index tạo 2026-10-01 vẫn còn sau nhiều lần khởi động lại.) | Không |
+| Thêm, sửa, xóa dữ liệu qua giao diện hoặc API | Không | Không: service tự ghi vào ES |
+| Tắt hoặc bật container ES; `docker compose up -d` tạo lại container ES | Không (volume được giữ) | Không |
+| Khởi động lại máy, Docker Desktop | Không | Không |
+| `./mvnw verify` (integration test) | Không: test dùng ES riêng (Testcontainers) | Không |
+| Đồng bộ dữ liệu bằng SQL ([mục 6](#6-quy-trình-đồng-bộ-dữ-liệu)) | Không, nhưng ES **cũ** so với MySQL | **Có** |
+| Đổi field, mapping hoặc analyzer (sửa JDL, `@Field`, giai đoạn 2 và 3) | Không, nhưng mapping cũ | **Có**, job tạo lại index với mapping mới |
+| Tắt app khi job reindex đang chạy | Index của entity đang chạy bị thiếu | **Có**, chạy lại entity đó |
+| `docker compose down -v`, `docker volume rm …elasticsearch-data`, xóa index | **Có** | **Có** (khởi động lại app trước để tạo index với mapping đúng) |
+
+#### Tìm kiếm sau reindex (bản JHipster sinh sẵn)
+
+Đã thử `GET /api/listings/_search?query=...` sau khi reindex xong (trả kết quả trong 0,1–0,6 s):
+
+| Truy vấn | Kết quả đầu | Nhận xét |
+|---|---|---|
+| `xây dựng` | "CH VLXD BẢO", "CH VLXD LÊ THỊ HOA SEN" | Khớp trong phần mô tả nhưng đứng trước doanh nghiệp có "xây dựng" ngay trong tên |
+| `Hà Nội` | "CÔNG TY TNHH PCP HÀ NỘI" | Đúng |
+| `ha noi` (không dấu) | "THẢO MỘC HHT", "Top of Ha Noi" | Không hiểu "ha noi" là "Hà Nội" |
+| `name:"xây dựng"` | "BÁO XÂY DỰNG - BỘ XÂY DỰNG" | Đúng nhưng người dùng phải biết cú pháp Lucene |
+
+Các hạn chế của bản sinh sẵn, sẽ xử lý ở giai đoạn 2:
+
+- `query_string` tìm trên **mọi field** và nối các từ bằng **OR**, nên kết quả nhiều nhưng xếp hạng kém.
+- Analyzer `standard` không bỏ dấu.
+- **Tổng số kết quả (`X-Total-Count`) tối đa 10.000**, vì ES mặc định chỉ đếm tới 10.000 (`track_total_hits`). Phân trang trên giao diện bị sai khi kết quả nhiều hơn.
+
+> ⚠️ Trong lúc reindex, CPU của app, MySQL và ES tăng cao trong vài phút. Tìm kiếm trên entity đang reindex chỉ trả một phần kết quả. **Không tắt app khi job đang chạy**; nếu đã tắt, chạy lại job.
+
+### 8.5 CPU, RAM và triển khai production
+
+**Vì sao CPU cao khi bật Elasticsearch và Kibana** (đo trên máy dev: 20 CPU logic, 15,7 GB RAM):
+
+| Lúc | CPU | Nguyên nhân |
+|---|---|---|
+| Kibana vừa khởi động (1–2 phút) | Cao | Kibana (Node.js) tạo index hệ thống `.kibana*`, migrate saved object, nạp plugin. Xong thì giảm. |
+| Đang reindex (vài phút) | Cao | App đọc MySQL và chuyển đổi tài liệu; ES phân tích văn bản và gộp segment Lucene |
+| Bình thường, không làm gì | ES ~3%, Kibana ~1,5%, MySQL ~0,6% | |
+| **Thiếu RAM** | Cao và chậm kéo dài | Lúc đo, máy chỉ còn trống 0,5 GB. Riêng máy ảo Docker (WSL) dùng 4,2 GB: MySQL (buffer pool 2 GB khi đồng bộ), ES (heap 1 GB, cộng bộ nhớ ngoài heap thành khoảng 2 GB), Kibana khoảng 1,1–1,7 GB. Windows phải đẩy bộ nhớ xuống đĩa nên CPU tăng. |
+
+Giảm tải trên máy dev:
+
+- **Tắt Kibana khi không dùng** (`docker compose … --profile kibana stop kibana`). App không cần Kibana.
+- Đóng bớt ứng dụng khác khi reindex hoặc đồng bộ dữ liệu.
+- Có thể giới hạn RAM của Docker/WSL bằng file `%UserProfile%\.wslconfig` (`[wsl2]` → `memory=6GB`), rồi chạy `wsl --shutdown` và mở lại Docker Desktop.
+
+**Có cần hệ thống Elasticsearch riêng không?**
+
+- **Dev:** không. Một container ES trên máy dev là đủ.
+- **Production:** nên chạy ES **trên máy chủ hoặc VM riêng**, hoặc dùng dịch vụ quản lý sẵn (Elastic Cloud), không chung máy với app và MySQL. ES cần RAM ổn định và cạnh tranh tài nguyên rất mạnh khi index.
+
+| Hạng mục | Gợi ý cho production |
+|---|---|
+| Quy mô | Index `listing` khoảng 1 GB cho 1,86 triệu doanh nghiệp (ước từ 227 MB / 423 nghìn tài liệu); các index khác nhỏ |
+| Máy | 1 node: 4 vCPU, 8 GB RAM (heap 4 GB, không quá 50% RAM), SSD. Cần chịu lỗi thì 3 node, `number_of_replicas: 1`. |
+| Bảo mật | **Bật** `xpack.security` (user/mật khẩu, TLS). Dev đang tắt; không đưa cấu hình dev lên production. |
+| Mạng | Chỉ app server truy cập được cổng 9200, không mở ra Internet |
+| Kibana | Không bắt buộc. Nếu dùng: đặt sau đăng nhập hoặc VPN, chỉ cho quản trị. |
+| Kết nối từ app | Đặt `spring.elasticsearch.uris`, `username`, `password` trong `application-prod.yml` hoặc biến môi trường |
+
+### 8.6 Tiến độ
+
+| Giai đoạn | Nội dung | Trạng thái |
+|---|---|---|
+| 0 | Cấu hình container (mục 8.3); xóa các index có mapping cũ | ✅ Xong 2026-10-01 |
+| 1 | Job reindex ([mục 8.4](#84-job-reindex-giai-đoạn-1)) | ✅ Xong 2026-10-02: 6/6 entity đủ, tìm kiếm `/api/listings/_search` trả kết quả trong 0,1–0,6 s |
+| 2 | Tìm kiếm tiếng Việt: bỏ dấu (`asciifolding`), ưu tiên tên doanh nghiệp, các từ phải cùng xuất hiện, đếm tổng đúng (xem nhận xét ở mục 8.4) | ⏳ Tiếp theo |
+| 3 | Lọc theo cây địa phương/ngành nghề bằng ES, kết hợp với tìm kiếm | Chưa làm |
+
+---
+
+## 9. Xác thực và JWT
+
+> Rà soát ngày 2026-10-05. JWT do JHipster sinh sẵn, **chưa sửa gì**.
+
+### 9.1 Cấu hình hiện tại
+
+| Hạng mục | Giá trị | Ở đâu |
+|---|---|---|
+| Cơ chế | Spring Security OAuth2 Resource Server, JWT ký **HS512** (khóa đối xứng), **stateless** (không session) | [`SecurityConfiguration.java`](../src/main/java/com/mycompany/myapp/config/SecurityConfiguration.java), [`SecurityJwtConfiguration.java`](../src/main/java/com/mycompany/myapp/config/SecurityJwtConfiguration.java) |
+| Đăng nhập | `POST /api/authenticate` `{username, password, rememberMe}`, trả `{"id_token": "..."}` và header `Authorization: Bearer ...` | [`AuthenticateController.java`](../src/main/java/com/mycompany/myapp/web/rest/AuthenticateController.java) |
+| Nội dung token | `sub` (login), `auth` (quyền, ví dụ `ROLE_ADMIN ROLE_USER FACTOR_PASSWORD`), `userId`, `iat`, `exp` | |
+| Thời hạn | **24 giờ**; tick "Remember me" thì **30 ngày** | `jhipster.security.authentication.jwt.token-validity-in-seconds*` trong `application-dev.yml`, `application-prod.yml` |
+| Khóa ký (dev) | 128 byte (đủ cho HS512, cần ≥ 64 byte), nằm trong [`application-secret-samples.yml`](../src/main/resources/config/application-secret-samples.yml); profile `secret-samples` chỉ bật cùng `dev` | |
+| Khóa ký (prod) | **Không có trong file.** Prod không bật `secret-samples` nên phải đặt biến môi trường `JHIPSTER_SECURITY_AUTHENTICATION_JWT_BASE64_SECRET`; thiếu thì app không khởi động (cố ý) | |
+| Mật khẩu | Băm BCrypt | |
+| Frontend | Token lưu ở `sessionStorage`, hoặc `localStorage` nếu "Remember me"; gắn header `Authorization` cho mọi request `/api` | `core/auth/state-storage.service.ts` |
+
+**Phân quyền đường dẫn:**
+
+| Đường dẫn | Ai được gọi |
+|---|---|
+| `POST/GET /api/authenticate`, `/api/register`, `/api/activate`, `/api/account/reset-password/*` | Mọi người |
+| `/api/admin/**` (quản lý user, reindex Elasticsearch…) | `ROLE_ADMIN` |
+| **`/api/**` còn lại** (kể cả xem doanh nghiệp, ngành nghề, địa phương) | **Phải đăng nhập** |
+| `/v3/api-docs/**`, `/management/**` (trừ `health`, `info`, `prometheus`) | `ROLE_ADMIN` |
+| `/swagger-ui/**`, file tĩnh, `/management/health` | Mọi người |
+
+### 9.2 Kết quả kiểm thử thực tế
+
+Chạy trên app dev ngày 2026-10-05:
+
+| Tình huống | Kết quả | |
+|---|---|---|
+| Đăng nhập đúng | 200, token HS512, hạn 24 giờ; "Remember me" hạn 30 ngày | ✅ |
+| Sai mật khẩu | 401 (mật khẩu < 4 ký tự: 400 do validate) | ✅ |
+| Không gửi token tới `/api/listings` | 401 | ✅ |
+| Token bị sửa chữ ký | 401 | ✅ |
+| Token tự ký bằng khóa khác (giả `sub`, `auth`) | 401 | ✅ |
+| Token `alg: none` | 401 `Unsupported algorithm` | ✅ |
+| Token hết hạn (ký đúng khóa) | 401 | ✅ |
+| `ROLE_USER` gọi `/api/admin/users`, reindex ES, `/v3/api-docs`, `/management/env` | 403 | ✅ |
+| `GET /api/authenticate` với token hợp lệ | 204 (hành vi của JHipster) | ✅ |
+| 20 lần sai mật khẩu liên tiếp rồi đăng nhập đúng | Vẫn đăng nhập được, không khóa | ⚠️ |
+| Tài khoản mặc định `admin/admin`, `user/user` | Vẫn dùng được | ⚠️ |
+
+**Kết luận:** phần lõi JWT **đủ và an toàn** (ký và kiểm chữ ký, hết hạn, chống `alg: none`, phân quyền admin). Các điểm ở 9.3 là phần **chưa có**, cần làm trước khi lên production.
+
+### 9.3 Còn thiếu và cần làm trước production
+
+| # | Vấn đề | Rủi ro | Hướng xử lý |
+|---|---|---|---|
+| 1 | **Khóa JWT dev đã lên GitHub** (`application-secret-samples.yml`, `jwtSecretKey` trong `.yo-rc.json`) | Ai có khóa thì tự ký được token admin. **Chỉ nguy hiểm nếu dùng khóa này ở production.** | Production đặt khóa riêng qua `JHIPSTER_SECURITY_AUTHENTICATION_JWT_BASE64_SECRET` (`openssl rand -base64 64`); không bao giờ bật profile `secret-samples` ở production |
+| 2 | **Tài khoản mặc định** `admin/admin`, `user/user` | Ai cũng đoán được | Đổi mật khẩu hoặc khóa tài khoản `user` ngay khi triển khai |
+| 3 | **Không chống dò mật khẩu** | Thử mật khẩu không giới hạn | Giới hạn số lần đăng nhập sai theo IP và tài khoản (ở reverse proxy, hoặc filter trong app) |
+| 4 | **Không thu hồi được token** | Đăng xuất chỉ xóa token ở trình duyệt; token bị lộ hoặc sau khi đổi mật khẩu vẫn dùng được tới hết hạn (24 giờ, "Remember me" 30 ngày) | Rút ngắn hạn "Remember me"; thêm danh sách token bị thu hồi, hoặc lưu "phiên bản token" theo user để vô hiệu khi đổi mật khẩu |
+| 5 | **Không có refresh token** | Muốn hạn ngắn thì người dùng phải đăng nhập lại thường xuyên | Thêm access token ngắn hạn (15–60 phút) và refresh token có thể thu hồi |
+| 6 | Token "Remember me" nằm trong `localStorage` | Nếu trang bị XSS thì token có thể bị đọc | Giữ CSP chặt (đang có), không chèn HTML chưa lọc (ví dụ `description` của doanh nghiệp) |
+| 7 | **Mọi API đọc dữ liệu đều phải đăng nhập** | Khách vãng lai không xem được doanh nghiệp. Đúng cho trang quản trị, nhưng sai nếu app phục vụ người xem công khai. | Cần quyết định: nếu công khai thì `permitAll` cho `GET /api/listings/**`, `/api/categories/**`, `/api/locations/**` |
+| 8 | HTTPS | Token gửi bằng HTTP có thể bị nghe lén | Production bắt buộc HTTPS (reverse proxy hoặc profile `tls`) |
+
+---
+
+## 10. Sinh lại code khi sửa JDL
 
 ```powershell
 # 1. Commit trước để có thể quay lại
@@ -592,18 +902,22 @@ Lưu ý:
 | `service/mapper/LocationMapper.java`, `CategoryMapper.java` | `toDto` và `partialUpdate` bỏ qua `listings` (`@Mapping(target = "listings", ignore = true)`) | JHipster 9.3.0 **luôn** sinh chiều ngược của ManyToMany, kể cả khi JDL khai báo một chiều. Nếu map `listings`, mỗi địa phương hoặc ngành tải hàng trăm nghìn listing, và `/api/locations` bị treo. |
 | `service/criteria/ListingCriteria.java` | Thêm filter `locationTreeId`, `categoryTreeId` | Lọc listing theo cả cây. Mỗi listing chỉ gắn vào **một** cấp địa phương (tỉnh 1,46 triệu, phường/xã 319 nghìn, quận/huyện 23 nghìn) và gần như chỉ gắn vào **ngành lá** (24,4/25,2 triệu liên kết), nên lọc theo một nút phải gồm cả cây con. |
 | `repository/LocationRepository.java`, `CategoryRepository.java` | `findSubtreeIds(id)` | Lấy id của nút và mọi cấp con (địa phương 3 cấp, ngành nghề 4 cấp) |
-| `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 10) |
+| `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 12) |
 | `shared/tree/*` | Dùng chung: `createTreeSource()`, `jhi-tree-view` (cây tải dần, link "Xem doanh nghiệp"), `jhi-tree-filter` (dãy ô chọn theo số cấp thực tế, đồng bộ với URL `filter[...]`) | Dùng cho cả địa phương và ngành nghề |
 | `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | 2 bộ lọc `jhi-tree-filter` (địa phương, ngành nghề); trong spec thay bằng stub | |
 | `entities/location/tree/*`, `entities/category/tree/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Cây ngành nghề) | |
 | `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree` | |
 | `layouts/navbar/navbar.html`, `navbar.ts` | Nhóm menu **Tỉnh thành** (Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã) và **Ngành nghề** (Cây ngành nghề, Danh sách) | |
 | `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `briefcase`, `circle`, `chevron-*`, `location-dot`, `spinner` | |
+| `src/main/docker/elasticsearch.yml`, `services.yml` | Heap 1 GB, named volume `elasticsearch-data`, healthcheck chờ `yellow`; service `kibana` (profile `kibana`) | Xem [mục 8.3](#83-cấu-hình-container-giai-đoạn-0-xong-2026-10-01), [mục 8.2](#82-giao-diện-quản-trị-elasticsearch) |
+| `src/main/docker/kibana.yml` (file mới) | Kibana 9.4.5 cho dev | |
+| `domain/Listing.java` (`categories`, `locations`), `domain/Category.java` (`parent`), `domain/Location.java` (`parent`) | Thêm `@org.springframework.data.annotation.Transient` | Không ghi quan hệ vào ES, để reindex không lazy-load ([mục 8.4](#84-job-reindex-giai-đoạn-1)). **`jhipster --force` sẽ xóa, phải thêm lại.** |
+| `service/ElasticsearchReindexService.java`, `web/rest/ElasticsearchReindexResource.java` (file mới) | Job và API reindex | File viết tay, không bị ghi đè |
 | `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
 
 ---
 
-## 9. Lỗi đã gặp và cách xử lý
+## 11. Lỗi đã gặp và cách xử lý
 
 | Lỗi | Nguyên nhân | Cách xử lý |
 |---|---|---|
@@ -621,19 +935,23 @@ Lưu ý:
 | `ng test`: `No loader is configured for ".html"` | `--include` dùng `**` nên lẫn cả file `.html` | Dùng `--include='…/*.spec.ts'` |
 | `ng test`: `Timeout waiting for worker to respond` | Máy quá tải (truy vấn MySQL nặng đang chạy) | Dừng truy vấn nặng rồi chạy lại |
 | `GROUP_CONCAT` trả thiếu id, số liệu đo sai | Mặc định `group_concat_max_len = 1024` | `SET SESSION group_concat_max_len = 1000000` |
+| Reindex listing dừng ở 423.000/1.855.619; index kẹt `refresh_interval: -1` | App bị tắt giữa lúc job chạy nên bước đặt lại refresh không chạy | Đặt lại `PUT listing/_settings {"index":{"refresh_interval":"1s"}}`, chạy lại job. Từ 2026-10-02 app tự đặt lại khi khởi động ([mục 8.4](#84-job-reindex-giai-đoạn-1)). |
+| Máy chậm, CPU cao sau khi bật ES và Kibana | Hết RAM (còn trống 0,5/15,7 GB): Docker 4,2 GB, cộng app, IDE, trình duyệt | Tắt Kibana khi không dùng; giới hạn RAM WSL ([mục 8.5](#85-cpu-ram-và-triển-khai-production)) |
+| Kibana báo `healthy` trong khi `/api/status` vẫn là `unavailable` | Healthcheck `grep available` khớp luôn chuỗi `unavailable` | Khớp đúng `'"level":"available"'` |
+| Tiếng Việt bị lỗi (`Ð?a phuong`) khi gửi JSON bằng `curl -d "..."` trong Git Bash | Git Bash chuyển tham số dòng lệnh sang code page Windows | Gửi bằng file (`curl --data-binary @file.json`) hoặc script Node/PowerShell `-Encoding utf8` |
 
 ---
 
-## 10. Việc còn tồn đọng
+## 12. Việc còn tồn đọng
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 1 | **Reindex Elasticsearch** cho 1,86 triệu listing | Index đang rỗng. Trước đó cần xóa index cũ: `curl.exe -X DELETE "http://localhost:9200/article,articlecategory,articletag,cachedcontent,category,gallery,listing,listingimage,location,redirectrule,staticpage"` |
+| 1 | ~~Reindex Elasticsearch cho 1,86 triệu listing~~ | ✅ Xong 2026-10-02 ([mục 8.4](#84-job-reindex-giai-đoạn-1)) |
 | 2 | **Changelog Liquibase viết tay**: index thường, `ON DELETE CASCADE`, `DEFAULT` | Index cần cho hiệu năng: `listing(slug)`, `listing(status)`, `listing(tax_code)`, `listing(api_id)`, `listing(is_featured)`, `location(type)`, `category(slug)` |
 | 3 | **Xác định múi giờ** của datetime nguồn | Mở một listing trên giao diện, so với website cũ. Nếu lệch 7 giờ thì `UPDATE` trừ 7 giờ. |
 | 4 | **URL ảnh** doanh nghiệp | Cần `wp_posts.guid` từ WordPress để đổi ID attachment thành URL |
 | 5 | **User từ WordPress** (`jhi_user` của nguồn: 4 user, có `wp_user_id`) | Chưa chuyển |
-| 6 | **Bảo mật khi lên production** | `jwtSecretKey` trong `.yo-rc.json` đã ở trên GitHub: đặt khóa khác qua biến môi trường `JHIPSTER_SECURITY_AUTHENTICATION_JWT_BASE64_SECRET`. MySQL dev dùng `root` không mật khẩu. |
+| 6 | **Bảo mật khi lên production** | Danh sách đầy đủ ở [mục 9.3](#93-còn-thiếu-và-cần-làm-trước-production): khóa JWT riêng qua biến môi trường, đổi tài khoản mặc định, chống dò mật khẩu, thu hồi token, HTTPS, quyết định API công khai. MySQL dev dùng `root` không mật khẩu; ES dev tắt `xpack.security`. |
 | 7 | Cố định cấu hình InnoDB | Nếu đồng bộ thường xuyên, ghi `innodb_buffer_pool_size` vào [`src/main/docker/config/mysql/my.cnf`](../src/main/docker/config/mysql/my.cnf) |
 | 8 | **Lọc theo nhóm ngành VSIC lớn còn chậm** (3–33 s, khoảng 170 nhóm có hơn 100 nghìn doanh nghiệp) | **Chưa chọn hướng.** (a) Để nguyên. (b) Bảng phẳng hóa doanh nghiệp × mọi ngành tổ tiên (~30–45 triệu dòng, phải dựng lại sau mỗi lần đồng bộ). (c) Đưa bộ lọc sang Elasticsearch, gắn với việc reindex (#1). Xem [mục 7.4](#74-backend-luồng-xử-lý). |
 | 9 | Tên ngành có `&amp;` | Dữ liệu gốc của WordPress. Có thể viết script SQL đổi thành `&` |
@@ -642,7 +960,7 @@ Lưu ý:
 
 ---
 
-## 11. Lệnh hay dùng
+## 13. Lệnh hay dùng
 
 ```bash
 # Chạy ứng dụng (dev)
@@ -657,6 +975,10 @@ echo "SELECT COUNT(*) FROM javaspringbootbackend.listing;" | docker exec -i java
 # Xem câu SQL đang chạy
 echo "SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE command <> 'Sleep';" \
   | docker exec -i javaspringbootbackend-mysql-1 mysql -uroot
+
+# Bật / tắt Kibana (http://localhost:5601)
+docker compose -f src/main/docker/services.yml --profile kibana up -d kibana
+docker compose -f src/main/docker/services.yml --profile kibana stop kibana
 
 # Trạng thái và index Elasticsearch
 curl.exe http://localhost:9200/_cluster/health

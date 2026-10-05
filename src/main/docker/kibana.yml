@@ -1,0 +1,24 @@
+# This configuration is intended for development purpose, it's **your** responsibility to harden it for production
+# Sửa tay: Kibana, giao diện xem và truy vấn Elasticsearch (chỉ cho dev).
+# Chạy qua services.yml với profile "kibana" (không tự chạy cùng ./mvnw):
+#   docker compose -f src/main/docker/services.yml --profile kibana up -d kibana
+# Mở http://localhost:5601
+name: javaspringbootbackend
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.4.5
+    environment:
+      # Cùng project/network với container elasticsearch nên gọi được bằng tên service
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - TELEMETRY_OPTIN=false
+      - TELEMETRY_ALLOWCHANGINGOPTINSTATUS=false
+    # If you want to expose these ports outside your dev PC,
+    # remove the "127.0.0.1:" prefix
+    ports:
+      - 127.0.0.1:5601:5601
+    healthcheck:
+      # Khớp đúng "level":"available" (chuỗi "unavailable" cũng chứa "available")
+      test: ['CMD-SHELL', 'curl -s http://localhost:5601/api/status | grep -q ''"level":"available"''']
+      interval: 10s
+      timeout: 10s
+      retries: 30

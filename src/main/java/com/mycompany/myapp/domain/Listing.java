@@ -466,6 +466,8 @@ public class Listing implements Serializable {
         inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     @JsonIgnoreProperties(value = { "parent", "listings" }, allowSetters = true)
+    // Sửa tay: không ghi quan hệ vào Elasticsearch (tránh lazy-load khi reindex); giai đoạn 3 index danh sách id riêng
+    @org.springframework.data.annotation.Transient
     private Set<Category> categories = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -475,6 +477,8 @@ public class Listing implements Serializable {
         inverseJoinColumns = @JoinColumn(name = "location_id")
     )
     @JsonIgnoreProperties(value = { "parent", "listings" }, allowSetters = true)
+    // Sửa tay: không ghi quan hệ vào Elasticsearch (tránh lazy-load khi reindex); giai đoạn 3 index danh sách id riêng
+    @org.springframework.data.annotation.Transient
     private Set<Location> locations = new HashSet<>();
 
     // jhipster-needle-entity-add-field - JHipster will add fields here

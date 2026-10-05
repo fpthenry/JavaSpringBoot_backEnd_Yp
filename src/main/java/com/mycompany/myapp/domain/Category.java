@@ -119,6 +119,8 @@ public class Category implements Serializable {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(value = { "parent", "listings" }, allowSetters = true)
+    // Sửa tay: không ghi quan hệ vào Elasticsearch (tránh lazy-load khi reindex); giai đoạn 3 index danh sách id riêng
+    @org.springframework.data.annotation.Transient
     private Category parent;
 
     @ManyToMany(fetch = FetchType.LAZY, mappedBy = "categories")
