@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay (không do JHipster sinh): bảng chuyển đổi đơn vị hành chính cũ (trước 01/7/2025) sang mới (từ 01/7/2025).
+        Mỗi dòng: một xã cũ (hoặc cả một huyện cũ, khi old_ward_code NULL) nhập vào một xã mới.
+        Xã cũ "nhập một phần" (partial_merge = true) có thể xuất hiện ở nhiều dòng, ứng với nhiều xã mới.
+        Dữ liệu: data/location_conversion.csv, tạo từ file Excel bằng db-sync/dvhc/excel-to-csv.mjs.
+    -->
+    <changeSet id="20261008100000-1" author="dev">
+        <createTable tableName="location_conversion" remarks="Bảng chuyển đổi đơn vị hành chính cũ sang mới (2025)">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="new_province_code" type="varchar(2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="new_province_name" type="varchar(255)"/>
+            <column name="new_ward_code" type="varchar(5)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="new_ward_name" type="varchar(255)"/>
+            <column name="old_ward_code" type="varchar(5)" remarks="NULL: cả huyện cũ chuyển thành một đơn vị mới (đặc khu)"/>
+            <column name="old_ward_name" type="varchar(255)"/>
+            <column name="old_district_code" type="varchar(3)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="old_district_name" type="varchar(255)"/>
+            <column name="old_province_code" type="varchar(2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="old_province_name" type="varchar(255)"/>
+            <column name="note" type="varchar(255)"/>
+            <column name="partial_merge" type="boolean" defaultValueBoolean="false" remarks="Xã cũ chỉ nhập một phần vào xã mới này">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="location_conversion" indexName="ix_location_conversion__old_ward_code">
+            <column name="old_ward_code"/>
+        </createIndex>
+        <createIndex tableName="location_conversion" indexName="ix_location_conversion__new_ward_code">
+            <column name="new_ward_code"/>
+        </createIndex>
+        <createIndex tableName="location_conversion" indexName="ix_location_conversion__old_district_code">
+            <column name="old_district_code"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- runOnChange: sửa CSV (file Excel mới) thì lần khởi động sau tự xóa và nạp lại. Bảng chỉ chứa dữ liệu tham chiếu từ Excel. -->
+    <changeSet id="20261008100000-2" author="dev" runOnChange="true">
+        <delete tableName="location_conversion"/>
+        <loadData
+            file="config/liquibase/data/location_conversion.csv"
+            separator=";"
+            quotchar="&quot;"
+            encoding="UTF-8"
+            usePreparedStatements="true"
+            tableName="location_conversion">
+            <column name="new_province_code" type="string"/>
+            <column name="new_province_name" type="string"/>
+            <column name="new_ward_code" type="string"/>
+            <column name="new_ward_name" type="string"/>
+            <column name="old_ward_code" type="string"/>
+            <column name="old_ward_name" type="string"/>
+            <column name="old_district_code" type="string"/>
+            <column name="old_district_name" type="string"/>
+            <column name="old_province_code" type="string"/>
+            <column name="old_province_name" type="string"/>
+            <column name="note" type="string"/>
+            <column name="partial_merge" type="boolean"/>
+        </loadData>
+    </changeSet>
+</databaseChangeLog>

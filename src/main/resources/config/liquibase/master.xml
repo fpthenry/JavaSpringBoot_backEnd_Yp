@@ -21,6 +21,7 @@
     <include file="config/liquibase/changelog/20261005064656_added_entity_GalleryImage.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261005075250_added_entity_BlogCategory.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261005100000_blog_post_wp_id_optional.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261008100000_location_conversion.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="config/liquibase/changelog/20261001032527_added_entity_constraints_Listing.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261001032528_added_entity_constraints_Category.xml" relativeToChangelogFile="false"/>

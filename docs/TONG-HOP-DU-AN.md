@@ -362,6 +362,10 @@ docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/verify_sync.
 
 **Bước 4: reindex Elasticsearch.** Dữ liệu chép bằng SQL không đi qua tầng service nên ES không được cập nhật (xem [mục 14](#14-việc-còn-tồn-đọng)).
 
+**Bước 5: tính lại số doanh nghiệp theo ngành.** Nguồn có `listing_count = 0`, nên sau khi đồng bộ phải chạy `POST /api/admin/categories/listing-counts` (khoảng 1 phút, xem [mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)).
+
+**Bước 6: sửa đơn vị hành chính 2025.** Đồng bộ chép lại bảng `location` từ nguồn (mã, tên sai), nên gọi `POST /api/admin/administrative-units/fix-locations?dryRun=false` ([mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025)).
+
 > Nếu terminal bị ngắt giữa chừng, câu lệnh SQL vẫn chạy tiếp trong MySQL. Kiểm tra bằng `SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE command <> 'Sleep';` trước khi chạy lại, tránh chèn trùng.
 
 ### 6.4 Kết quả đồng bộ ngày 2026-10-01
@@ -564,6 +568,139 @@ Backend: kiểm tra thủ công bằng API ở [mục 7.3](#73-api), so với SQ
 - **Sắp xếp theo cột không có index** (ví dụ `name`) rất chậm với tập lớn: TP.HCM sắp theo tên mất ~44 s. Cần changelog index (xem [mục 14](#14-việc-còn-tồn-đọng)).
 - **Tên ngành có `&amp;`** (ví dụ `SỨC KHỎE &amp; LÀM ĐẸP`): dữ liệu WordPress lưu sẵn trong `jhipster_vnyp`. Giao diện hiển thị nguyên văn.
 - **Tìm kiếm Elasticsearch không kết hợp với lọc theo cây** (xem [mục 7.3](#73-api)).
+
+### 7.9 Mục lục ngành nghề A–Z (trang quản trị)
+
+> Làm ngày 2026-10-08. Giao diện theo trang **Mục lục ngành nghề** của FE cũ: dãy nút chữ cái, ô tìm theo tên, thẻ ngành kèm số doanh nghiệp.
+
+**Mở:** menu **Thực thể → Ngành nghề → Mục lục A–Z**, hoặc `/category/index`. Trang **Cây ngành nghề** và **Danh sách ngành nghề** có nút chuyển qua lại.
+
+| Vùng | Chức năng |
+|---|---|
+| Đầu trang (nền xanh) | Nút **Tất cả** và các chữ cái có ngành (A–Z; chữ có dấu gộp vào chữ gốc: Ô → O, Đ → D). Rê chuột lên nút để xem số ngành |
+| Ô tìm kiếm | Tìm trong tên ngành, **không phân biệt dấu**, nhiều từ thì phải có đủ (`may vi tinh`). Gõ xong 300 ms mới gọi API. Dùng được cùng chữ cái |
+| Tùy chọn | **Ẩn ngành chưa có doanh nghiệp** (mặc định bật); sắp xếp **Tên A–Z** hoặc **Nhiều doanh nghiệp nhất** |
+| Thanh tóm tắt | "Ngành nghề bắt đầu bằng chữ: L" và số ngành tìm được |
+| Thẻ ngành (60 thẻ/trang) | Ô vuông số doanh nghiệp rút gọn (74, 1k, 321k, 1tr, 1,2tr), tên ngành, **"Thuộc: tên ngành cha"** (phân biệt ngành trùng tên ở các cấp), số doanh nghiệp đầy đủ (353.317). **Bấm thẻ** → danh sách doanh nghiệp lọc theo cả cây ngành đó (`/listing?filter[categoryTreeId.equals]=id`, [mục 7.3](#73-api)) |
+
+Trạng thái lưu trên URL (`/category/index?letter=L&q=may%20vi%20tinh&sort=count&page=2&all=true`), nên tải lại trang, quay lại hay gửi link đều giữ nguyên bộ lọc.
+
+**Dữ liệu:** API quản trị (đăng nhập JWT), cùng logic với API công khai [mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp) nhưng không cần khóa `X-API-Key` (khóa đó dành cho FE Next.js, không đưa vào trang quản trị):
+
+| API | Ghi chú |
+|---|---|
+| `GET /api/category-index/letters?hideEmpty=` | Như `/api/public/v1/categories/letters` |
+| `GET /api/category-index?letter=&q=&hideEmpty=&page=&size=&sort=` | Như `/api/public/v1/categories` |
+
+| File | Nội dung |
+|---|---|
+| [`web/rest/CategoryIndexResource.java`](../src/main/java/com/mycompany/myapp/web/rest/CategoryIndexResource.java) | 2 API quản trị, dùng `PublicCategoryService` |
+| [`entities/category/index/category-index.ts`](../src/main/webapp/app/entities/category/index/category-index.ts), `.html`, `.scss` | Trang mục lục. Gọi API qua `switchMap` nên bấm chữ cái liên tục chỉ lấy kết quả mới nhất; `shortCount()` rút gọn số |
+| [`entities/category/service/category-index.service.ts`](../src/main/webapp/app/entities/category/service/category-index.service.ts) | Gọi `/api/category-index` |
+| `category.routes.ts` (route `index`), `navbar.html` (mục **Mục lục A–Z**, icon `arrow-down-a-z`), `font-awesome-icons.ts` (`faArrowDownAZ`, `faTableCellsLarge`), `i18n/{vi,en}/category.json` (`category.index.*`), `global.json` (`menu.entities.categoryIndex`) | Gắn trang vào ứng dụng |
+
+**Kiểm thử (2026-10-08):**
+
+| Test | Kết quả |
+|---|---|
+| [`category-index.spec.ts`](../src/main/webapp/app/entities/category/index/category-index.spec.ts): rút gọn số; đọc trạng thái từ URL khi mở trang; bấm chữ cái (về trang 1, ghi URL); gõ tìm chờ 300 ms; hiện ngành trống, sắp theo số doanh nghiệp; link sang danh sách doanh nghiệp. Cả thư mục `entities/category` và navbar | 62/62 ✅, ESLint sạch |
+| Chrome headless trên app: mở trang (2.195 ngành, 11 trang); bấm L (30 ngành, khớp API); thêm "may vi tinh" (4 ngành); mở lại bằng URL giữ chữ cái, từ khóa, sắp xếp; bấm thẻ sang `/listing` đúng bộ lọc | ✅ |
+| API quản trị không có JWT | 401 ✅ |
+
+> ⚠️ **Bấm thẻ của một số ngành mở danh sách doanh nghiệp rất chậm**: ví dụ "Lập trình máy vi tính" (id 1524, 85.609 doanh nghiệp) mất **21–24 s**, trong khi ngành cha 1114 (116.715) chỉ 2,1 s và ngành nhỏ dưới 1 s. Đây là vấn đề lọc theo cây đã ghi ở [mục 14](#14-việc-còn-tồn-đọng) #8, xem số đo ở đó.
+
+### 7.10 Đơn vị hành chính sau sáp nhập 01/7/2025
+
+> Bắt đầu 2026-10-08. Từ 01/7/2025 cả nước còn 34 tỉnh, bỏ cấp huyện, 3.321 xã/phường/đặc khu. Dữ liệu doanh nghiệp phần lớn gắn theo địa giới cũ, nên tra cứu theo địa giới mới bị sai. Làm theo 4 bước; **bước 1 xong**.
+
+#### Hiện trạng (phân tích 2026-10-08)
+
+Bảng `location` chứa **cả hai bộ**, phân biệt bằng đuôi slug `-2025` (mã trùng nhau giữa hai bộ, ví dụ Hà Nội là 01 ở cả hai):
+
+| | Bộ cũ (trước 01/7/2025) | Bộ mới (từ 01/7/2025) |
+|---|---|---|
+| Cấp | Tỉnh → huyện → xã | Tỉnh → xã |
+| Số đơn vị | 63 tỉnh (+ "QUỐC TẾ"), 715 huyện, 11.180 xã | 34 tỉnh, 3.321 xã |
+| Slug | mã ở cuối: `huyen-ba-vi-271`, `xa-phu-cuong-09625` | mã + `-2025`: `phuong-cua-nam-00082-2025` |
+| Doanh nghiệp đang gắn | 1.456.416 ở cấp tỉnh, 318.783 ở cấp xã, 153 ở cấp huyện | 22.797 ở cấp xã |
+
+Thêm 57.470 doanh nghiệp không gắn địa phương nào. Mỗi doanh nghiệp gần như chỉ gắn **một** đơn vị.
+
+**Nguồn để chuyển đổi:**
+
+1. **File Excel chuyển đổi** `BangChuyendoiĐVHCmoi_cu_final.xlsx` (sheet "Tổng hợp_không merge"): 10.571 dòng, mỗi dòng là một xã cũ nhập vào một xã mới. Gồm 10.034 xã cũ, 696 huyện cũ, 63 tỉnh cũ, 3.321 xã mới, 34 tỉnh mới. Có 969 dòng "nhập một phần": 442 xã cũ chia cho nhiều xã mới. 6 dòng cấp huyện, cả huyện đảo thành đặc khu (Bạch Long Vĩ, Cồn Cỏ, Hoàng Sa, Lý Sơn, Côn Đảo, Thổ Châu) hoặc vùng bãi bồi chưa có mã.
+2. **`listing.location_json`** đã ghi theo **địa giới mới**: 1.502.608 doanh nghiệp có mã xã mới, **khớp 100% với Excel** (đúng tỉnh); 288.536 doanh nghiệp chỉ có mã tỉnh mới; 64.475 doanh nghiệp không có JSON hợp lệ. Ví dụ địa chỉ ghi "P. Thành Công, Q. Ba Đình" nhưng JSON ghi "Phường Giảng Võ" (00025).
+
+**Lỗi trong file Excel** (script tự sửa khi chuyển sang CSV, xem bên dưới):
+
+| Lỗi | Sửa |
+|---|---|
+| 348 mã mất số 0 đầu (`1558`) | Thêm số 0: xã 5 chữ số, huyện 3, tỉnh 2 |
+| Phường 4, TP Tân An (794) ghi tỉnh Tiền Giang (82) | Long An (80), theo đa số dòng cùng huyện |
+| Xã Tiên Hải, TP Hà Tiên (900) ghi An Giang (89) | Kiên Giang (91) |
+| Huyện Cồn Cỏ ghi "Quảng Trị (44)"; 44 là Quảng Bình cũ | 45, theo tên |
+| 31 tên sai tiền tố: "Xa Ea Kly", "phường Vĩnh Hải", "Thi trấn Ngan Dừa", "Thị Trấn Yên Minh" | Xã, Phường, Thị trấn |
+| Dấu nháy cong "M’Droh", tên tỉnh cũ không thống nhất ("Quảng Trị" / "Tỉnh Quảng Trị") | Nháy thẳng; tên phổ biến nhất của mã |
+
+Sau khi sửa: mỗi tỉnh cũ về đúng một tỉnh mới, và mọi cặp huyện cũ → tỉnh cũ khớp với bảng `location`.
+
+**Lỗi của bộ mới trong bảng `location`** (dữ liệu gốc `jhipster_vnyp`), so với Excel và JSON doanh nghiệp (hai nguồn này khớp nhau):
+
+- **123 xã mới mang mã sai**, có chỗ gán lẫn mã giữa các xã. Ví dụ "Phường Cửa Nam" 00073 → đúng 00082; "Phường Kim Liên" mang mã 00226 của "Văn Miếu - Quốc Tử Giám" → đúng 00229.
+- 5 xã sai tên: "Phường Hoàng Văn Thụ" 06187 → "Phường Kỳ Lừa" (JSON của 903 doanh nghiệp cũng ghi Kỳ Lừa); "Xã Tân Thanh" 06172 → "Xã Hoàng Văn Thụ"; "Đào Duy Tư" → "Đào Duy Từ"; "Albá" → "Al Bá"; "Lục Sỹ Thành" → "Lục Sĩ Thành".
+- 81 tên khác kiểu đặt dấu, nháy, gạch ngang ("Thuỷ"/"Thủy", "M’Drắk", "Chân Mây – Lăng Cô"); 4 tỉnh ghi "Tp …".
+- Thiếu "Xã Khuôn Lùng" (Tuyên Quang, 01147).
+- Xã mới lưu nhầm `type = district` (cây địa phương hiện nút mở rộng thừa cho xã mới; trang "Quận huyện" liệt kê cả 3.320 xã mới).
+- Cột `code` để trống ở cả hai bộ.
+
+#### Kế hoạch (người dùng đã chọn 2026-10-08)
+
+| Bước | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Nạp bảng chuyển đổi vào DB; sửa bộ mới trong `location` theo danh mục chính thức (**sửa cả slug**) | ✅ 2026-10-08 |
+| 2 | Gắn doanh nghiệp vào đơn vị mới: **thêm liên kết, giữ liên kết cũ** (lấy từ `location_json`, không có thì qua bảng chuyển đổi) | Chưa làm |
+| 3 | Giao diện tra cứu, bộ lọc: **mặc định địa giới mới**, có nút chuyển sang địa giới cũ | Chưa làm |
+| 4 | API tra cứu địa chỉ cũ → mới (quản trị và công khai) | Chưa làm |
+
+#### Bước 1: bảng chuyển đổi và sửa bảng location
+
+**Bảng `location_conversion`** (changelog viết tay [`20261008100000_location_conversion.xml`](../src/main/resources/config/liquibase/changelog/20261008100000_location_conversion.xml), dữ liệu [`data/location_conversion.csv`](../src/main/resources/config/liquibase/data/location_conversion.csv)): mỗi dòng có tỉnh mới, xã mới, xã cũ (NULL với dòng cấp huyện), huyện cũ, tỉnh cũ (mã và tên), `note`, `partial_merge` (nhập một phần). Có index theo mã xã cũ, mã xã mới, mã huyện cũ. Changeset nạp dữ liệu có `runOnChange`: sửa CSV thì lần khởi động sau tự xóa và nạp lại.
+
+**Cập nhật khi có file Excel mới:**
+
+```bash
+node db-sync/dvhc/excel-to-csv.mjs "BangChuyendoiĐVHCmoi_cu_final.xlsx" src/main/resources/config/liquibase/data/location_conversion.csv
+# khởi động lại app → Liquibase nạp lại bảng; rồi gọi API sửa location (dưới đây)
+```
+
+[`db-sync/dvhc/excel-to-csv.mjs`](../db-sync/dvhc/excel-to-csv.mjs) đọc `.xlsx` không cần thư viện (giải nén XML bằng `unzip`), tự sửa các lỗi ở bảng trên, in ra các chỗ đã sửa.
+
+**Sửa bảng `location`:** `POST /api/admin/administrative-units/fix-locations?dryRun=true|false` (`ROLE_ADMIN`, Swagger nhóm **administrative-unit-admin**). Mặc định `dryRun=true` (chỉ xem trước). Trả số thay đổi theo loại, `unmatched` (đơn vị không khớp, **không bị xóa**), `renames` (mọi xã đổi tên và thêm mới, để xem lại), `samples`.
+
+| Phần | Cách làm |
+|---|---|
+| Bộ cũ | Điền `code` từ mã trong slug |
+| Bộ mới, tỉnh | Mã từ slug; tên theo danh mục ("Tp Hồ Chí Minh" → "Thành phố Hồ Chí Minh") |
+| Bộ mới, xã | Khớp **theo tên trong cùng tỉnh trước** (không phân biệt kiểu đặt dấu cũ/mới, nháy, gạch ngang); xử lý được chỗ DB gán lẫn mã. Rồi khớp **theo mã** cho xã còn lại (đổi tên). Xã khớp được: sửa mã, tên, slug (`ten-khong-dau-<mã>-2025`), `type = ward`, tỉnh cha. Xã chính thức chưa có: thêm mới |
+
+Code: [`service/dvhc/LocationFixPlanner.java`](../src/main/java/com/mycompany/myapp/service/dvhc/LocationFixPlanner.java) (lập kế hoạch, hàm thuần), [`AdministrativeUnitService.java`](../src/main/java/com/mycompany/myapp/service/dvhc/AdministrativeUnitService.java) (đọc DB, ghi trong một transaction, reindex `location`), [`AdministrativeUnits.java`](../src/main/java/com/mycompany/myapp/service/dvhc/AdministrativeUnits.java) (quy ước: đuôi `-2025`, mã trong slug, slug, khóa so tên), [`web/rest/AdministrativeUnitResource.java`](../src/main/java/com/mycompany/myapp/web/rest/AdministrativeUnitResource.java).
+
+**Kết quả áp dụng 2026-10-08** (sao lưu bảng `location` trước khi ghi, 15.313 dòng):
+
+| Thay đổi | Số dòng |
+|---|---|
+| Bộ cũ: điền mã | 11.958 |
+| Tỉnh mới: sửa mã, tên | 34 |
+| Xã mới: khớp theo tên / theo mã | 3.315 / 5 |
+| Xã mới: sửa mã sai / sửa tên / đổi slug / `type` → `ward` | 123 / 86 / 166 / 3.320 |
+| Xã mới: thêm | 1 (Xã Khuôn Lùng) |
+| Không khớp | 0 |
+
+Chạy lại ngay sau đó: 0 thay đổi. Kết quả: bộ mới 34 tỉnh + 3.321 xã, đủ mã; bộ cũ 63 tỉnh, 715 huyện, 11.180 xã, đủ mã ("QUỐC TẾ" không có mã). Elasticsearch `location` tự reindex.
+
+**Kiểm thử:** [`LocationFixPlannerTest`](../src/test/java/com/mycompany/myapp/service/dvhc/LocationFixPlannerTest.java) 6/6: điền mã bộ cũ; sửa mã sai và mã gán lẫn; kiểu đặt dấu, gạch dài, đổi tên cùng mã; thêm xã thiếu; xã không khớp chỉ báo cáo; **chạy lại sau khi sửa không còn gì để sửa**; slug, khóa so tên.
+
+> ⚠️ Đọc cột nullable bằng JDBC: dùng `rs.getObject("parent_id", Long.class)`. `rs.wasNull()` chỉ đúng với cột đọc ngay trước nó; lần chạy thử đầu tiên đã coi mọi xã mới là tỉnh vì lỗi này (chưa ghi gì nhờ `dryRun`).
 
 ---
 
@@ -1013,7 +1150,7 @@ export async function getGallery(code: string) {
 | Chi tiết doanh nghiệp theo slug hoặc id WordPress | `/listings/{slug}`, `/listings/wp/{wpId}` | ✅ | Chưa làm |
 | Danh sách doanh nghiệp theo ngành, khu vực, nổi bật; tìm theo tên, mã số thuế, địa chỉ | `/listings?category=&location=&q=&featured=` | ✅ (tìm kiếm cần Elasticsearch giai đoạn 2–3) | Chưa làm |
 | Doanh nghiệp liên quan; số doanh nghiệp theo tỉnh trong một ngành | `/listings/{slug}/related`, `/listings/facets` | ✅ | Chưa làm |
-| Ngành nghề (slug, id, chữ cái đầu, con) | `/categories` | ✅ | Chưa làm |
+| Ngành nghề (slug, id, chữ cái đầu, con) | `/categories/letters`, `/categories?letter=&q=` | ✅ (số doanh nghiệp tự tính, [mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) | ✅ Mục lục chữ cái xong 2026-10-08; chi tiết theo slug, ngành con: chưa làm |
 | Địa phương (cấp 1, con, slug) | `/locations` | ✅ | Chưa làm |
 | Tin tức, sự kiện; cây danh mục bài viết | `/blog-posts`, `/blog-posts/{slug}`, `/blog-categories/tree`, `/blog-categories/{slug}` | ✅ Đã đồng bộ 2.433 bài, 52 danh mục, 54 thẻ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)) | ✅ Xong 2026-10-08 ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
 | Mã ngành (`industry_code`) của ngành nghề | | ⚠️ Không có trong `jhipster_vnyp` | Chờ dữ liệu |
@@ -1089,6 +1226,66 @@ Bảo mật và Swagger tự áp dụng cho mọi đường dẫn `/api/public/*
 | Gọi thật trên app (khóa dev): cây 52 danh mục, 6 gốc (`hideEmpty` còn 49); Tin tức 234 bài trực tiếp / 1.820 cả cây; `category=su-kien` ra 20 bài, khớp `totalPostCount`; danh mục con khớp; không lọc ra 2.433 (đúng số bài đã xuất bản, 2 bài nháp không lộ); `q=khuyen mai` 153 (bản quản trị 154, gồm 1 bài nháp); `tag` khớp; `sort=title` → 400; danh mục sai → 404; `size=1000` → 100; chi tiết không còn `[vc_`; slug bài nháp → 404; thiếu khóa → 401. Thời gian 20–260 ms | ✅ |
 
 > Dữ liệu từ WordPress: chỉ **1 bài** có gắn thẻ (2 thẻ), `viewCount` của mọi bài bằng 0 (WordPress không có số lượt xem qua REST API). Lọc theo thẻ và sắp theo lượt xem đã chạy, nhưng chưa có ý nghĩa với dữ liệu hiện tại.
+
+### 10.6 Ngành nghề: mục lục theo chữ cái, số doanh nghiệp
+
+> Làm ngày 2026-10-08. Thay cho trang **Mục lục ngành nghề** của FE cũ (dãy nút A–Z, ô tìm kiếm, thẻ ngành kèm số doanh nghiệp; request cũ `prefix category_name` / `letter`).
+
+| API (cần `X-API-Key`, Swagger nhóm **public-category**, Cache-Control 5 phút) | Dùng cho |
+|---|---|
+| `GET /api/public/v1/categories/letters?hideEmpty=` | Dãy nút chữ cái: `[{ "letter": "B", "count": 313 }, …]`, theo A–Z, `#` (tên không bắt đầu bằng chữ cái) ở cuối |
+| `GET /api/public/v1/categories?letter=L&q=&hideEmpty=&page=&size=&sort=` | Danh sách thẻ ngành và ô tìm kiếm. Trả `{ items, page, size, totalItems, totalPages }` như [mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết) |
+
+Mỗi ngành: `{ id, name, slug, letter, parentId, parentName, listingCount }`.
+
+- **`letter`**: một chữ cái, không phân biệt hoa thường; **chữ có dấu gộp vào chữ gốc** (Ô, Ơ → O; Ă, Â → A; Ư → U; **Đ → D**), giống FE cũ chỉ có A–Z. Dữ liệu có 12 ngành bắt đầu bằng "Ô", 1 bằng "Ư". `letter=#` lấy ngành không bắt đầu bằng chữ cái. Sai (ví dụ `LA`, `1`) → 400.
+- **`q`**: tìm trong tên ngành, không phân biệt dấu và hoa thường; nhiều từ thì phải có đủ (`lap dat dien`). Dùng được cùng `letter`.
+- **`sort`**: mặc định theo tên (A–Z tiếng Việt); `sort=listingCount,desc` để ngành nhiều doanh nghiệp lên trước. Field khác → 400. `size` tối đa 500.
+- **`hideEmpty=true`**: bỏ ngành chưa có doanh nghiệp (199/2.394 ngành).
+- **`parentName`**: nhiều ngành **trùng tên ở các cấp khác nhau** (VSIC lặp tên khi nhánh chỉ có một con, ví dụ "Lập trình máy vi tính" 85.609 ở cấp 4 và 74 ở cấp 5). FE nên hiện tên ngành cha để người dùng phân biệt.
+- Tên được giải mã `&amp;` → `&` khi trả ra (dữ liệu gốc vẫn còn `&amp;`, xem [mục 14](#14-việc-còn-tồn-đọng) #9).
+- Đọc cả ~2.400 ngành rồi lọc, sắp xếp trong bộ nhớ: 60–140 ms.
+
+```
+GET /api/public/v1/categories/letters?hideEmpty=true          # dãy nút chữ cái
+GET /api/public/v1/categories?letter=L&hideEmpty=true&size=60  # các ngành chữ L
+GET /api/public/v1/categories?q=lap dat dien                   # ô tìm kiếm
+```
+
+#### Số doanh nghiệp của mỗi ngành (`listingCount`)
+
+Dữ liệu gốc `jhipster_vnyp` **không có số này**: cột `category.listing_count` bằng 0 ở cả 2.394 ngành. Đếm trực tiếp mỗi lần FE gọi thì quá chậm (25 triệu liên kết; nhóm VSIC lớn mất 3–33 s, xem [mục 7.4](#74-backend-luồng-xử-lý)), nên **tính một lần rồi lưu vào cột này**.
+
+| API (`ROLE_ADMIN`, Swagger nhóm **category-admin**) | Việc làm |
+|---|---|
+| `POST /api/admin/categories/listing-counts` | Bắt đầu tính (chạy nền), trả **202**; đang chạy thì **409** |
+| `GET /api/admin/categories/listing-counts` | Trạng thái: số liên kết đã đọc, số ngành có doanh nghiệp, số dòng cập nhật, lỗi |
+
+- **Cách đếm:** số doanh nghiệp **đã xuất bản** của ngành **và mọi ngành con**, mỗi doanh nghiệp đếm một lần. Cùng nghĩa với bộ lọc `categoryTreeId` ([mục 7](#7-chức-năng-phân-cấp-và-lọc-theo-cây)): bấm vào ngành trên FE sẽ ra đúng chừng ấy doanh nghiệp.
+- **Cách làm** ([`CategoryListingCountService`](../src/main/java/com/mycompany/myapp/service/CategoryListingCountService.java), [`CategorySubtreeCounter`](../src/main/java/com/mycompany/myapp/service/CategorySubtreeCounter.java)): đọc tuần tự `rel_listing__category` theo khóa chính `(listing_id, category_id)` bằng JDBC streaming (`fetchSize = Integer.MIN_VALUE`, không nạp 25 triệu dòng vào bộ nhớ). Với mỗi listing, cộng 1 cho ngành của nó và mọi ngành tổ tiên; mảng "listing cuối cùng đã cộng" của từng ngành đảm bảo listing gắn nhiều ngành cùng nhánh chỉ được đếm một lần. Bỏ qua 8 listing nháp. Chỉ `UPDATE` dòng có giá trị thay đổi, rồi tự reindex `category` trên Elasticsearch.
+- **Thời gian:** 25.184.298 liên kết trong **~55 giây**, 2.195/2.394 ngành có doanh nghiệp.
+- ⚠️ **Phải chạy lại sau mỗi lần đồng bộ** từ `jhipster_vnyp` ([mục 6.3](#63-cách-chạy), bước 5): script đồng bộ chép `listing_count = 0` của nguồn đè lên.
+
+**Đối chiếu** với trang Mục lục ngành nghề của FE cũ (ảnh chụp chữ L) và với SQL đếm trực tiếp (`WITH RECURSIVE` + `COUNT(DISTINCT listing_id)`):
+
+| Ngành | FE cũ | Job | SQL trực tiếp |
+|---|---|---|---|
+| LỊCH / LEN / LUYỆN KIM - THIẾT BỊ | 51 / 50 / 89 | 51 / 50 / 89 | LEN 50 |
+| Lắp đặt hệ thống cấp, thoát nước | 1.337 | 1.337 | 1.337 |
+| Lắp đặt hệ thống sưởi và điều hoà không khí | 205 | 205 | 205 |
+| Lắp đặt hệ thống cấp, thoát nước, hệ thống sưởi và điều hoà không khí | 321.741 | 323.091 | 323.091 |
+| Lắp đặt hệ thống điện (cấp 4) | 352.693 | 353.317 | |
+| Lập trình máy vi tính (cấp 4 / cấp 5) | 85.536 / 74 | 85.609 / 74 | |
+
+Ngành nhỏ khớp tuyệt đối; ngành lớn lệch dưới 0,5% so với FE cũ, có thể vì dữ liệu site cũ lúc chụp khác bản sao lưu. Job khớp đúng SQL trực tiếp. FE cũ đếm 22 ngành chữ L, API mới trả 30 (gồm cả ngành trùng tên ở các cấp; FE cũ có thể đã ẩn bớt).
+
+**Kiểm thử (2026-10-08):**
+
+| Test | Kết quả |
+|---|---|
+| [`CategorySubtreeCounterTest`](../src/test/java/com/mycompany/myapp/service/CategorySubtreeCounterTest.java): đếm cả ngành con, listing gắn 2 ngành cùng nhánh chỉ đếm 1 lần ở tổ tiên, bỏ listing nháp, ngành không tồn tại, vòng lặp | 1/1 ✅ |
+| [`PublicCategoryServiceTest`](../src/test/java/com/mycompany/myapp/service/PublicCategoryServiceTest.java): chữ cái đầu bỏ dấu (Lắp, Đá, ống, Ưu, ăn, 3D); giải mã `&amp;`; mục lục A–Z rồi `#`; lọc `l`, `đ`, `#`; tìm không dấu nhiều từ; ẩn ngành trống; sắp theo số doanh nghiệp; phân trang; tham số sai → 400 | 5/5 ✅ |
+| Gọi thật trên app: job 202 → DONE, cập nhật 2.195 dòng, reindex category tự chạy; các API trên trả đúng; `letter=LA`, `sort=slug` → 400; thiếu khóa → 401 | ✅ |
 
 ---
 
@@ -1295,9 +1492,9 @@ Lưu ý:
 | `shared/tree/*` | Dùng chung: `createTreeSource()`, `jhi-tree-view` (cây tải dần, link "Xem doanh nghiệp"), `jhi-tree-filter` (dãy ô chọn theo số cấp thực tế, đồng bộ với URL `filter[...]`) | Dùng cho cả địa phương và ngành nghề |
 | `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | 2 bộ lọc `jhi-tree-filter` (địa phương, ngành nghề); trong spec thay bằng stub | |
 | `entities/location/tree/*`, `entities/category/tree/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Cây ngành nghề) | |
-| `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree` | |
+| `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree`; ngành nghề thêm route `index` (Mục lục A–Z, [mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị)) | |
 | `layouts/navbar/navbar.html`, `navbar.ts` | Các nhóm menu: **Tỉnh thành** (Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã), **Ngành nghề** (Cây ngành nghề, Danh sách), **Blogs** (Bài viết, Danh mục bài viết, Thẻ), **Banner quảng cáo** (Vị trí banner, Ảnh banner); icon `newspaper`, `folder-tree`, `tags` | Sinh lại entity thì JHipster thêm lại mục menu rời (tên tiếng Anh) ở cuối danh sách; xóa và đưa vào nhóm |
-| `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `briefcase`, `circle`, `chevron-*`, `location-dot`, `spinner` | |
+| `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `briefcase`, `circle`, `chevron-*`, `location-dot`, `spinner`, `arrow-down-a-z`, `table-cells-large` | |
 | `src/main/docker/elasticsearch.yml`, `services.yml` | Heap 1 GB, named volume `elasticsearch-data`, healthcheck chờ `yellow`; service `kibana` (profile `kibana`) | Xem [mục 8.3](#83-cấu-hình-container-giai-đoạn-0-xong-2026-10-01), [mục 8.2](#82-giao-diện-quản-trị-elasticsearch) |
 | `src/main/docker/kibana.yml` (file mới) | Kibana 9.4.5 cho dev | |
 | `domain/Listing.java` (`categories`, `locations`), `domain/Category.java` (`parent`), `domain/Location.java` (`parent`) | Thêm `@org.springframework.data.annotation.Transient` | Không ghi quan hệ vào ES, để reindex không lazy-load ([mục 8.4](#84-job-reindex-giai-đoạn-1)). **`jhipster --force` sẽ xóa, phải thêm lại.** |
@@ -1306,6 +1503,9 @@ Lưu ý:
 | `config/ApplicationProperties.java` (`publicApi.keys`), `security/AuthoritiesConstants.java` (`PUBLIC_API`), `application-dev.yml`, `application-prod.yml`, `src/test/resources/config/application.yml` | Cấu hình khóa API công khai | [Mục 10.2](#102-cơ-chế-x-api-key) |
 | `config/PublicApiSecurityConfiguration.java`, `security/PublicApiKeyFilter.java`, `repository/GalleryPublicRepository.java`, `GalleryPublicRow.java`, `service/PublicGalleryService.java`, `service/dto/publicapi/*`, `web/rest/publicapi/*` (file mới) | API công khai, gallery | File viết tay, không bị ghi đè |
 | `entities/gallery-image/update/gallery-image-form.service.ts` (+ `gallery-image-form.dates.spec.ts` mới) | Ảnh mới để trống `startAt`/`endAt`; ô trống lưu `null` | JHipster mặc định cả hai = giờ hiện tại, làm ảnh hết hạn ngay ([mục 10.3](#103-banner-quảng-cáo-gallery)). **Sinh lại GalleryImage sẽ mất, phải sửa lại.** |
+| `liquibase/changelog/20261008100000_location_conversion.xml`, `liquibase/data/location_conversion.csv`, `master.xml` (include), `db-sync/dvhc/excel-to-csv.mjs`, `service/dvhc/*`, `web/rest/AdministrativeUnitResource.java` (file mới) | Bảng chuyển đổi ĐVHC, sửa bộ đơn vị mới | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). Sinh lại code: kiểm tra `master.xml` còn include changelog này |
+| `web/rest/CategoryIndexResource.java`, `entities/category/index/*`, `entities/category/service/category-index.service.ts` (file mới); mục **Mục lục A–Z** trong `navbar.html` (nhóm Ngành nghề) | Trang Mục lục ngành nghề A–Z | [Mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị). Sinh lại Category: kiểm tra `category.routes.ts` còn route `index`, menu còn mục này |
+| `web/rest/publicapi/PublicCategoryResource.java`, `service/PublicCategoryService.java`, `repository/CategoryPublicRepository.java`, `service/dto/publicapi/PublicCategoryDTO.java`, `service/CategoryListingCountService.java`, `service/CategorySubtreeCounter.java`, `web/rest/CategoryListingCountResource.java` (file mới) | Mục lục ngành nghề theo chữ cái; job tính số doanh nghiệp | File viết tay ([mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) |
 | `web/rest/publicapi/PublicBlogResource.java`, `service/PublicBlogService.java`, `service/BlogContent.java`, `repository/BlogPublicRepository.java`, `service/dto/publicapi/PublicBlog*DTO.java`, `PublicPageDTO.java` (file mới) | API công khai bài viết, cây danh mục | File viết tay ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
 | `web/rest/GalleryAdminResource.java`, `service/GalleryAdminService.java`, `service/dto/GalleryWithImagesDTO.java`, `repository/GalleryAdminRepository.java`, `GalleryImageAdminRow.java` (file mới) | API quản trị `GET /api/galleries/with-images` | File viết tay |
 | `domain/BlogPost.java` (`wpId` bỏ `@NotNull`; `categories`, `tags` thêm `@Transient` cho ES), `domain/BlogCategory.java` (`parent` `@Transient` cho ES), `service/dto/BlogPostDTO.java` (`wpId` không bắt buộc), `BlogPostResourceIT.java` (bỏ `checkWpIdIsRequired`) | Bài soạn mới không có id WordPress; reindex không lazy-load | [Mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài). **Sinh lại BlogPost hoặc BlogCategory sẽ mất, phải sửa lại.** |
@@ -1368,8 +1568,8 @@ Lưu ý:
 | 5 | **User từ WordPress** (`jhi_user` của nguồn: 4 user, có `wp_user_id`) | Chưa chuyển |
 | 6 | **Bảo mật khi lên production** | Danh sách đầy đủ ở [mục 9.3](#93-còn-thiếu-và-cần-làm-trước-production): khóa JWT riêng qua biến môi trường, đổi tài khoản mặc định, chống dò mật khẩu, thu hồi token, HTTPS, quyết định API công khai. MySQL dev dùng `root` không mật khẩu; ES dev tắt `xpack.security`. |
 | 7 | Cố định cấu hình InnoDB | Nếu đồng bộ thường xuyên, ghi `innodb_buffer_pool_size` vào [`src/main/docker/config/mysql/my.cnf`](../src/main/docker/config/mysql/my.cnf) |
-| 8 | **Lọc theo nhóm ngành VSIC lớn còn chậm** (3–33 s, khoảng 170 nhóm có hơn 100 nghìn doanh nghiệp) | **Chưa chọn hướng.** (a) Để nguyên. (b) Bảng phẳng hóa doanh nghiệp × mọi ngành tổ tiên (~30–45 triệu dòng, phải dựng lại sau mỗi lần đồng bộ). (c) Đưa bộ lọc sang Elasticsearch, gắn với việc reindex (#1). Xem [mục 7.4](#74-backend-luồng-xử-lý). |
-| 9 | Tên ngành có `&amp;` | Dữ liệu gốc của WordPress. Có thể viết script SQL đổi thành `&` |
+| 8 | **Lọc theo nhóm ngành VSIC lớn còn chậm** (3–33 s, khoảng 170 nhóm có hơn 100 nghìn doanh nghiệp). **Không chỉ nhóm lớn:** đo 2026-10-08 khi bấm thẻ ở Mục lục A–Z ([mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị)), ngành 1524 "Lập trình máy vi tính" (85.609 doanh nghiệp, **dưới** ngưỡng 100 nghìn nên đi đường semi-join mặc định) mất 21–24 s qua API, còn ngành cha 1114 (116.715, trên ngưỡng) chỉ 2,1 s. Đo SQL lấy 20 id đầu: 1524 semi-join bật 5,4 s / tắt 7,4 s / gợi ý MATERIALIZATION 5,8 s / lấy id thẳng từ bảng nối `DISTINCT listing_id … ORDER BY LIMIT 20` 1,3 s; đếm `COUNT(DISTINCT listing_id)` từ bảng nối chỉ 50 ms. Ngành nhỏ (1962, 555, 2227) dưới 1 s mọi cách | **Chưa chọn hướng.** (a) Để nguyên. (b) Bảng phẳng hóa doanh nghiệp × mọi ngành tổ tiên (~30–45 triệu dòng, phải dựng lại sau mỗi lần đồng bộ). (c) Đưa bộ lọc sang Elasticsearch, gắn với việc reindex (#1). (d) Mới: lấy trang id và đếm thẳng từ bảng nối khi chỉ lọc theo một cây (nhanh hơn 4–20 lần theo số đo trên), rồi đọc listing theo id. Xem [mục 7.4](#74-backend-luồng-xử-lý). |
+| 9 | Tên ngành có `&amp;` | Dữ liệu gốc của WordPress. API công khai đã giải mã khi trả ra ([mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)); trang quản trị vẫn hiện `&amp;`. Có thể viết script SQL đổi thành `&` |
 | 10 | Integration test backend cho `locationTreeId`, `categoryTreeId` | Hiện chỉ kiểm tra thủ công bằng API |
 | 11 | Kết hợp tìm kiếm (Elasticsearch) với lọc theo cây | `/api/listings/_search` bỏ qua filter |
 | 12 | **Các API công khai còn lại cho FE Next.js** (doanh nghiệp, ngành nghề, địa phương, tin tức) | Xem [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
@@ -1381,6 +1581,7 @@ Lưu ý:
 | 18 | Sửa lỗi index chạy nền đọc DB trước khi commit cho các entity còn lại | Đã sửa cho bài viết ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)); listing, category, location, tag, blogcategory, user vẫn là code JHipster |
 | 19 | Tự reindex bài viết khi đổi tên, đổi cha của danh mục bài viết hoặc đổi tên thẻ | Hiện phải chạy tay `reindex?entities=blogpost` ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)) |
 | 20 | Nội dung bài cũ còn shortcode WPBakery (`[vc_row]`, `[vc_column_text]`… ở 371 bài). **Đã bỏ khi trả API công khai** ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)); còn lại: **ảnh trong `[vc_single_image image="id"]` bị mất** ở 363 bài, cần đồng bộ thêm media WordPress (`/wp/v2/media?include=…`) để đổi id thành URL ảnh | ES đã bỏ qua khi tìm. Khi làm API công khai cho Next.js (#16) cần bỏ shortcode khỏi `content` (giữ phần chữ, ảnh bên trong) |
+| 22 | **Đơn vị hành chính 2025, bước 2–4**: gắn doanh nghiệp vào đơn vị mới, giao diện mặc định địa giới mới, API tra cứu cũ → mới | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025) |
 | 21 | Bộ lọc danh mục, thẻ trên trang danh sách bài viết (quản trị) | API đã có (`categoryId`, `tagId`); giao diện hiện chỉ có ô tìm kiếm |
 
 ---
@@ -1403,6 +1604,10 @@ echo "SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE c
 
 # Gọi API công khai (khóa dev)
 curl.exe -H "X-API-Key: dev-public-api-key-doi-khi-trien-khai" http://localhost:8081/api/public/v1/galleries
+curl.exe -H "X-API-Key: dev-public-api-key-doi-khi-trien-khai" "http://localhost:8081/api/public/v1/categories?letter=L"
+
+# Tính lại số doanh nghiệp theo ngành (sau khi đồng bộ dữ liệu; cần JWT admin)
+curl.exe -X POST -H "Authorization: Bearer <JWT>" http://localhost:8081/api/admin/categories/listing-counts
 
 # Bật / tắt Kibana (http://localhost:5601)
 docker compose -f src/main/docker/services.yml --profile kibana up -d kibana
