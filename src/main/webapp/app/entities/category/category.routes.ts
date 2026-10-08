@@ -20,6 +20,11 @@ const categoryRoute: Routes = [
     canActivate: [userRouteAccessService],
   },
   {
+    path: 'index',
+    loadComponent: () => import('./index/category-index').then(m => m.CategoryIndex),
+    canActivate: [userRouteAccessService],
+  },
+  {
     path: ':id/view',
     loadComponent: () => import('./detail/category-detail').then(m => m.CategoryDetail),
     resolve: {

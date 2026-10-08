@@ -1,4 +1,5 @@
 import {
+  faArrowDownAZ,
   faArrowLeft,
   faAsterisk,
   faBan,
@@ -43,6 +44,7 @@ import {
   faTasks,
   faThList,
   faTags,
+  faTableCellsLarge,
   faTimes,
   faTrashAlt,
   faUser,
@@ -54,6 +56,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 export const fontAwesomeIcons = [
+  faArrowDownAZ,
   faArrowLeft,
   faAsterisk,
   faBan,
@@ -98,6 +101,7 @@ export const fontAwesomeIcons = [
   faTasks,
   faThList,
   faTags,
+  faTableCellsLarge,
   faTimes,
   faTrashAlt,
   faUser,

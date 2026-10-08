@@ -39,6 +39,26 @@
       "filter": {
         "allCategories": "-- All industries --",
         "allSubCategories": "-- All sub-industries --"
+      },
+      "index": {
+        "title": "Industry index",
+        "subtitleAll": "All industries by letter",
+        "subtitleLetter": "All industries starting with {{ letter }}",
+        "all": "All",
+        "searchPlaceholder": "Search industries...",
+        "clear": "Clear search",
+        "hideEmpty": "Hide industries without businesses",
+        "sortName": "Name A–Z",
+        "sortCount": "Most businesses",
+        "startsWith": "Industries starting with:",
+        "allLetters": "All industries",
+        "matching": "name contains \"{{ q }}\"",
+        "count": "{{ count }} industries",
+        "listings": "{{ count }} businesses",
+        "parent": "In: {{ name }}",
+        "viewListings": "View businesses in this industry (including sub-industries)",
+        "notFound": "No industries found",
+        "treeView": "Tree view"
       }
     }
   }

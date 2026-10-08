@@ -26,7 +26,8 @@
         "galleryImage": "Banner images",
         "galleryGroup": "Ad banners",
         "blogCategory": "Post categories",
-        "blogGroup": "Blogs"
+        "blogGroup": "Blogs",
+        "categoryIndex": "A–Z index"
       },
       "account": {
         "main": "Account",

@@ -39,6 +39,26 @@
       "filter": {
         "allCategories": "-- Tất cả ngành nghề --",
         "allSubCategories": "-- Tất cả ngành con --"
+      },
+      "index": {
+        "title": "Mục lục ngành nghề",
+        "subtitleAll": "Danh sách đầy đủ các ngành nghề theo bảng chữ cái",
+        "subtitleLetter": "Danh sách đầy đủ các ngành nghề bắt đầu bằng chữ cái {{ letter }}",
+        "all": "Tất cả",
+        "searchPlaceholder": "Tìm kiếm ngành nghề...",
+        "clear": "Xóa tìm kiếm",
+        "hideEmpty": "Ẩn ngành chưa có doanh nghiệp",
+        "sortName": "Tên A–Z",
+        "sortCount": "Nhiều doanh nghiệp nhất",
+        "startsWith": "Ngành nghề bắt đầu bằng chữ:",
+        "allLetters": "Tất cả ngành nghề",
+        "matching": "tên có \"{{ q }}\"",
+        "count": "{{ count }} ngành nghề",
+        "listings": "{{ count }} doanh nghiệp",
+        "parent": "Thuộc: {{ name }}",
+        "viewListings": "Xem doanh nghiệp của ngành này (gồm ngành con)",
+        "notFound": "Không có ngành nghề nào",
+        "treeView": "Dạng cây"
       }
     }
   }

@@ -1,0 +1,193 @@
+<div class="category-index">
+  <!-- Đầu trang: tiêu đề và dãy nút chữ cái -->
+  <section class="index-hero text-center text-white rounded-4 p-4 mb-3">
+    <h2 id="page-heading" class="d-inline-flex align-items-center gap-3 mb-2" data-cy="CategoryIndexHeading">
+      <span class="hero-icon rounded-3"><fa-icon icon="table-cells-large" /></span>
+      <span jhiTranslate="javaSpringBootBackEndApp.category.index.title">Mục lục ngành nghề</span>
+    </h2>
+    <p class="mb-3 opacity-75">
+      @if (letter(); as current) {
+        {{ 'javaSpringBootBackEndApp.category.index.subtitleLetter' | translate: { letter: current } }}
+      } @else {
+        {{ 'javaSpringBootBackEndApp.category.index.subtitleAll' | translate }}
+      }
+    </p>
+    <div class="d-flex flex-wrap justify-content-center gap-2" role="group" data-cy="letterButtons">
+      <button
+        type="button"
+        class="btn btn-letter fw-bold px-3"
+        [class.active]="letter() === null"
+        (click)="selectLetter(null)"
+        jhiTranslate="javaSpringBootBackEndApp.category.index.all"
+      >
+        Tất cả
+      </button>
+      @for (item of letters(); track item.letter) {
+        <button
+          type="button"
+          class="btn btn-letter fw-bold"
+          [class.active]="letter() === item.letter"
+          [title]="'javaSpringBootBackEndApp.category.index.count' | translate: { count: item.count }"
+          (click)="selectLetter(item.letter)"
+        >
+          {{ item.letter }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <jhi-alert-error />
+
+  <!-- Đường dẫn và chuyển dạng xem -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item">
+          <a routerLink="/category" jhiTranslate="global.menu.entities.categoryGroup">Ngành nghề</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          <span jhiTranslate="javaSpringBootBackEndApp.category.index.title">Mục lục ngành nghề</span>
+          @if (letter(); as current) {
+            – {{ current }}
+          }
+        </li>
+      </ol>
+    </nav>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" routerLink="/category/tree">
+        <fa-icon icon="sitemap" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.category.index.treeView">Dạng cây</span>
+      </a>
+      <a class="btn btn-outline-secondary btn-sm" routerLink="/category">
+        <fa-icon icon="list" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.category.tree.listView">Dạng bảng</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Tìm theo tên, tùy chọn -->
+  <div class="row g-2 align-items-center mb-3">
+    <div class="col-lg-6">
+      <div class="input-group">
+        <input
+          type="search"
+          class="form-control"
+          id="categoryIndexSearch"
+          data-cy="categoryIndexSearch"
+          [ngModel]="query()"
+          (ngModelChange)="onQueryChange($event)"
+          [placeholder]="'javaSpringBootBackEndApp.category.index.searchPlaceholder' | translate"
+        />
+        @if (query()) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="clearQuery()"
+            [title]="'javaSpringBootBackEndApp.category.index.clear' | translate"
+          >
+            <fa-icon icon="times" />
+          </button>
+        }
+        <span class="input-group-text btn-letter"><fa-icon icon="search" /></span>
+      </div>
+    </div>
+    <div class="col-lg-6 d-flex flex-wrap gap-3 justify-content-lg-end align-items-center">
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="hideEmpty" [checked]="hideEmpty()" (change)="toggleHideEmpty()" />
+        <label class="form-check-label" for="hideEmpty" jhiTranslate="javaSpringBootBackEndApp.category.index.hideEmpty"
+          >Ẩn ngành chưa có doanh nghiệp</label
+        >
+      </div>
+      <select
+        class="form-select form-select-sm w-auto"
+        aria-label="sort"
+        [ngModel]="sort()"
+        (ngModelChange)="changeSort($event)"
+        data-cy="categoryIndexSort"
+      >
+        <option value="name">{{ 'javaSpringBootBackEndApp.category.index.sortName' | translate }}</option>
+        <option value="count">{{ 'javaSpringBootBackEndApp.category.index.sortCount' | translate }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tóm tắt kết quả -->
+  <div class="index-summary d-flex align-items-center justify-content-between rounded-3 px-3 py-2 mb-3">
+    <span>
+      <fa-icon icon="search" class="me-2" />
+      @if (letter(); as current) {
+        <span jhiTranslate="javaSpringBootBackEndApp.category.index.startsWith">Ngành nghề bắt đầu bằng chữ:</span>
+        <strong> {{ current }}</strong>
+      } @else {
+        <span jhiTranslate="javaSpringBootBackEndApp.category.index.allLetters">Tất cả ngành nghề</span>
+      }
+      @if (query().trim()) {
+        · <span>{{ 'javaSpringBootBackEndApp.category.index.matching' | translate: { q: query().trim() } }}</span>
+      }
+    </span>
+    <span class="badge rounded-pill badge-count px-3 py-2" data-cy="categoryIndexCount">
+      @if (isLoading() && !result()) {
+        <fa-icon icon="spinner" animation="spin" />
+      } @else {
+        {{ 'javaSpringBootBackEndApp.category.index.count' | translate: { count: formatCount(result()?.totalItems ?? 0) } }}
+      }
+    </span>
+  </div>
+
+  <!-- Thẻ ngành -->
+  <div class="position-relative">
+    @if (isLoading() && result()) {
+      <div class="loading-overlay"><fa-icon icon="spinner" animation="spin" size="2x" /></div>
+    }
+    @if (result(); as page) {
+      @if (page.items.length === 0) {
+        <div class="alert alert-warning" id="no-result" jhiTranslate="javaSpringBootBackEndApp.category.index.notFound">
+          Không có ngành nghề nào
+        </div>
+      } @else {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3" data-cy="categoryIndexCards">
+          @for (item of page.items; track trackId(item)) {
+            <div class="col">
+              <a
+                class="category-card card h-100 text-decoration-none text-body"
+                routerLink="/listing"
+                [queryParams]="listingQueryParams(item)"
+                [title]="'javaSpringBootBackEndApp.category.index.viewListings' | translate"
+              >
+                <div class="card-body d-flex gap-3">
+                  <span class="count-box rounded-3 fw-bold" [class.empty]="item.listingCount === 0">{{
+                    shortCount(item.listingCount)
+                  }}</span>
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="fw-semibold">{{ item.name }}</div>
+                    @if (item.parentName) {
+                      <div class="small text-muted text-truncate" [title]="item.parentName">
+                        {{ 'javaSpringBootBackEndApp.category.index.parent' | translate: { name: item.parentName } }}
+                      </div>
+                    }
+                    <div class="small text-muted mt-2">
+                      {{ 'javaSpringBootBackEndApp.category.index.listings' | translate: { count: formatCount(item.listingCount) } }}
+                    </div>
+                  </div>
+                  <fa-icon icon="chevron-right" class="text-muted align-self-start" />
+                </div>
+              </a>
+            </div>
+          }
+        </div>
+
+        @if (page.totalPages > 1) {
+          <div class="d-flex justify-content-center mt-4">
+            <ngb-pagination
+              [collectionSize]="page.totalItems"
+              [page]="page.page + 1"
+              [pageSize]="pageSize"
+              [maxSize]="5"
+              [rotate]="true"
+              [boundaryLinks]="true"
+              (pageChange)="navigateToPage($event)"
+            />
+          </div>
+        }
+      }
+    }
+  </div>
+</div>

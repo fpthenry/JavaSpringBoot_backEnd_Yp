@@ -26,7 +26,8 @@
         "galleryImage": "Ảnh banner",
         "galleryGroup": "Banner quảng cáo",
         "blogCategory": "Danh mục bài viết",
-        "blogGroup": "Blogs"
+        "blogGroup": "Blogs",
+        "categoryIndex": "Mục lục A–Z"
       },
       "account": {
         "main": "Tài khoản",

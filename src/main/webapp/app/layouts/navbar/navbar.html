@@ -76,6 +76,18 @@
               <li>
                 <a
                   class="dropdown-item ps-4"
+                  routerLink="/category/index"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  (click)="collapseNavbar()"
+                >
+                  <fa-icon icon="arrow-down-a-z" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.categoryIndex">Mục lục A–Z</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  class="dropdown-item ps-4"
                   routerLink="/category"
                   routerLinkActive="active"
                   [routerLinkActiveOptions]="{ exact: true }"

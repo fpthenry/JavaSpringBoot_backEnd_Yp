@@ -1,0 +1,92 @@
+// Mục lục ngành nghề: màu theo mẫu FE (nền xanh đậm, nút chữ cái vàng)
+.category-index {
+  --index-blue: #0b4f94;
+  --index-yellow: #f7c948;
+  --index-yellow-dark: #e0ad1f;
+
+  .index-hero {
+    background: var(--index-blue);
+  }
+
+  .hero-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    background: var(--index-yellow);
+    color: var(--index-blue);
+  }
+
+  .btn-letter {
+    min-width: 2.5rem;
+    background: var(--index-yellow);
+    border-color: var(--index-yellow-dark);
+    color: #212529;
+
+    &:hover,
+    &.active {
+      background: #fff;
+      border-color: #fff;
+      color: var(--index-blue);
+    }
+  }
+
+  .input-group-text.btn-letter {
+    color: #212529;
+  }
+
+  .index-summary {
+    background: rgba(11, 79, 148, 0.06);
+    border: 1px solid rgba(11, 79, 148, 0.15);
+  }
+
+  .badge-count {
+    background: var(--index-yellow);
+    color: #212529;
+    font-size: 0.875rem;
+  }
+
+  .category-card {
+    transition:
+      box-shadow 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      border-color: var(--index-blue);
+      box-shadow: 0 0.25rem 0.75rem rgba(11, 79, 148, 0.15);
+    }
+  }
+
+  .count-box {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    font-size: 0.8rem;
+    background: rgba(11, 79, 148, 0.08);
+    border: 1px solid rgba(11, 79, 148, 0.2);
+    color: var(--index-blue);
+
+    &.empty {
+      opacity: 0.5;
+    }
+  }
+
+  .min-w-0 {
+    min-width: 0;
+  }
+
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 3rem;
+    background: rgba(255, 255, 255, 0.6);
+  }
+}
