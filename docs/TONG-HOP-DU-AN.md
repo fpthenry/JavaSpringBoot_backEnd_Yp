@@ -1015,10 +1015,80 @@ export async function getGallery(code: string) {
 | Doanh nghiệp liên quan; số doanh nghiệp theo tỉnh trong một ngành | `/listings/{slug}/related`, `/listings/facets` | ✅ | Chưa làm |
 | Ngành nghề (slug, id, chữ cái đầu, con) | `/categories` | ✅ | Chưa làm |
 | Địa phương (cấp 1, con, slug) | `/locations` | ✅ | Chưa làm |
-| Tin tức, sự kiện | `/posts` | ✅ Đã đồng bộ 2.433 bài, 52 danh mục, 54 thẻ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)) | Chưa làm |
+| Tin tức, sự kiện; cây danh mục bài viết | `/blog-posts`, `/blog-posts/{slug}`, `/blog-categories/tree`, `/blog-categories/{slug}` | ✅ Đã đồng bộ 2.433 bài, 52 danh mục, 54 thẻ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)) | ✅ Xong 2026-10-08 ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
 | Mã ngành (`industry_code`) của ngành nghề | | ⚠️ Không có trong `jhipster_vnyp` | Chờ dữ liệu |
 
 > ⚠️ File Postman của FE cũ chứa **JWT RS256 không có hạn dùng** của hệ thống cũ. Không commit hay gửi file này; nên thu hồi hoặc đổi khóa ở hệ thống cũ.
+
+### 10.5 Bài viết và cây danh mục bài viết
+
+> Làm ngày 2026-10-08. FE cũ lọc tin theo slug danh mục (`terms.category.slug: "tin-tuc"`), lấy chi tiết theo slug bài, sắp theo ngày đăng; API mới giữ đúng các cách dùng đó.
+
+Cần header `X-API-Key` (như [mục 10.2](#102-cơ-chế-x-api-key)). **Chỉ trả bài đã xuất bản** (`status = publish`), bài nháp không bao giờ lộ ra. Cache-Control 1 phút. Swagger nhóm **public-blog**.
+
+| API | Dùng cho | Ghi chú |
+|---|---|---|
+| `GET /api/public/v1/blog-categories/tree?hideEmpty=` | Menu, sidebar danh mục | Danh mục gốc, mỗi danh mục có `children` (sắp theo tên tiếng Việt). `postCount`: số bài gắn trực tiếp; `totalPostCount`: tính cả danh mục con, **mỗi bài đếm một lần** (bài gắn cả cha và con không bị đếm đôi). `hideEmpty=true` bỏ danh mục không có bài (ví dụ "Chưa phân loại") |
+| `GET /api/public/v1/blog-categories/{slugOrId}` | Đầu trang danh mục | Danh mục kèm cây con, số bài và `breadcrumb` (các danh mục cha từ gốc). 404 nếu không có |
+| `GET /api/public/v1/blog-posts?category=&tag=&q=&page=&size=&sort=` | Trang danh sách, trang chủ (10 tin mới), trang tìm kiếm | `category`: slug hoặc id, **lấy cả bài của danh mục con**; `tag`: slug hoặc id; danh mục/thẻ không có → 404. `q`: từ khóa, cùng cách tìm với [mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch). Không có `sort`: bài mới đăng trước (có `q` thì theo độ liên quan). `sort` chỉ nhận `publishedAt`, `viewCount`, `id` (khác → 400). `size` tối đa 100. **Không có `content`** (nhẹ) |
+| `GET /api/public/v1/blog-posts/{slug}` | Trang chi tiết | Có `content` (HTML), danh mục, thẻ. 404 nếu không có hoặc là bài nháp. Slug trùng (có 1 cặp) thì lấy bài đăng mới nhất |
+
+Danh sách trả về một trang có tổng số ngay trong body (FE không phải đọc header):
+
+```json
+{
+  "items": [
+    {
+      "id": 2442, "title": "…", "slug": "…",
+      "excerpt": "Chữ thuần, tối đa 300 ký tự…",
+      "content": null,
+      "thumbnail": "https://yp.com.vn/wp-content/uploads/…",
+      "authorName": "ADMIN HCM", "viewCount": 0,
+      "publishedAt": "2026-10-05T07:09:50Z", "updatedAt": "…",
+      "categories": [{ "id": 1550, "name": "Chăn nuôi", "slug": "chan-nuoi" }],
+      "tags": []
+    }
+  ],
+  "page": 0, "size": 10, "totalItems": 1820, "totalPages": 182
+}
+```
+
+Ví dụ cho Next.js:
+
+```
+GET /api/public/v1/blog-posts?category=tin-tuc&size=9              # 9 tin mới trang chủ
+GET /api/public/v1/blog-posts?category=su-kien&page=1&size=6       # trang 2 mục sự kiện
+GET /api/public/v1/blog-posts?q=khuyen mai ha noi                  # tìm kiếm
+GET /api/public/v1/blog-posts/tet-nay-them-do-cung-…               # chi tiết
+GET /api/public/v1/blog-categories/tree?hideEmpty=true             # menu danh mục
+```
+
+**Làm sạch nội dung** ([`service/BlogContent.java`](../src/main/java/com/mycompany/myapp/service/BlogContent.java)):
+
+- `excerpt`: chữ thuần. Bỏ thẻ HTML, shortcode, link **"Xem bài viết"** trỏ về `yp.com.vn` (có ở 2.420/2.433 tóm tắt), giải mã `&#8230;`, `&nbsp;`…, cắt ở ranh giới từ. Bài không có tóm tắt thì lấy đầu nội dung.
+- `content`: bỏ shortcode WPBakery `[vc_…]` (giữ chữ, ảnh, link bên trong) và đoạn `<p>` rỗng còn sót.
+- ⚠️ **Ảnh trong `[vc_single_image image="123"]` bị mất**: shortcode chỉ chứa id ảnh của WordPress, không có URL. 366 bài có shortcode này, 363 bài trong đó không có thẻ `<img>` nào khác, nên ở trang chi tiết chỉ còn ảnh đại diện (xem [mục 14](#14-việc-còn-tồn-đọng)).
+
+**Cách làm:**
+
+| File | Nội dung |
+|---|---|
+| [`web/rest/publicapi/PublicBlogResource.java`](../src/main/java/com/mycompany/myapp/web/rest/publicapi/PublicBlogResource.java) | 4 endpoint, mô tả Swagger tiếng Việt |
+| [`service/PublicBlogService.java`](../src/main/java/com/mycompany/myapp/service/PublicBlogService.java) | Dựng cây từ danh sách phẳng (danh mục có cha không tồn tại hoặc nằm trong vòng lặp thì đưa lên gốc, không mất); đếm bài bằng tập id bài của cả cây con; tìm danh mục/thẻ theo slug hoặc id; danh sách bài gọi `BlogPostSearchRepository.search` với `status = publish` (lọc danh mục con nhờ `categoryIds` trong ES), rồi đọc lại từ MySQL |
+| [`repository/BlogPublicRepository.java`](../src/main/java/com/mycompany/myapp/repository/BlogPublicRepository.java) | Cặp [bài, danh mục] của bài đã xuất bản (để đếm); bài theo slug |
+| `service/dto/publicapi/PublicBlogCategoryDTO`, `PublicBlogCategoryDetailDTO`, `PublicBlogPostDTO`, `PublicPageDTO` | Dữ liệu trả cho FE |
+
+Bảo mật và Swagger tự áp dụng cho mọi đường dẫn `/api/public/**` ([`PublicApiSecurityConfiguration`](../src/main/java/com/mycompany/myapp/config/PublicApiSecurityConfiguration.java), `OpenApiDocsConfiguration`), không phải sửa gì thêm.
+
+**Kiểm thử (2026-10-08):**
+
+| Test | Kết quả |
+|---|---|
+| [`PublicBlogServiceTest`](../src/test/java/com/mycompany/myapp/service/PublicBlogServiceTest.java): dựng cây, đếm bài trực tiếp và cả cây con (bài gắn cha và con đếm một lần), danh mục vòng lặp lên gốc, `hideEmpty`; tìm theo slug (không phân biệt hoa thường) hoặc id; breadcrumb; giới hạn `size`, chặn `sort` sai | 4/4 ✅ |
+| [`BlogContentTest`](../src/test/java/com/mycompany/myapp/service/BlogContentTest.java): bỏ shortcode giữ nội dung (giữ `[ITALY]`), bỏ link "Xem bài viết", giải mã ký tự, bỏ script/style, cắt ở ranh giới từ | 3/3 ✅ |
+| Gọi thật trên app (khóa dev): cây 52 danh mục, 6 gốc (`hideEmpty` còn 49); Tin tức 234 bài trực tiếp / 1.820 cả cây; `category=su-kien` ra 20 bài, khớp `totalPostCount`; danh mục con khớp; không lọc ra 2.433 (đúng số bài đã xuất bản, 2 bài nháp không lộ); `q=khuyen mai` 153 (bản quản trị 154, gồm 1 bài nháp); `tag` khớp; `sort=title` → 400; danh mục sai → 404; `size=1000` → 100; chi tiết không còn `[vc_`; slug bài nháp → 404; thiếu khóa → 401. Thời gian 20–260 ms | ✅ |
+
+> Dữ liệu từ WordPress: chỉ **1 bài** có gắn thẻ (2 thẻ), `viewCount` của mọi bài bằng 0 (WordPress không có số lượt xem qua REST API). Lọc theo thẻ và sắp theo lượt xem đã chạy, nhưng chưa có ý nghĩa với dữ liệu hiện tại.
 
 ---
 
@@ -1236,6 +1306,7 @@ Lưu ý:
 | `config/ApplicationProperties.java` (`publicApi.keys`), `security/AuthoritiesConstants.java` (`PUBLIC_API`), `application-dev.yml`, `application-prod.yml`, `src/test/resources/config/application.yml` | Cấu hình khóa API công khai | [Mục 10.2](#102-cơ-chế-x-api-key) |
 | `config/PublicApiSecurityConfiguration.java`, `security/PublicApiKeyFilter.java`, `repository/GalleryPublicRepository.java`, `GalleryPublicRow.java`, `service/PublicGalleryService.java`, `service/dto/publicapi/*`, `web/rest/publicapi/*` (file mới) | API công khai, gallery | File viết tay, không bị ghi đè |
 | `entities/gallery-image/update/gallery-image-form.service.ts` (+ `gallery-image-form.dates.spec.ts` mới) | Ảnh mới để trống `startAt`/`endAt`; ô trống lưu `null` | JHipster mặc định cả hai = giờ hiện tại, làm ảnh hết hạn ngay ([mục 10.3](#103-banner-quảng-cáo-gallery)). **Sinh lại GalleryImage sẽ mất, phải sửa lại.** |
+| `web/rest/publicapi/PublicBlogResource.java`, `service/PublicBlogService.java`, `service/BlogContent.java`, `repository/BlogPublicRepository.java`, `service/dto/publicapi/PublicBlog*DTO.java`, `PublicPageDTO.java` (file mới) | API công khai bài viết, cây danh mục | File viết tay ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
 | `web/rest/GalleryAdminResource.java`, `service/GalleryAdminService.java`, `service/dto/GalleryWithImagesDTO.java`, `repository/GalleryAdminRepository.java`, `GalleryImageAdminRow.java` (file mới) | API quản trị `GET /api/galleries/with-images` | File viết tay |
 | `domain/BlogPost.java` (`wpId` bỏ `@NotNull`; `categories`, `tags` thêm `@Transient` cho ES), `domain/BlogCategory.java` (`parent` `@Transient` cho ES), `service/dto/BlogPostDTO.java` (`wpId` không bắt buộc), `BlogPostResourceIT.java` (bỏ `checkWpIdIsRequired`) | Bài soạn mới không có id WordPress; reindex không lazy-load | [Mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài). **Sinh lại BlogPost hoặc BlogCategory sẽ mất, phải sửa lại.** |
 | `service/mapper/BlogCategoryMapper.java`, `TagMapper.java` | `toDto`/`partialUpdate` bỏ `blogPosts` | Không tải mọi bài viết của danh mục hoặc thẻ (chiều ngược JHipster luôn sinh) |
@@ -1281,6 +1352,7 @@ Lưu ý:
 | Index `blogpost` có 2.000/2.435 bài (2026-10-05) | Bài đồng bộ từ WordPress chưa vào ES. Chưa rõ lý do: trạng thái job reindex chỉ giữ trong bộ nhớ, mất khi app khởi động lại | Reindex `blogpost`. Luôn kiểm tra bằng `GET /api/admin/elasticsearch/indices` (`complete: true`) |
 | Lưu bài viết nhưng tìm kiếm không thấy bài mới, hoặc vẫn ra nội dung cũ | Code JHipster sinh: `index()` chạy `@Async` và **đọc lại bài từ DB**, trong khi transaction lưu bài **chưa commit**. Bài mới không thấy gì, bài sửa thì index bản cũ. Thêm vào đó, ngoài transaction `fetchBagRelationships` trả về bản thể có danh mục chưa nạp (LazyInitializationException) | Điền field tìm kiếm trong transaction lưu bài (`BlogPostSearchFields.fill`), `index()` chỉ ghi document lên ES. **Các entity khác do JHipster sinh (listing, category, location, tag, blogcategory, user) vẫn còn lỗi này**: sửa qua API có thể không cập nhật ES cho tới lần reindex sau ([mục 14](#14-việc-còn-tồn-đọng)). Không dùng `afterCommit` được vì test chạy `@Async` đồng bộ trong transaction của test, transaction đó không bao giờ commit |
 | Integration test lỗi hết (68/68), log báo `Timed out waiting for log output … started` của container Elasticsearch | Container ES của Testcontainers lấy heap 2 GB (`-Xms2g`, `AlwaysPreTouch`) trong máy ảo Docker 7,6 GB, trong khi ES dev, Kibana, MySQL đang chạy | Giới hạn heap ES test 512 MB trong `ElasticsearchTestContainer.java`, hoặc tắt Kibana trước khi chạy IT |
+| Giao diện "đơ": bấm sang menu khác, mở Swagger (`/admin/docs`) không được, sau khi sửa code Java (2026-10-05, gặp 2 lần) | Extension Java của VS Code (`redhat.java`) build vào **chung thư mục `target/classes`** với Maven. Khi nó build lại toàn bộ, nó dọn sạch thư mục này rồi chỉ chép lại resource Java, nên **bản build Angular `target/classes/static` bị mất**. Tab trình duyệt đang mở vẫn chạy phần đã tải, nhưng khi chuyển trang phải tải thêm file JS của trang đó → 404 → không chuyển được. Swagger UI cũng nằm trong `static/swagger-ui`. Đã kiểm tra: lệnh Maven có `-Dskip.npm` **không** xóa thư mục này | Kiểm tra `target/classes/static` còn không; build lại `npx ng build --configuration development` rồi F5. Cách tránh: dùng giao diện qua `npm start` (http://localhost:4200, phục vụ từ bộ nhớ, không phụ thuộc `target/classes`). Nếu language server Java ngốn CPU (đã gặp: khởi tạo lại mỗi giây, ~1,8 lõi): VS Code → `Java: Restart Java Language Server` hoặc `Developer: Reload Window` |
 | Tiếng Việt bị lỗi (`Ð?a phuong`) khi gửi JSON bằng `curl -d "..."` trong Git Bash | Git Bash chuyển tham số dòng lệnh sang code page Windows | Gửi bằng file (`curl --data-binary @file.json`) hoặc script Node/PowerShell `-Encoding utf8` |
 
 ---
@@ -1304,11 +1376,11 @@ Lưu ý:
 | 13 | Chuyên mục bài viết, mã ngành của ngành nghề | Cần dữ liệu WordPress (`wp_term_relationships` của bài viết, `termmeta industry_code`) |
 | 14 | Quản trị viên nhập banner thật | Theo các vị trí trên WordPress: footer banner, quảng cáo listing, right banner 1, left center banner, right-banner-2 ([mục 10.3](#103-banner-quảng-cáo-gallery)) |
 | 15 | Chuyển ảnh bài viết (`yp.com.vn/wp-content/uploads`) về server mới | Hiện vẫn phụ thuộc site WordPress cũ ([mục 11.2](#112-đồng-bộ-từ-wordpress)) |
-| 16 | API công khai cho bài viết (danh sách theo danh mục, chi tiết theo slug) | Dữ liệu đã đủ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)); làm theo [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
+| 16 | ~~API công khai cho bài viết (danh sách theo danh mục, chi tiết theo slug)~~ ✅ Xong 2026-10-08 ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) | Dữ liệu đã đủ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)); làm theo [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
 | 17 | Upload ảnh (ảnh đại diện, ảnh trong bài) lên server mới | Hiện chỉ dùng URL ảnh; ảnh dán từ Word nhúng base64 |
 | 18 | Sửa lỗi index chạy nền đọc DB trước khi commit cho các entity còn lại | Đã sửa cho bài viết ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)); listing, category, location, tag, blogcategory, user vẫn là code JHipster |
 | 19 | Tự reindex bài viết khi đổi tên, đổi cha của danh mục bài viết hoặc đổi tên thẻ | Hiện phải chạy tay `reindex?entities=blogpost` ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)) |
-| 20 | Nội dung bài cũ còn shortcode WPBakery (`[vc_row]`, `[vc_column_text]`… ở 371 bài) | ES đã bỏ qua khi tìm. Khi làm API công khai cho Next.js (#16) cần bỏ shortcode khỏi `content` (giữ phần chữ, ảnh bên trong) |
+| 20 | Nội dung bài cũ còn shortcode WPBakery (`[vc_row]`, `[vc_column_text]`… ở 371 bài). **Đã bỏ khi trả API công khai** ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)); còn lại: **ảnh trong `[vc_single_image image="id"]` bị mất** ở 363 bài, cần đồng bộ thêm media WordPress (`/wp/v2/media?include=…`) để đổi id thành URL ảnh | ES đã bỏ qua khi tìm. Khi làm API công khai cho Next.js (#16) cần bỏ shortcode khỏi `content` (giữ phần chữ, ảnh bên trong) |
 | 21 | Bộ lọc danh mục, thẻ trên trang danh sách bài viết (quản trị) | API đã có (`categoryId`, `tagId`); giao diện hiện chỉ có ô tìm kiếm |
 
 ---
