@@ -50,6 +50,35 @@
         "allDistricts": "-- All districts --",
         "allWards": "-- All wards --",
         "oldUnits": "Old administrative units (before 1 Jul 2025)"
+      },
+      "index": {
+        "title": "Location index",
+        "subtitleAll": "All provinces, districts and wards by letter",
+        "subtitleLetter": "All provinces, districts and wards starting with {{ letter }}",
+        "all": "All",
+        "searchPlaceholder": "Search locations...",
+        "clear": "Clear search",
+        "hideEmpty": "Hide places without businesses",
+        "sortName": "Name A–Z",
+        "sortCount": "Most businesses",
+        "generationLabel": "Boundaries",
+        "generation": {
+          "new": "New units (from 1 Jul 2025)",
+          "old": "Old units (before 1 Jul 2025)",
+          "all": "New and old units"
+        },
+        "levelLabel": "Level",
+        "allLevels": "All levels",
+        "startsWith": "Locations starting with:",
+        "allLetters": "All locations",
+        "matching": "name contains \"{{ q }}\"",
+        "count": "{{ count }} locations",
+        "found": "{{ count }} locations found",
+        "listings": "{{ count }} businesses",
+        "oldBadge": "Old",
+        "viewListings": "View businesses here (including sub-units)",
+        "notFound": "No locations found",
+        "treeView": "Tree view"
       }
     }
   }

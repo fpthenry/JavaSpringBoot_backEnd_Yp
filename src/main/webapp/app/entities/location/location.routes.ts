@@ -15,6 +15,11 @@ const locationRoute: Routes = [
     canActivate: [userRouteAccessService],
   },
   {
+    path: 'index',
+    loadComponent: () => import('./index/location-index').then(m => m.LocationIndex),
+    canActivate: [userRouteAccessService],
+  },
+  {
     path: 'tree',
     loadComponent: () => import('./tree/location-tree').then(m => m.LocationTree),
     canActivate: [userRouteAccessService],

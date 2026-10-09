@@ -117,6 +117,18 @@
                   <span jhiTranslate="global.menu.entities.locationTree">Đơn vị hành chính</span>
                 </a>
               </li>
+              <li>
+                <a
+                  class="dropdown-item ps-4"
+                  routerLink="/location/index"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  (click)="collapseNavbar()"
+                >
+                  <fa-icon icon="arrow-down-a-z" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.locationIndex">Mục lục A–Z</span>
+                </a>
+              </li>
               @for (level of locationLevels; track level.type) {
                 <li>
                   <a

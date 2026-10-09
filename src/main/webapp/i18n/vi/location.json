@@ -50,6 +50,35 @@
         "allDistricts": "-- Tất cả quận/huyện --",
         "allWards": "-- Tất cả phường/xã --",
         "oldUnits": "Địa giới cũ (trước 01/7/2025)"
+      },
+      "index": {
+        "title": "Mục lục tỉnh thành",
+        "subtitleAll": "Danh sách đầy đủ tỉnh thành, phường xã theo bảng chữ cái",
+        "subtitleLetter": "Danh sách đầy đủ tỉnh thành, phường xã bắt đầu bằng chữ cái {{ letter }}",
+        "all": "Tất cả",
+        "searchPlaceholder": "Tìm kiếm tỉnh thành...",
+        "clear": "Xóa tìm kiếm",
+        "hideEmpty": "Ẩn nơi chưa có doanh nghiệp",
+        "sortName": "Tên A–Z",
+        "sortCount": "Nhiều doanh nghiệp nhất",
+        "generationLabel": "Địa giới",
+        "generation": {
+          "new": "Địa giới mới (từ 01/7/2025)",
+          "old": "Địa giới cũ (trước 01/7/2025)",
+          "all": "Cả địa giới mới và cũ"
+        },
+        "levelLabel": "Cấp",
+        "allLevels": "Mọi cấp",
+        "startsWith": "Tỉnh thành bắt đầu bằng chữ:",
+        "allLetters": "Tất cả tỉnh thành",
+        "matching": "tên có \"{{ q }}\"",
+        "count": "{{ count }} tỉnh thành",
+        "found": "Tìm thấy {{ count }} tỉnh thành",
+        "listings": "{{ count }} doanh nghiệp",
+        "oldBadge": "Cũ",
+        "viewListings": "Xem doanh nghiệp tại đây (gồm các đơn vị con)",
+        "notFound": "Không có tỉnh thành nào",
+        "treeView": "Dạng cây"
       }
     }
   }

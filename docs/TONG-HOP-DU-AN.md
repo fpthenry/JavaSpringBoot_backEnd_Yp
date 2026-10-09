@@ -860,6 +860,34 @@ Thời gian 35–370 ms.
 
 > ⚠️ Đọc cột nullable bằng JDBC: dùng `rs.getObject("parent_id", Long.class)`. `rs.wasNull()` chỉ đúng với cột đọc ngay trước nó; lần chạy thử đầu tiên đã coi mọi xã mới là tỉnh vì lỗi này (chưa ghi gì nhờ `dryRun`).
 
+### 7.11 Mục lục tỉnh thành A–Z (trang quản trị)
+
+> Làm ngày 2026-10-09. Giao diện theo trang **Mục lục tỉnh thành** của FE cũ ("Tìm thấy 15203 tỉnh thành", dãy chữ cái có **Đ riêng**, thẻ "Xã Châu Thới – 5 doanh nghiệp"), cùng kiểu với [mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị).
+
+**Mở:** menu **Thực thể → Tỉnh thành → Mục lục A–Z**, hoặc `/location/index`.
+
+| Vùng | Chức năng |
+|---|---|
+| Đầu trang (nền xanh) | Nút **Tất cả** và các chữ cái có đơn vị: A–D, **Đ**, E–Z, `#` (tên bắt đầu bằng số: "Phường 1", "Quận 12"). Chữ cái tính theo **tên riêng**, bỏ "Tỉnh", "Thành phố", "Quận", "Huyện", "Thị xã", "Phường", "Xã", "Thị trấn", "Đặc khu": "Xã Châu Thới" ở chữ **C**. Chữ có dấu khác gộp vào chữ gốc (Ô → O, Ư → U) |
+| Ô tìm kiếm | Không phân biệt dấu, **khớp đầu từ** trong tên đơn vị hoặc tên tỉnh: `dong anh` → Xã Đông Anh (không ra "Đạo Thạnh, Đồng Tháp"); `vinh tuy ha noi` → đúng Phường Vĩnh Tuy của Hà Nội (còn 2 xã Vĩnh Tuy ở An Giang, Tuyên Quang). Gõ xong 300 ms mới gọi API |
+| Địa giới | **Địa giới mới (từ 01/7/2025)** mặc định, **cũ**, hoặc **cả hai** (đơn vị cũ có nhãn "Cũ") |
+| Cấp | Mọi cấp, Tỉnh/thành, Quận/huyện (chỉ khi xem địa giới cũ), Phường/xã |
+| Sắp xếp, ẩn | **Tên A–Z** (theo tên riêng, Đ sau D) hoặc **Nhiều doanh nghiệp nhất**; **Ẩn nơi chưa có doanh nghiệp** (mặc định bật) |
+| Thẻ (60 thẻ/trang) | Ô số doanh nghiệp rút gọn, tên, **dòng phụ để phân biệt đơn vị trùng tên**: xã mới → tỉnh; phường cũ → "Quận Hai Bà Trưng, Thành phố Hà Nội"; tỉnh → "Tỉnh/thành". **Bấm thẻ** → `/listing?filter[locationTreeId.equals]=id`: trang Listing tự bật địa giới cũ nếu là đơn vị cũ và chọn sẵn đủ các cấp |
+
+Trạng thái lưu trên URL: `/location/index?letter=Đ&q=dong&gen=old&level=ward&sort=count&page=2&all=true`.
+
+**Dữ liệu:** `GET /api/location-index/letters`, `GET /api/location-index` (đăng nhập JWT), cùng tham số và logic với API công khai [mục 10.7](#107-tỉnh-thành-mục-lục-theo-chữ-cái-số-doanh-nghiệp).
+
+| File | Nội dung |
+|---|---|
+| [`web/rest/LocationIndexResource.java`](../src/main/java/com/mycompany/myapp/web/rest/LocationIndexResource.java) | 2 API quản trị, dùng `PublicLocationService` |
+| [`entities/location/index/location-index.ts`](../src/main/webapp/app/entities/location/index/location-index.ts), `.html`, `.scss` | Trang mục lục; `placeOf()` dựng dòng phụ; dùng lại `shortCount()` của mục lục ngành nghề |
+| [`entities/location/service/location-index.service.ts`](../src/main/webapp/app/entities/location/service/location-index.service.ts) | Gọi `/api/location-index` |
+| `location.routes.ts` (route `index`), `navbar.html` (mục **Mục lục A–Z** trong nhóm Tỉnh thành), `i18n/{vi,en}/location.json` (`location.index.*`), `global.json` (`menu.entities.locationIndex`) | Gắn trang vào ứng dụng |
+
+**Kiểm thử (2026-10-09):** [`location-index.spec.ts`](../src/main/webapp/app/entities/location/index/location-index.spec.ts) 6/6 (dòng phụ; mặc định địa giới mới; đọc URL, bỏ tham số lạ; đổi địa giới bỏ cấp quận/huyện; chữ Đ và gõ tìm; link sang Listing), ESLint sạch. Chrome headless trên app: mở trang (3.177 đơn vị mới có doanh nghiệp), bấm Đ (233), thêm "dong anh"; chuyển "cả mới và cũ" + "thanh luong"; bấm thẻ xã cũ sang Listing (bật địa giới cũ, chọn đủ Tỉnh Thanh Hóa → Huyện Thọ Xuân → Xã Bắc Lương, 11 doanh nghiệp); mở URL `gen=old&level=district&sort=count` (713 quận huyện có doanh nghiệp, Quận 12 TP.HCM đứng đầu).
+
 ---
 
 ## 8. Elasticsearch
@@ -1350,7 +1378,7 @@ export async function getGallery(code: string) {
 | Danh sách doanh nghiệp theo ngành, khu vực, nổi bật; tìm theo tên, mã số thuế, địa chỉ | `/listings?category=&location=&q=&featured=` | ✅ (tìm kiếm cần Elasticsearch giai đoạn 2–3) | Chưa làm |
 | Doanh nghiệp liên quan; số doanh nghiệp theo tỉnh trong một ngành | `/listings/{slug}/related`, `/listings/facets` | ✅ | Chưa làm |
 | Ngành nghề (slug, id, chữ cái đầu, con) | `/categories/letters`, `/categories?letter=&q=` | ✅ (số doanh nghiệp tự tính, [mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) | ✅ Mục lục chữ cái xong 2026-10-08; chi tiết theo slug, ngành con: chưa làm |
-| Địa phương (cấp 1, con, slug) | `/locations` | ✅ | Chưa làm |
+| Địa phương (cấp 1, con, slug) | `/locations/letters`, `/locations?letter=&q=&generation=&level=` | ✅ (số doanh nghiệp đếm trên ES, [mục 10.7](#107-tỉnh-thành-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) | ✅ Mục lục chữ cái xong 2026-10-09; chi tiết theo slug, đơn vị con: chưa làm |
 | Tin tức, sự kiện; cây danh mục bài viết | `/blog-posts`, `/blog-posts/{slug}`, `/blog-categories/tree`, `/blog-categories/{slug}` | ✅ Đã đồng bộ 2.433 bài, 52 danh mục, 54 thẻ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)) | ✅ Xong 2026-10-08 ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
 | Mã ngành (`industry_code`) của ngành nghề | | ⚠️ Không có trong `jhipster_vnyp` | Chờ dữ liệu |
 
@@ -1485,6 +1513,41 @@ Ngành nhỏ khớp tuyệt đối; ngành lớn lệch dưới 0,5% so với FE
 | [`CategorySubtreeCounterTest`](../src/test/java/com/mycompany/myapp/service/CategorySubtreeCounterTest.java): đếm cả ngành con, listing gắn 2 ngành cùng nhánh chỉ đếm 1 lần ở tổ tiên, bỏ listing nháp, ngành không tồn tại, vòng lặp | 1/1 ✅ |
 | [`PublicCategoryServiceTest`](../src/test/java/com/mycompany/myapp/service/PublicCategoryServiceTest.java): chữ cái đầu bỏ dấu (Lắp, Đá, ống, Ưu, ăn, 3D); giải mã `&amp;`; mục lục A–Z rồi `#`; lọc `l`, `đ`, `#`; tìm không dấu nhiều từ; ẩn ngành trống; sắp theo số doanh nghiệp; phân trang; tham số sai → 400 | 5/5 ✅ |
 | Gọi thật trên app: job 202 → DONE, cập nhật 2.195 dòng, reindex category tự chạy; các API trên trả đúng; `letter=LA`, `sort=slug` → 400; thiếu khóa → 401 | ✅ |
+
+### 10.7 Tỉnh thành: mục lục theo chữ cái, số doanh nghiệp
+
+> Làm ngày 2026-10-09. Thay cho trang **Mục lục tỉnh thành** của FE cũ. Trang quản trị: [mục 7.11](#711-mục-lục-tỉnh-thành-az-trang-quản-trị).
+
+| API (cần `X-API-Key`, Swagger nhóm **public-location**, Cache-Control 5 phút) | Dùng cho |
+|---|---|
+| `GET /api/public/v1/locations/letters?generation=&level=&hideEmpty=` | Dãy nút chữ cái: `[{ "letter": "Đ", "count": 244 }, …]` theo A–D, Đ, E–Z, `#` cuối |
+| `GET /api/public/v1/locations?letter=&q=&generation=&level=&hideEmpty=&page=&size=&sort=` | Thẻ đơn vị và ô tìm kiếm, trả `{ items, page, size, totalItems, totalPages }` |
+
+Mỗi đơn vị: `{ id, name, slug, type, isNew, letter, parentId, parentName, provinceName, listingCount }`.
+
+| Tham số | Ý nghĩa |
+|---|---|
+| `letter` | Một chữ cái, không phân biệt hoa thường. **Khác mục lục ngành nghề: Đ là chữ riêng** (như FE cũ); chữ có dấu khác gộp vào chữ gốc (`ô` = O). Chữ cái của đơn vị lấy theo **tên riêng** (bỏ "Xã", "Phường", "Tỉnh", "Thành phố"…). `#`: tên bắt đầu bằng số ("Phường 1", "Quận 12"). Sai (`ab`, `1`) → 400 |
+| `q` | Không phân biệt dấu, hoa thường; mỗi từ phải là **đầu một từ** trong tên đơn vị hoặc tên tỉnh (`dong anh`, `vinh tuy ha noi`, `chau thoi`) |
+| `generation` | `new` (mặc định, địa giới từ 01/7/2025, slug đuôi `-2025`), `old`, `all`. Sai → 400 |
+| `level` | `province`, `district` (chỉ bộ cũ), `ward`; bỏ trống = mọi cấp. Sai → 400 |
+| `hideEmpty=true` | Bỏ đơn vị chưa có doanh nghiệp |
+| `sort` | Mặc định theo chữ cái rồi tên riêng (tiếng Việt); `listingCount,desc` để nơi nhiều doanh nghiệp lên trước. Field khác → 400. `size` tối đa 500 |
+
+- **`provinceName`, `parentName`**: nhiều xã trùng tên (3 "Vĩnh Tuy" ở Hà Nội, An Giang, Tuyên Quang; bộ cũ mỗi quận TP.HCM có một "Phường 1"), FE phải hiện tỉnh (và quận với đơn vị cũ) để phân biệt.
+- **`listingCount`**: số doanh nghiệp **đã xuất bản** của đơn vị **và mọi đơn vị con**, cùng nghĩa với bộ lọc `locationTreeId` ([mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3)). Khác ngành nghề (cột tính sẵn bằng job), số này lấy bằng **một phép đếm gộp trên Elasticsearch**: `terms` aggregation trên field `locationIds` của index `listing` (đã gồm các cấp cha) với `status = publish`, ~12.900 nhóm, khoảng 1 s. Không cần cột mới hay job.
+- **Bộ nhớ đệm:** danh sách ~15.300 đơn vị (đã sắp theo tên bằng `CollationKey` tiếng Việt) và số doanh nghiệp giữ 10 phút trong [`PublicLocationService`](../src/main/java/com/mycompany/myapp/service/PublicLocationService.java). Lần gọi đầu ~0,5 s, sau đó 10–40 ms. **Sửa tên địa phương hoặc reindex `listing` thì tối đa 10 phút sau mới thấy** (hoặc khởi động lại app). ES lỗi: dùng tạm bản cũ, chưa có bản cũ thì số = 0, API không lỗi.
+
+```
+GET /api/public/v1/locations/letters?hideEmpty=true              # dãy nút, địa giới mới
+GET /api/public/v1/locations?letter=C&hideEmpty=true&size=60      # các xã, phường, tỉnh chữ C
+GET /api/public/v1/locations?q=chau thoi&generation=all           # ô tìm kiếm, cả cũ và mới
+GET /api/public/v1/locations?level=province&sort=listingCount,desc  # tỉnh nhiều doanh nghiệp nhất
+```
+
+**Số liệu 2026-10-09:** 15.314 đơn vị (3.355 mới: 34 tỉnh, 3.321 xã phường; 11.959 cũ: 64 tỉnh, 715 quận huyện, 11.180 xã phường); 3.177 đơn vị mới có doanh nghiệp. TP.HCM mới 670.509, Hà Nội mới 271.040, Phường Vĩnh Tuy 2.375. FE cũ ghi "15203 tỉnh thành": gần đúng tổng hai bộ (`generation=all`).
+
+**Kiểm thử:** [`PublicLocationServiceTest`](../src/test/java/com/mycompany/myapp/service/PublicLocationServiceTest.java) 6/6 (chữ cái theo tên riêng, Đ riêng; tỉnh và đơn vị cha; lọc địa giới, cấp, ẩn trống; Đ sau D; xã trùng tên phân biệt theo tỉnh; từ khóa khớp đầu từ; sắp xếp, phân trang; tên bắt đầu bằng số xếp cuối; tham số sai → 400). Gọi thật trên app: các ví dụ trên; `letter=ab`, `generation=x`, `sort=slug` → 400; thiếu khóa → 401.
 
 ---
 
@@ -1691,7 +1754,7 @@ Lưu ý:
 | `shared/tree/*` | Dùng chung: `createTreeSource()`, `jhi-tree-view` (cây tải dần, link "Xem doanh nghiệp"), `jhi-tree-filter` (dãy ô chọn theo số cấp thực tế, đồng bộ với URL `filter[...]`) | Dùng cho cả địa phương và ngành nghề |
 | `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | 2 bộ lọc `jhi-tree-filter` (địa phương, ngành nghề); trong spec thay bằng stub | |
 | `entities/location/tree/*`, `entities/category/tree/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Cây ngành nghề) | |
-| `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree`; ngành nghề thêm route `index` (Mục lục A–Z, [mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị)) | |
+| `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree`; cả hai thêm route `index` (Mục lục A–Z, [mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị), [mục 7.11](#711-mục-lục-tỉnh-thành-az-trang-quản-trị)) | |
 | `layouts/navbar/navbar.html`, `navbar.ts` | Các nhóm menu: **Tỉnh thành** (Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã), **Ngành nghề** (Cây ngành nghề, Danh sách), **Blogs** (Bài viết, Danh mục bài viết, Thẻ), **Banner quảng cáo** (Vị trí banner, Ảnh banner); icon `newspaper`, `folder-tree`, `tags` | Sinh lại entity thì JHipster thêm lại mục menu rời (tên tiếng Anh) ở cuối danh sách; xóa và đưa vào nhóm |
 | `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `briefcase`, `circle`, `chevron-*`, `location-dot`, `spinner`, `arrow-down-a-z`, `table-cells-large` | |
 | `src/main/docker/elasticsearch.yml`, `services.yml` | Heap 1 GB, named volume `elasticsearch-data`, healthcheck chờ `yellow`; service `kibana` (profile `kibana`) | Xem [mục 8.3](#83-cấu-hình-container-giai-đoạn-0-xong-2026-10-01), [mục 8.2](#82-giao-diện-quản-trị-elasticsearch) |
@@ -1706,6 +1769,7 @@ Lưu ý:
 | `domain/Listing.java`, `service/dto/ListingDTO.java` (field `addressNew`), `ListingAsserts.java`, `yp-schema.jdl`, `liquibase/changelog/20261008110000_listing_address_new.xml` + `master.xml`; `entities/listing/` (model, form, chi tiết, danh sách, spec), `i18n/{vi,en}/listing.json` | Địa chỉ mới của doanh nghiệp | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). JDL đã có field này; **sinh lại Listing** thì JHipster tạo changelog thêm cột trùng: xóa changelog đó vì cột đã có |
 | `entities/listing/list/listing.ts`, `listing.html`, `listing.spec.ts`; `shared/tree/tree-source.ts` (`rootCriteria`), `tree-filter.ts` (dựng lại khi đổi nguồn), `tree-filter.spec.ts`; `repository/search/ListingSearchRepository.java` (AND, đếm đủ); `domain/Listing.java` (`@Setting`), `config/elasticsearch/listing-settings.json`; `application.yml` (`relaxed-query-chars`); `i18n/{vi,en}/location.json`, `listing.json` | Trang Listing theo địa giới mới, tìm được địa chỉ cũ | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). Sinh lại Listing sẽ mất `@Setting`, cột địa chỉ gộp, công tắc địa giới, sửa tìm kiếm |
 | `domain/Listing.java` (`categoryIds`, `locationIds`, `sortId`), `repository/search/ListingSearchRepository.java`, `ListingSearchFields.java`, `ListingSearchFilter.java` (file mới), `service/ListingService.java`, `service/impl/ListingServiceImpl.java`, `service/ListingQueryService.java` (`onlyTreeFilters`), `web/rest/ListingResource.java` (`_search` nhận bộ lọc cây), `service/ElasticsearchReindexService.java` | Lọc listing theo cây trên ES, tìm kết hợp bộ lọc | [Mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3). **Sinh lại Listing sẽ mất**, lọc quay về MySQL chậm |
+| `web/rest/LocationIndexResource.java`, `entities/location/index/*`, `entities/location/service/location-index.service.ts`, `web/rest/publicapi/PublicLocationResource.java`, `service/PublicLocationService.java`, `service/dto/publicapi/PublicLocationDTO.java` (file mới); mục **Mục lục A–Z** trong `navbar.html` (nhóm Tỉnh thành); `i18n/{vi,en}/location.json` (`location.index.*`), `global.json` | Mục lục tỉnh thành A–Z, API công khai | [Mục 7.11](#711-mục-lục-tỉnh-thành-az-trang-quản-trị), [mục 10.7](#107-tỉnh-thành-mục-lục-theo-chữ-cái-số-doanh-nghiệp). Sinh lại Location: kiểm tra `location.routes.ts` còn route `index`, menu và `location.json` còn khóa `index` |
 | `web/rest/CategoryIndexResource.java`, `entities/category/index/*`, `entities/category/service/category-index.service.ts` (file mới); mục **Mục lục A–Z** trong `navbar.html` (nhóm Ngành nghề) | Trang Mục lục ngành nghề A–Z | [Mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị). Sinh lại Category: kiểm tra `category.routes.ts` còn route `index`, menu còn mục này |
 | `web/rest/publicapi/PublicCategoryResource.java`, `service/PublicCategoryService.java`, `repository/CategoryPublicRepository.java`, `service/dto/publicapi/PublicCategoryDTO.java`, `service/CategoryListingCountService.java`, `service/CategorySubtreeCounter.java`, `web/rest/CategoryListingCountResource.java` (file mới) | Mục lục ngành nghề theo chữ cái; job tính số doanh nghiệp | File viết tay ([mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) |
 | `web/rest/publicapi/PublicBlogResource.java`, `service/PublicBlogService.java`, `service/BlogContent.java`, `repository/BlogPublicRepository.java`, `service/dto/publicapi/PublicBlog*DTO.java`, `PublicPageDTO.java` (file mới) | API công khai bài viết, cây danh mục | File viết tay ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
