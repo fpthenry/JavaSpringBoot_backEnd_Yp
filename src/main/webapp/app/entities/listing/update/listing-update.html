@@ -208,6 +208,29 @@
         </div>
 
         <div class="mb-3">
+          <label class="form-label" for="field_addressNew" jhiTranslate="javaSpringBootBackEndApp.listing.addressNew">Địa chỉ mới</label>
+          <textarea
+            class="form-control"
+            name="addressNew"
+            id="field_addressNew"
+            data-cy="addressNew"
+            formControlName="addressNew"
+            rows="2"
+            [placeholder]="'javaSpringBootBackEndApp.listing.help.addressNew' | translate"
+          ></textarea>
+          @let addressNewRef = editForm.get('addressNew')!;
+          @if (addressNewRef.invalid && (addressNewRef.dirty || addressNewRef.touched)) {
+            <div>
+              @if (addressNewRef.errors?.maxlength) {
+                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '500' }"
+                  >This field cannot be longer than 500 characters.</small
+                >
+              }
+            </div>
+          }
+        </div>
+
+        <div class="mb-3">
           <label
             class="form-label"
             for="field_locationJson"

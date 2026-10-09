@@ -24,15 +24,22 @@ interface TreeEntityService<T> {
 /** Một cấp có tối đa vài trăm nút con, tải một lần là đủ. */
 const CHILDREN_PAGE_SIZE = 1000;
 
-/** Tạo nguồn cây từ service entity JHipster (dùng filter `parentId` có sẵn của API). */
+/**
+ * Tạo nguồn cây từ service entity JHipster (dùng filter `parentId` có sẵn của API).
+ * `rootCriteria`: điều kiện thêm cho cấp gốc, ví dụ chỉ lấy tỉnh mới `{ 'slug.contains': '-2025' }`.
+ */
 export const createTreeSource = <T extends TreeItem>(
   service: TreeEntityService<T>,
-  { rootSort = 'id,asc', childSort = 'name,asc' } = {},
+  {
+    rootSort = 'id,asc',
+    childSort = 'name,asc',
+    rootCriteria = {},
+  }: { rootSort?: string; childSort?: string; rootCriteria?: Record<string, unknown> } = {},
 ): TreeSource<T> => {
   const list = (criteria: Record<string, unknown>): Observable<T[]> =>
     service.query({ ...criteria, page: 0, size: CHILDREN_PAGE_SIZE }).pipe(map(res => res.body ?? []));
   return {
-    roots: () => list({ 'parentId.specified': false, sort: [rootSort] }),
+    roots: () => list({ ...rootCriteria, 'parentId.specified': false, sort: [rootSort] }),
     children: parentId => list({ 'parentId.equals': parentId, sort: [childSort] }),
     find: id => service.find(id),
   };

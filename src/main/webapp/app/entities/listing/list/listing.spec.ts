@@ -1,4 +1,5 @@
 import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HttpResponse } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -10,6 +11,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal';
 import { provideTranslateService } from '@ngx-translate/core';
 import { Subject, of } from 'rxjs';
 
+import { LocationService } from 'app/entities/location/service/location.service';
 import { IFilterOptions } from 'app/shared/filter';
 import { TreeFilter, TreeSource } from 'app/shared/tree';
 import { sampleWithRequiredData } from '../listing.test-samples';
@@ -138,6 +140,34 @@ describe('Listing Management Component', () => {
 
     // THEN - subscription is still alive and second load succeeds
     expect(comp.listings()[0]).toEqual(expect.objectContaining({ id: 14276 }));
+  });
+
+  it('địa phương: mặc định tỉnh mới (2 cấp); bật địa giới cũ thì lấy tỉnh cũ (3 cấp) và bỏ lựa chọn đang có', () => {
+    TestBed.tick();
+    httpMock.expectOne({ method: 'GET' });
+    const query = vi.spyOn(TestBed.inject(LocationService), 'query').mockReturnValue(of(new HttpResponse({ body: [] })));
+
+    comp.locationTree().roots().subscribe();
+    expect(query).toHaveBeenLastCalledWith(expect.objectContaining({ 'slug.contains': '-2025', 'parentId.specified': false }));
+    expect(comp.locationPlaceholders()).toHaveLength(2);
+
+    comp.filters.addFilter('locationTreeId.equals', '11960');
+    comp.toggleOldLocations();
+    expect(comp.oldLocations()).toBe(true);
+    expect(comp.filters.filterOptions.find(option => option.name === 'locationTreeId.equals')?.values ?? []).toEqual([]);
+    comp.locationTree().roots().subscribe();
+    expect(query).toHaveBeenLastCalledWith(expect.objectContaining({ 'slug.doesNotContain': '-2025' }));
+    expect(comp.locationPlaceholders()).toHaveLength(3);
+  });
+
+  it('tìm kiếm: không gửi sort để xếp theo độ liên quan', () => {
+    TestBed.tick();
+    httpMock.expectOne({ method: 'GET' });
+    comp.search('11 ngõ 51 lãng yên');
+    expect(routerNavigateSpy).toHaveBeenLastCalledWith(
+      ['./'],
+      expect.objectContaining({ queryParams: expect.objectContaining({ search: '11 ngõ 51 lãng yên', sort: [] }) }),
+    );
   });
 
   describe('trackId', () => {

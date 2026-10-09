@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.repository.ListingRepository;
+import com.mycompany.myapp.repository.search.ListingSearchFilter;
 import com.mycompany.myapp.service.ListingQueryService;
 import com.mycompany.myapp.service.ListingService;
 import com.mycompany.myapp.service.criteria.ListingCriteria;
@@ -210,12 +211,20 @@ public class ListingResource {
      */
     @GetMapping("/_search")
     public ResponseEntity<List<ListingDTO>> searchListings(
-        @RequestParam("query") String query,
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "Từ khóa, phải có đủ mọi chữ; tìm trên mọi field, gồm địa chỉ cũ (address) và địa chỉ mới (addressNew). Cú pháp query_string: addressNew:\"Phường Vĩnh Tuy\""
+        ) @RequestParam(name = "query", required = false) String query,
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "Sửa tay: chỉ lấy doanh nghiệp thuộc địa phương này (bộ cũ hoặc mới) và các đơn vị con"
+        ) @RequestParam(name = "locationTreeId.equals", required = false) Long locationTreeId,
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "Sửa tay: chỉ lấy doanh nghiệp thuộc ngành này và các ngành con"
+        ) @RequestParam(name = "categoryTreeId.equals", required = false) Long categoryTreeId,
         @org.springdoc.core.annotations.ParameterObject Pageable pageable
     ) {
         LOG.debug("REST request to search for a page of Listings for query {}", query);
         try {
-            Page<ListingDTO> page = listingService.search(query, pageable);
+            Page<ListingDTO> page = listingService.search(new ListingSearchFilter(query, locationTreeId, categoryTreeId), pageable);
             HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
             return ResponseEntity.ok().headers(headers).body(page.getContent());
         } catch (RuntimeException e) {

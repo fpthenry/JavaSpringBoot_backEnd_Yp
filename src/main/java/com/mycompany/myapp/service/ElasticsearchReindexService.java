@@ -10,6 +10,7 @@ import com.mycompany.myapp.domain.Tag;
 import com.mycompany.myapp.domain.User;
 import com.mycompany.myapp.repository.BlogPostRepository;
 import com.mycompany.myapp.repository.search.BlogPostSearchFields;
+import com.mycompany.myapp.repository.search.ListingSearchFields;
 import jakarta.annotation.PreDestroy;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
@@ -70,6 +71,7 @@ public class ElasticsearchReindexService {
     private final ElasticsearchClient elasticsearchClient;
     private final BlogPostRepository blogPostRepository;
     private final BlogPostSearchFields blogPostSearchFields;
+    private final ListingSearchFields listingSearchFields;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "elasticsearch-reindex");
@@ -85,7 +87,8 @@ public class ElasticsearchReindexService {
         ElasticsearchTemplate elasticsearchTemplate,
         ElasticsearchClient elasticsearchClient,
         BlogPostRepository blogPostRepository,
-        BlogPostSearchFields blogPostSearchFields
+        BlogPostSearchFields blogPostSearchFields,
+        ListingSearchFields listingSearchFields
     ) {
         this.entityManager = entityManager;
         this.readOnlyTransaction = new TransactionTemplate(transactionManager);
@@ -94,6 +97,7 @@ public class ElasticsearchReindexService {
         this.elasticsearchClient = elasticsearchClient;
         this.blogPostRepository = blogPostRepository;
         this.blogPostSearchFields = blogPostSearchFields;
+        this.listingSearchFields = listingSearchFields;
     }
 
     /**
@@ -260,6 +264,10 @@ public class ElasticsearchReindexService {
         if (rows.get(0) instanceof BlogPost) {
             List<BlogPost> posts = rows.stream().map(BlogPost.class::cast).toList();
             return blogPostSearchFields.fill(new ArrayList<>(blogPostRepository.fetchBagRelationships(posts)));
+        }
+        if (rows.get(0) instanceof Listing) {
+            // Liên kết ngành, địa phương của cả lô: 2 câu JDBC theo khóa chính bảng nối, không lazy-load từng doanh nghiệp
+            return listingSearchFields.fillFromDatabase(new ArrayList<>(rows.stream().map(Listing.class::cast).toList()));
         }
         return new ArrayList<>(rows);
     }

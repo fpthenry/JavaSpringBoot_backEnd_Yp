@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay: địa chỉ theo địa giới hành chính mới (từ 01/7/2025). NULL khi cột address đã là địa chỉ mới
+        hoặc chưa xác định được đơn vị mới. Tạo bằng job POST /api/admin/administrative-units/new-addresses.
+        Field tương ứng đã thêm vào yp-schema.jdl (addressNew).
+    -->
+    <changeSet id="20261008110000-1" author="dev">
+        <addColumn tableName="listing">
+            <column name="address_new" type="varchar(500)" remarks="Địa chỉ theo địa giới mới (từ 01/7/2025); NULL nếu address đã là địa chỉ mới">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,19 @@
+{
+  "analysis": {
+    "char_filter": {
+      "dot_split": {
+        "type": "pattern_replace",
+        "pattern": "(?<=\\p{L})\\.(?=\\p{L})",
+        "replacement": " "
+      }
+    },
+    "analyzer": {
+      "default": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "char_filter": ["dot_split"],
+        "filter": ["lowercase"]
+      }
+    }
+  }
+}

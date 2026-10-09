@@ -52,16 +52,26 @@
     </div>
   </form>
 
-  <!-- Sửa tay: lọc theo cả cây địa phương (Tỉnh/thành -> Quận/huyện -> Phường/xã) và cây ngành nghề (tối đa 4 cấp) -->
+  <!-- Sửa tay: lọc theo cả cây địa phương và cây ngành nghề (tối đa 4 cấp).
+       Địa phương mặc định theo địa giới mới (tỉnh -> phường/xã); bật "Địa giới cũ" để lọc tỉnh -> quận/huyện -> phường/xã cũ. -->
+  <div class="form-check form-switch mt-3 mb-0">
+    <input
+      class="form-check-input"
+      type="checkbox"
+      id="oldLocations"
+      data-cy="oldLocations"
+      [checked]="oldLocations()"
+      (change)="toggleOldLocations()"
+    />
+    <label class="form-check-label" for="oldLocations" jhiTranslate="javaSpringBootBackEndApp.location.filter.oldUnits"
+      >Địa giới cũ (trước 01/7/2025)</label
+    >
+  </div>
   <jhi-tree-filter
     [filters]="filters"
-    [source]="locationTree"
+    [source]="locationTree()"
     filterName="locationTreeId.equals"
-    [placeholders]="[
-      'javaSpringBootBackEndApp.location.filter.allProvinces',
-      'javaSpringBootBackEndApp.location.filter.allDistricts',
-      'javaSpringBootBackEndApp.location.filter.allWards',
-    ]"
+    [placeholders]="locationPlaceholders()"
   />
   <jhi-tree-filter
     [filters]="filters"
@@ -104,6 +114,15 @@
             <th scope="col" jhiSortBy="name">
               <div class="d-flex">
                 <span jhiTranslate="javaSpringBootBackEndApp.listing.name">Name</span>
+                @if (!currentSearch()) {
+                  <fa-icon class="p-1" icon="sort" />
+                }
+              </div>
+            </th>
+            <!-- Sửa tay: địa chỉ mới (từ 01/7/2025) ở dòng chính, địa chỉ cũ dòng nhỏ; đặt ngay sau tên -->
+            <th scope="col" jhiSortBy="addressNew" style="min-width: 18rem">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.addressColumn">Địa chỉ</span>
                 @if (!currentSearch()) {
                   <fa-icon class="p-1" icon="sort" />
                 }
@@ -168,14 +187,6 @@
             <th scope="col" jhiSortBy="website">
               <div class="d-flex">
                 <span jhiTranslate="javaSpringBootBackEndApp.listing.website">Website</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="address">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.listing.address">Address</span>
                 @if (!currentSearch()) {
                   <fa-icon class="p-1" icon="sort" />
                 }
@@ -331,6 +342,16 @@
               <td>{{ listing.wpId }}</td>
               <td>{{ listing.apiId }}</td>
               <td>{{ listing.name }}</td>
+              <td>
+                @if (listing.addressNew) {
+                  <div>{{ listing.addressNew }}</div>
+                  <div class="small text-muted">
+                    <span jhiTranslate="javaSpringBootBackEndApp.listing.oldAddress">Cũ</span>: {{ listing.address }}
+                  </div>
+                } @else {
+                  {{ listing.address }}
+                }
+              </td>
               <td>{{ listing.nameEn }}</td>
               <td>{{ listing.nameAlias }}</td>
               <td>{{ listing.slug }}</td>
@@ -339,7 +360,6 @@
               <td>{{ listing.mobile }}</td>
               <td>{{ listing.email }}</td>
               <td>{{ listing.website }}</td>
-              <td>{{ listing.address }}</td>
               <td>{{ listing.locationJson }}</td>
               <td>{{ listing.taxCode }}</td>
               <td>{{ listing.representative }}</td>

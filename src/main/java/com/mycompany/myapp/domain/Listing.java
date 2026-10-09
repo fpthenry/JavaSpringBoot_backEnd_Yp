@@ -15,6 +15,9 @@ import java.util.Set;
 @Entity
 @Table(name = "listing")
 @org.springframework.data.elasticsearch.annotations.Document(indexName = "listing")
+// Sửa tay: analyzer mặc định tách dấu chấm giữa hai chữ cái ("P.THANH LƯƠNG", "Q.HAI BÀ TRƯNG"), để tìm được "Thanh Lương".
+// Đổi file này thì phải reindex listing.
+@org.springframework.data.elasticsearch.annotations.Setting(settingPath = "config/elasticsearch/listing-settings.json")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class Listing implements Serializable {
 
@@ -217,6 +220,26 @@ public class Listing implements Serializable {
         }
     )
     private String address;
+
+    /**
+     * Địa chỉ theo địa giới hành chính mới (từ 01/7/2025); null nếu address đã là địa chỉ mới
+     */
+    // Sửa tay (changelog 20261008110000_listing_address_new.xml): tạo bằng job new-addresses, quản trị viên sửa được
+    @Size(max = 500)
+    @Column(name = "address_new", length = 500)
+    @org.springframework.data.elasticsearch.annotations.MultiField(
+        mainField = @org.springframework.data.elasticsearch.annotations.Field(
+            type = org.springframework.data.elasticsearch.annotations.FieldType.Text
+        ),
+        otherFields = {
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "keyword",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
+                ignoreAbove = 256
+            ),
+        }
+    )
+    private String addressNew;
 
     /**
      * JSON gốc: province, ward, street, province_code, ward_code, coordinate dạng lat:long (giữ nguyên dạng text)
@@ -481,6 +504,21 @@ public class Listing implements Serializable {
     @org.springframework.data.annotation.Transient
     private Set<Location> locations = new HashSet<>();
 
+    // Sửa tay: các field dưới chỉ có trong Elasticsearch (không phải cột DB), do ListingSearchFields điền trước khi index.
+    // categoryIds, locationIds gồm cả id các cấp cha, để lọc theo cả cây ngành nghề, địa phương (bộ cũ và bộ mới) trên ES.
+    @jakarta.persistence.Transient
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
+    private Set<Long> categoryIds = new HashSet<>();
+
+    @jakarta.persistence.Transient
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
+    private Set<Long> locationIds = new HashSet<>();
+
+    /** Bằng id, kiểu số: field id trong ES là keyword nên sắp theo id sẽ sai thứ tự ("100" trước "2"). */
+    @jakarta.persistence.Transient
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
+    private Long sortId;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -650,6 +688,19 @@ public class Listing implements Serializable {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getAddressNew() {
+        return this.addressNew;
+    }
+
+    public Listing addressNew(String addressNew) {
+        this.setAddressNew(addressNew);
+        return this;
+    }
+
+    public void setAddressNew(String addressNew) {
+        this.addressNew = addressNew;
     }
 
     public String getLocationJson() {
@@ -945,6 +996,30 @@ public class Listing implements Serializable {
         return this;
     }
 
+    public Set<Long> getCategoryIds() {
+        return categoryIds;
+    }
+
+    public void setCategoryIds(Set<Long> categoryIds) {
+        this.categoryIds = categoryIds;
+    }
+
+    public Set<Long> getLocationIds() {
+        return locationIds;
+    }
+
+    public void setLocationIds(Set<Long> locationIds) {
+        this.locationIds = locationIds;
+    }
+
+    public Long getSortId() {
+        return sortId;
+    }
+
+    public void setSortId(Long sortId) {
+        this.sortId = sortId;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -981,6 +1056,7 @@ public class Listing implements Serializable {
             ", email='" + getEmail() + "'" +
             ", website='" + getWebsite() + "'" +
             ", address='" + getAddress() + "'" +
+            ", addressNew='" + getAddressNew() + "'" +
             ", locationJson='" + getLocationJson() + "'" +
             ", taxCode='" + getTaxCode() + "'" +
             ", representative='" + getRepresentative() + "'" +

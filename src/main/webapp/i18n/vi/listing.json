@@ -31,6 +31,7 @@
       "email": "Email",
       "website": "Website",
       "address": "Address",
+      "addressNew": "Địa chỉ mới (từ 01/7/2025)",
       "locationJson": "Location Json",
       "taxCode": "Tax Code",
       "representative": "Representative",
@@ -58,8 +59,12 @@
         "slug": "Không unique: dữ liệu gốc có slug NULL và trùng",
         "locationJson": "JSON gốc: province, ward, street, province_code, ward_code, coordinate dạng lat:long (giữ nguyên dạng text)",
         "foundedYear": "Dạng text gốc (vd 2024-01-11), không ép kiểu ngày",
-        "status": "publish, draft"
-      }
+        "status": "publish, draft",
+        "addressNew": "Địa chỉ theo địa giới hành chính mới; để trống nếu địa chỉ trên đã là địa chỉ mới",
+        "addressNewEmpty": "Địa chỉ trên đã theo địa giới mới"
+      },
+      "addressColumn": "Địa chỉ",
+      "oldAddress": "Cũ"
     }
   }
 }

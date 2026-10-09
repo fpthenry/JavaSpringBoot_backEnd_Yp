@@ -81,6 +81,16 @@
           <dd>
             <span>{{ listingRef.address }}</span>
           </dd>
+          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.addressNew">Địa chỉ mới</span></dt>
+          <dd>
+            @if (listingRef.addressNew) {
+              <span>{{ listingRef.addressNew }}</span>
+            } @else {
+              <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listing.help.addressNewEmpty"
+                >Địa chỉ trên đã theo địa giới mới</span
+              >
+            }
+          </dd>
           <dt>
             <span
               [ngbTooltip]="'javaSpringBootBackEndApp.listing.help.locationJson' | translate"

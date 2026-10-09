@@ -2,6 +2,8 @@ package com.mycompany.myapp.service.impl;
 
 import com.mycompany.myapp.domain.Listing;
 import com.mycompany.myapp.repository.ListingRepository;
+import com.mycompany.myapp.repository.search.ListingSearchFields;
+import com.mycompany.myapp.repository.search.ListingSearchFilter;
 import com.mycompany.myapp.repository.search.ListingSearchRepository;
 import com.mycompany.myapp.service.ListingService;
 import com.mycompany.myapp.service.dto.ListingDTO;
@@ -29,14 +31,18 @@ public class ListingServiceImpl implements ListingService {
 
     private final ListingSearchRepository listingSearchRepository;
 
+    private final ListingSearchFields listingSearchFields;
+
     public ListingServiceImpl(
         ListingRepository listingRepository,
         ListingMapper listingMapper,
-        ListingSearchRepository listingSearchRepository
+        ListingSearchRepository listingSearchRepository,
+        ListingSearchFields listingSearchFields
     ) {
         this.listingRepository = listingRepository;
         this.listingMapper = listingMapper;
         this.listingSearchRepository = listingSearchRepository;
+        this.listingSearchFields = listingSearchFields;
     }
 
     @Override
@@ -44,7 +50,8 @@ public class ListingServiceImpl implements ListingService {
         LOG.debug("Request to save Listing : {}", listingDTO);
         Listing listing = listingMapper.toEntity(listingDTO);
         listing = listingRepository.save(listing);
-        listingSearchRepository.index(listing);
+        // Sửa tay: điền field tìm kiếm (ngành, địa phương kèm cấp cha) trong transaction này, index chạy nền chỉ ghi lên ES
+        listingSearchRepository.index(listingSearchFields.fill(listing));
         return listingMapper.toDto(listing);
     }
 
@@ -53,7 +60,8 @@ public class ListingServiceImpl implements ListingService {
         LOG.debug("Request to update Listing : {}", listingDTO);
         Listing listing = listingMapper.toEntity(listingDTO);
         listing = listingRepository.save(listing);
-        listingSearchRepository.index(listing);
+        // Sửa tay: điền field tìm kiếm (ngành, địa phương kèm cấp cha) trong transaction này, index chạy nền chỉ ghi lên ES
+        listingSearchRepository.index(listingSearchFields.fill(listing));
         return listingMapper.toDto(listing);
     }
 
@@ -70,7 +78,7 @@ public class ListingServiceImpl implements ListingService {
             })
             .map(listingRepository::save)
             .map(savedListing -> {
-                listingSearchRepository.index(savedListing);
+                listingSearchRepository.index(listingSearchFields.fill(savedListing));
                 return savedListing;
             })
             .map(listingMapper::toDto);
@@ -99,5 +107,12 @@ public class ListingServiceImpl implements ListingService {
     public Page<ListingDTO> search(String query, Pageable pageable) {
         LOG.debug("Request to search for a page of Listings for query {}", query);
         return listingSearchRepository.search(query, pageable).map(listingMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ListingDTO> search(ListingSearchFilter filter, Pageable pageable) {
+        LOG.debug("Request to search for a page of Listings for filter {}", filter);
+        return listingSearchRepository.search(filter, pageable).map(listingMapper::toDto);
     }
 }

@@ -48,7 +48,8 @@
         "ward": "Phường/xã",
         "allProvinces": "-- Tất cả tỉnh/thành --",
         "allDistricts": "-- Tất cả quận/huyện --",
-        "allWards": "-- Tất cả phường/xã --"
+        "allWards": "-- Tất cả phường/xã --",
+        "oldUnits": "Địa giới cũ (trước 01/7/2025)"
       }
     }
   }

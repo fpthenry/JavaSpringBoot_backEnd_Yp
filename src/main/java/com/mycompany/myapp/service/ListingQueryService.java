@@ -5,6 +5,7 @@ import com.mycompany.myapp.domain.Listing;
 import com.mycompany.myapp.repository.CategoryRepository;
 import com.mycompany.myapp.repository.ListingRepository;
 import com.mycompany.myapp.repository.LocationRepository;
+import com.mycompany.myapp.repository.search.ListingSearchFilter;
 import com.mycompany.myapp.repository.search.ListingSearchRepository;
 import com.mycompany.myapp.service.criteria.ListingCriteria;
 import com.mycompany.myapp.service.dto.ListingDTO;
@@ -86,6 +87,22 @@ public class ListingQueryService extends QueryService<Listing> {
         LOG.debug("find by criteria : {}, page: {}", criteria, page);
         final Specification<Listing> specification = createSpecification(criteria);
         if (hasTreeFilter(criteria)) {
+            if (onlyTreeFilters(criteria)) {
+                try {
+                    return listingSearchRepository
+                        .search(
+                            new ListingSearchFilter(
+                                null,
+                                equalsValue(criteria.getLocationTreeId()),
+                                equalsValue(criteria.getCategoryTreeId())
+                            ),
+                            page
+                        )
+                        .map(listingMapper::toDto);
+                } catch (RuntimeException e) {
+                    LOG.warn("Lọc theo cây trên Elasticsearch lỗi, dùng MySQL: {}", e.getMessage());
+                }
+            }
             return findInTree(specification, page);
         }
         return listingRepository.fetchBagRelationships(listingRepository.findAll(specification, page)).map(listingMapper::toDto);
@@ -124,6 +141,18 @@ public class ListingQueryService extends QueryService<Listing> {
         return listingRepository.fetchBagRelationships(new PageImpl<>(content, page, total)).map(listingMapper::toDto);
     }
 
+    /**
+     * Sửa tay: chỉ có bộ lọc theo cây (địa phương, ngành nghề), không có filter nào khác. Khi đó lọc trên Elasticsearch
+     * ({@code locationIds}, {@code categoryIds} gồm các cấp cha): nhanh với mọi nhóm, kể cả nhóm hàng trăm nghìn doanh nghiệp
+     * (MySQL mất 9–45 s). Có filter khác thì vẫn dùng MySQL.
+     */
+    static boolean onlyTreeFilters(ListingCriteria criteria) {
+        ListingCriteria rest = criteria.copy();
+        rest.setLocationTreeId(null);
+        rest.setCategoryTreeId(null);
+        return rest.equals(new ListingCriteria());
+    }
+
     private static boolean hasTreeFilter(ListingCriteria criteria) {
         return criteria != null && (equalsValue(criteria.getLocationTreeId()) != null || equalsValue(criteria.getCategoryTreeId()) != null);
     }
@@ -149,6 +178,15 @@ public class ListingQueryService extends QueryService<Listing> {
     @Transactional(readOnly = true)
     public long countByCriteria(ListingCriteria criteria) {
         LOG.debug("count by criteria : {}", criteria);
+        if (hasTreeFilter(criteria) && onlyTreeFilters(criteria)) {
+            try {
+                return listingSearchRepository.count(
+                    new ListingSearchFilter(null, equalsValue(criteria.getLocationTreeId()), equalsValue(criteria.getCategoryTreeId()))
+                );
+            } catch (RuntimeException e) {
+                LOG.warn("Đếm theo cây trên Elasticsearch lỗi, dùng MySQL: {}", e.getMessage());
+            }
+        }
         final Specification<Listing> specification = createSpecification(criteria);
         return listingRepository.count(specification);
     }

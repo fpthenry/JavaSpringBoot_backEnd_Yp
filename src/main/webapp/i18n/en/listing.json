@@ -31,6 +31,7 @@
       "email": "Email",
       "website": "Website",
       "address": "Address",
+      "addressNew": "New address (from 1 Jul 2025)",
       "locationJson": "Location Json",
       "taxCode": "Tax Code",
       "representative": "Representative",
@@ -58,8 +59,12 @@
         "slug": "Không unique: dữ liệu gốc có slug NULL và trùng",
         "locationJson": "JSON gốc: province, ward, street, province_code, ward_code, coordinate dạng lat:long (giữ nguyên dạng text)",
         "foundedYear": "Dạng text gốc (vd 2024-01-11), không ép kiểu ngày",
-        "status": "publish, draft"
-      }
+        "status": "publish, draft",
+        "addressNew": "Address under the new administrative units; leave empty if the address above is already new",
+        "addressNewEmpty": "The address above already uses the new administrative units"
+      },
+      "addressColumn": "Address",
+      "oldAddress": "Old"
     }
   }
 }

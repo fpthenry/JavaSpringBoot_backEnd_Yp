@@ -1,5 +1,6 @@
 package com.mycompany.myapp.service;
 
+import com.mycompany.myapp.repository.search.ListingSearchFilter;
 import com.mycompany.myapp.service.dto.ListingDTO;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -65,4 +66,13 @@ public interface ListingService {
      * @return the list of entities.
      */
     Page<ListingDTO> search(String query, Pageable pageable);
+
+    /**
+     * Sửa tay: tìm theo từ khóa (không bắt buộc) kết hợp lọc theo cây địa phương, ngành nghề, trên Elasticsearch.
+     *
+     * @param filter điều kiện tìm.
+     * @param pageable the pagination information.
+     * @return the list of entities.
+     */
+    Page<ListingDTO> search(ListingSearchFilter filter, Pageable pageable);
 }

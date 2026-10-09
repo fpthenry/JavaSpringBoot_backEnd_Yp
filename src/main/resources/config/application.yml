@@ -171,6 +171,10 @@ server:
     session:
       cookie:
         http-only: true
+  # Sửa tay: URL của trang danh sách có bộ lọc dạng filter[locationTreeId.equals]=...; trình duyệt không mã hóa [ ],
+  # Tomcat mặc định trả 400 "Invalid character found in the request target" khi F5 hoặc dán link có bộ lọc.
+  tomcat:
+    relaxed-query-chars: '[,]'
 
 springdoc:
   show-actuator: true

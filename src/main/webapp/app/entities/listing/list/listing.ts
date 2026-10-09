@@ -1,5 +1,5 @@
 import { HttpHeaders } from '@angular/common/http';
-import { Component, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Data, ParamMap, Router, RouterLink } from '@angular/router';
@@ -46,6 +46,10 @@ import { ListingService } from '../service/listing.service';
   ],
 })
 export class Listing {
+  /** Đuôi slug của đơn vị hành chính mới (từ 01/7/2025). */
+  static readonly NEW_UNIT_SUFFIX = '-2025';
+  static readonly LOCATION_FILTER = 'locationTreeId.equals';
+
   private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = [
     'apiId',
     'name',
@@ -58,6 +62,7 @@ export class Listing {
     'email',
     'website',
     'address',
+    'addressNew',
     'locationJson',
     'taxCode',
     'representative',
@@ -77,8 +82,19 @@ export class Listing {
   sortState = sortStateSignal({});
   readonly currentSearch = signal('');
   filters: IFilterOptions = new FilterOptions();
-  // Sửa tay: nguồn cây cho bộ lọc theo địa phương và ngành nghề
-  readonly locationTree = createTreeSource(inject(LocationService));
+  // Sửa tay: nguồn cây cho bộ lọc theo địa phương và ngành nghề.
+  // Địa phương có hai bộ: mới (từ 01/7/2025, slug đuôi -2025: tỉnh -> xã) và cũ (tỉnh -> huyện -> xã). Mặc định bộ mới.
+  readonly oldLocations = signal(false);
+  readonly locationTree = computed(() => (this.oldLocations() ? this.locationTreeOld : this.locationTreeNew));
+  readonly locationPlaceholders = computed(() =>
+    this.oldLocations()
+      ? [
+          'javaSpringBootBackEndApp.location.filter.allProvinces',
+          'javaSpringBootBackEndApp.location.filter.allDistricts',
+          'javaSpringBootBackEndApp.location.filter.allWards',
+        ]
+      : ['javaSpringBootBackEndApp.location.filter.allProvinces', 'javaSpringBootBackEndApp.location.filter.allWards'],
+  );
   readonly categoryTree = createTreeSource(inject(CategoryService));
 
   readonly itemsPerPage = signal(ITEMS_PER_PAGE);
@@ -100,6 +116,15 @@ export class Listing {
   protected readonly filterOptions = toSignal(this.filters.filterChanges);
   protected dataUtils = inject(DataUtils);
   protected modalService = inject(NgbModal);
+  protected readonly locationService = inject(LocationService);
+  protected readonly locationTreeNew = createTreeSource(this.locationService, {
+    rootSort: 'name,asc',
+    rootCriteria: { 'slug.contains': Listing.NEW_UNIT_SUFFIX },
+  });
+  protected readonly locationTreeOld = createTreeSource(this.locationService, {
+    rootSort: 'name,asc',
+    rootCriteria: { 'slug.doesNotContain': Listing.NEW_UNIT_SUFFIX },
+  });
 
   constructor() {
     effect(() => {
@@ -133,15 +158,19 @@ export class Listing {
 
   trackId = (item: IListing): number => this.listingService.getListingIdentifier(item);
 
+  /** Chuyển giữa địa giới mới và cũ: bỏ lựa chọn địa phương đang có (thuộc bộ kia) rồi đổi danh sách tỉnh. */
+  toggleOldLocations(): void {
+    const name = Listing.LOCATION_FILTER;
+    const values = this.filters.filterOptions.find(option => option.name === name)?.values ?? [];
+    [...values].forEach(value => this.filters.removeFilter(name, value));
+    this.oldLocations.update(old => !old);
+  }
+
   search(query: string): void {
     this.page.set(1);
     this.currentSearch.set(query);
-    const { predicate } = this.sortState();
-    if (query && predicate && Listing.NOT_SORTABLE_FIELDS_AFTER_SEARCH.includes(predicate)) {
-      this.navigateToWithComponentValues(this.getDefaultSortState());
-      return;
-    }
-    this.navigateToWithComponentValues(this.sortState());
+    // Sửa tay: có từ khóa thì không gửi sort, kết quả theo độ liên quan; xóa từ khóa thì về sắp xếp mặc định
+    this.navigateToWithComponentValues(query ? {} : this.getDefaultSortState());
   }
 
   getDefaultSortState(): SortState {
@@ -183,15 +212,29 @@ export class Listing {
   protected fillComponentAttributeFromRoute(params: ParamMap, data: Data): void {
     const page = params.get(PAGE_HEADER);
     this.page.set(+(page ?? 1));
-    this.sortState.set(this.sortService.parseSortParam(params.get(SORT) ?? data[DEFAULT_SORT_DATA]));
+    const searching = params.has('search') && params.get('search') !== '';
+    // Sửa tay: đang tìm mà URL không có sort thì giữ trống (theo độ liên quan)
+    this.sortState.set(this.sortService.parseSortParam(params.get(SORT) ?? (searching ? undefined : data[DEFAULT_SORT_DATA])));
     this.filters.initializeFromParams(params);
-    if (params.has('search') && params.get('search') !== '') {
+    this.detectLocationGeneration(params);
+    if (searching) {
       this.currentSearch.set(params.get('search') as string);
       const { predicate } = this.sortState();
       if (predicate && Listing.NOT_SORTABLE_FIELDS_AFTER_SEARCH.includes(predicate)) {
         this.sortState.set({});
       }
     }
+  }
+
+  /** Mở link đang lọc theo một đơn vị: bật chế độ địa giới cũ nếu đơn vị đó thuộc bộ cũ. */
+  protected detectLocationGeneration(params: ParamMap): void {
+    const id = Number(params.get(`filter[${Listing.LOCATION_FILTER}]`));
+    if (!id) {
+      return;
+    }
+    this.locationService.find(id).subscribe(location => {
+      this.oldLocations.set(!(location.slug ?? '').endsWith(Listing.NEW_UNIT_SUFFIX));
+    });
   }
 
   protected fillComponentAttributesFromResponseBody(data: IListing[]): IListing[] {

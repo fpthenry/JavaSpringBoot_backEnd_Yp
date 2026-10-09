@@ -33,15 +33,21 @@ export class TreeFilter {
   readonly levels = signal<TreeFilterLevel[]>([]);
 
   protected readonly queryParamMap = toSignal(inject(ActivatedRoute).queryParamMap);
+  /** Nguồn cây lần dựng trước: đổi nguồn (vd địa giới mới ↔ cũ) thì phải dựng lại cả cấp gốc. */
+  protected lastSource: TreeSource | null = null;
+  /** Đánh số mỗi lần dựng, để kết quả của lần dựng cũ về muộn không ghi đè lần mới. */
+  protected restoreSeq = 0;
   protected readonly selectedInUrl = computed(() => Number(this.queryParamMap()?.get(`filter[${this.filterName()}]`)) || null);
 
   constructor() {
     effect(() => {
       const selected = this.selectedInUrl();
-      this.source();
+      const source = this.source();
       untracked(() => {
-        // Chỉ dựng lại khi URL đổi từ bên ngoài (tải trang, xóa filter, mở link) hoặc lần đầu
-        if (this.levels().length === 0 || selected !== this.deepestSelected()) {
+        // Dựng lại khi lần đầu, khi đổi nguồn cây, hoặc khi URL đổi từ bên ngoài (tải trang, xóa filter, mở link)
+        const sourceChanged = source !== this.lastSource;
+        this.lastSource = source;
+        if (sourceChanged || this.levels().length === 0 || selected !== this.deepestSelected()) {
           this.restore(selected);
         }
       });
@@ -96,6 +102,7 @@ export class TreeFilter {
   /** Dựng lại các ô chọn: đi ngược lên cha để có chuỗi [gốc, ..., id], rồi tải danh sách lựa chọn của từng cấp. */
   protected restore(id: number | null): void {
     const source = this.source();
+    const seq = ++this.restoreSeq;
     const chain$: Observable<number[]> = id === null ? of([]) : this.ancestors(id);
     chain$
       .pipe(
@@ -110,7 +117,11 @@ export class TreeFilter {
           ),
         ),
       )
-      .subscribe(levels => this.levels.set(levels));
+      .subscribe(levels => {
+        if (seq === this.restoreSeq) {
+          this.levels.set(levels);
+        }
+      });
   }
 
   protected ancestors(id: number): Observable<number[]> {

@@ -366,6 +366,10 @@ docker exec -i javaspringbootbackend-mysql-1 mysql -uroot < db-sync/verify_sync.
 
 **Bước 6: sửa đơn vị hành chính 2025.** Đồng bộ chép lại bảng `location` từ nguồn (mã, tên sai), nên gọi `POST /api/admin/administrative-units/fix-locations?dryRun=false` ([mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025)).
 
+**Bước 7: gắn doanh nghiệp vào đơn vị hành chính mới.** Đồng bộ chép lại `rel_listing__location` (chỉ có liên kết cũ), nên gọi `POST /api/admin/administrative-units/link-listings?dryRun=false` (khoảng 1–2 phút, [mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025)).
+
+**Bước 8: tạo địa chỉ mới.** `POST /api/admin/administrative-units/new-addresses?dryRun=false&overwrite=false` (giữ địa chỉ quản trị viên đã sửa tay), rồi reindex Elasticsearch `listing` ([mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025)).
+
 > Nếu terminal bị ngắt giữa chừng, câu lệnh SQL vẫn chạy tiếp trong MySQL. Kiểm tra bằng `SELECT id, time, LEFT(info,80) FROM information_schema.processlist WHERE command <> 'Sleep';` trước khi chạy lại, tránh chèn trùng.
 
 ### 6.4 Kết quả đồng bộ ngày 2026-10-01
@@ -658,9 +662,22 @@ Sau khi sửa: mỗi tỉnh cũ về đúng một tỉnh mới, và mọi cặp 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Nạp bảng chuyển đổi vào DB; sửa bộ mới trong `location` theo danh mục chính thức (**sửa cả slug**) | ✅ 2026-10-08 |
-| 2 | Gắn doanh nghiệp vào đơn vị mới: **thêm liên kết, giữ liên kết cũ** (lấy từ `location_json`, không có thì qua bảng chuyển đổi) | Chưa làm |
-| 3 | Giao diện tra cứu, bộ lọc: **mặc định địa giới mới**, có nút chuyển sang địa giới cũ | Chưa làm |
+| 2 | Gắn doanh nghiệp vào đơn vị mới: **thêm liên kết, giữ liên kết cũ** (lấy từ `location_json`, không có thì qua bảng chuyển đổi) | ✅ 2026-10-08 |
+| 3 | Giao diện tra cứu, bộ lọc: **mặc định địa giới mới**, có nút chuyển sang địa giới cũ; tìm được cả địa chỉ cũ | ✅ 2026-10-08 |
 | 4 | API tra cứu địa chỉ cũ → mới (quản trị và công khai) | Chưa làm |
+
+#### Ảnh hưởng tới tra cứu listing (đánh giá 2026-10-08)
+
+Đo với Phường Giảng Võ (mới, mã 00025; gộp Giảng Võ, Thành Công, Cát Linh, Kim Mã, Ngọc Khánh, Láng Hạ, Cống Vị cũ). Theo `location_json` có 3.889 doanh nghiệp thuộc xã này, 263.276 thuộc Hà Nội mới.
+
+| Đường tra cứu | Kết quả hiện tại | Cần làm |
+|---|---|---|
+| Lọc cây `locationTreeId` ([mục 7.3](#73-api)) | Xã mới Giảng Võ: **17**; Hà Nội mới: **1.554**; Hà Nội cũ: 265.942 (6 s); xã cũ Thành Công: 134 | Logic lọc đúng, chỉ thiếu liên kết: **bước 2** |
+| Bộ lọc trên trang listing (`jhi-tree-filter`) | Lẫn 63 tỉnh cũ và 34 tỉnh mới | **Bước 3** |
+| Tìm kiếm ES `/api/listings/_search` | ES **không lưu địa phương** (`locations` là `@Transient`), chỉ tìm chữ trong `address`, `locationJson`. "Giảng Võ" → "10000" (tổng bị chặn ở 10.000, `query_string` chỉ cần một từ); "giang vo" ra cả "CTY TNHH TM VO VO VO"; `"Phường Giảng Võ"` (cụm) 3.921 | Sau bước 2: tìm tiếng Việt cho listing như bài viết ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)) và đưa `locationIds` (cả bộ cũ, bộ mới, kèm đơn vị cha) vào index; tìm kiếm kết hợp lọc địa phương được (#11), lọc cây chuyển sang ES để hết chậm (#8) |
+| Địa chỉ hiển thị | `address` là địa chỉ cũ ("P. Thành Công, Q. Ba Đình") | Tùy chọn: địa chỉ mới dựng từ `location_json` (số nhà, đường + xã mới + tỉnh mới) |
+
+22.797 doanh nghiệp chỉ gắn xã mới, không có `location_json`: bước 2 gắn thêm tỉnh cũ nếu bảng chuyển đổi cho ra duy nhất một tỉnh, để lọc theo địa giới cũ vẫn thấy.
 
 #### Bước 1: bảng chuyển đổi và sửa bảng location
 
@@ -699,6 +716,147 @@ Code: [`service/dvhc/LocationFixPlanner.java`](../src/main/java/com/mycompany/my
 Chạy lại ngay sau đó: 0 thay đổi. Kết quả: bộ mới 34 tỉnh + 3.321 xã, đủ mã; bộ cũ 63 tỉnh, 715 huyện, 11.180 xã, đủ mã ("QUỐC TẾ" không có mã). Elasticsearch `location` tự reindex.
 
 **Kiểm thử:** [`LocationFixPlannerTest`](../src/test/java/com/mycompany/myapp/service/dvhc/LocationFixPlannerTest.java) 6/6: điền mã bộ cũ; sửa mã sai và mã gán lẫn; kiểu đặt dấu, gạch dài, đổi tên cùng mã; thêm xã thiếu; xã không khớp chỉ báo cáo; **chạy lại sau khi sửa không còn gì để sửa**; slug, khóa so tên.
+
+#### Bước 2: gắn doanh nghiệp vào đơn vị mới
+
+`POST /api/admin/administrative-units/link-listings?dryRun=true|false` (chạy nền, trả 202; đang chạy thì 409), `GET` cùng đường dẫn để xem tiến độ. Mặc định `dryRun=true` (chỉ đếm). **Chỉ thêm** dòng vào `rel_listing__location` (`INSERT IGNORE`), không xóa liên kết nào; chạy lại được. Chạy sau `fix-locations`.
+
+Quy tắc ([`ListingLinkPlanner.java`](../src/main/java/com/mycompany/myapp/service/dvhc/ListingLinkPlanner.java), hàm thuần):
+
+| Thêm | Khi nào | Lấy từ (theo thứ tự) |
+|---|---|---|
+| Đơn vị **mới** | Doanh nghiệp chưa gắn đơn vị mới nào | (1) mã xã mới trong `location_json`; (2) mã tỉnh mới trong JSON; (3) liên kết cũ qua bảng chuyển đổi, chọn đơn vị cụ thể nhất: xã cũ về đúng 1 xã mới → xã mới; xã cũ nhập một phần vào nhiều xã cùng tỉnh → tỉnh mới; huyện cũ → xã mới nếu chỉ 1 (đặc khu), không thì tỉnh mới; tỉnh cũ → tỉnh mới |
+| Đơn vị **cũ** | Doanh nghiệp chưa gắn đơn vị cũ nào (ví dụ chỉ gắn xã mới) | Từ xã mới: mọi xã cũ hợp thành thuộc 1 huyện cũ → huyện đó; thuộc 1 tỉnh cũ → tỉnh đó; nhiều hơn → bỏ qua, không đoán. Từ tỉnh mới: chỉ khi tỉnh mới tương ứng đúng 1 tỉnh cũ |
+
+Mã trong JSON đọc bằng regex nên dùng được cả 7 dòng JSON hỏng. Job ([`ListingLinkService.java`](../src/main/java/com/mycompany/myapp/service/dvhc/ListingLinkService.java)): nạp mọi liên kết hiện có vào mảng số, đọc `listing` theo id bằng JDBC streaming, ghi bằng `INSERT IGNORE` nhiều dòng mỗi lệnh (1.000 dòng; kết nối không bật `rewriteBatchedStatements`), mỗi transaction 20.000 dòng. Thống kê có **độ khớp** giữa xã mới trong JSON và xã cũ đang gắn.
+
+**Kết quả 2026-10-08** (sao lưu `rel_listing__location` trước khi ghi, 1.798.195 dòng; chạy thử 20 s, chạy thật 80 s):
+
+| Đơn vị mới lấy từ | Doanh nghiệp |
+|---|---|
+| JSON: xã mới | 1.502.615 |
+| JSON: tỉnh mới | 288.536 |
+| Liên kết cũ → xã mới / tỉnh mới | 32.119 / 7.132 |
+| Đã có đơn vị mới | 22.797 |
+| Không chuyển được (xã cũ bị bỏ trước 2025 nên không có trong Excel; "QUỐC TẾ") | 797 |
+| Không có nguồn nào | 1.623 |
+
+| Đơn vị cũ | Doanh nghiệp |
+|---|---|
+| Đã có | 1.775.352 |
+| Thêm huyện cũ / tỉnh cũ | 65.507 / 9.333 |
+| Không xác định được (xã mới gộp từ nhiều huyện, tỉnh cũ) | 3.804 |
+
+- Thêm **1.905.242** liên kết; bảng nối từ 1.798.195 lên 3.703.437 dòng. Chạy lại ngay sau đó: 0 liên kết cần thêm.
+- **Độ khớp JSON với xã cũ đang gắn: 265.871 khớp, 437 lệch (99,84%)**. Khi lệch, dùng theo JSON (nguồn ghi theo địa giới mới).
+
+**Tra cứu sau bước 2** (lọc cây `locationTreeId`, đo lại lần hai khi cache đã nóng):
+
+| Lọc theo | Trước | Sau |
+|---|---|---|
+| Xã mới Giảng Võ | 17 | 3.914 (JSON ghi 3.889; phần thêm từ liên kết cũ), 0,6 s |
+| Tỉnh mới Hà Nội | 1.554 | 271.041, 3,2 s (lần đầu sau khi ghi: 36 s do cache nguội) |
+| Tỉnh cũ Hà Nội | 265.942 | 271.128, 3,3 s |
+| Bắc Ninh mới / Bắc Ninh cũ + Bắc Giang cũ | | 43.259 / 26.265 + 16.875 = 43.140 (chênh 119: JSON ghi Bắc Ninh mới nhưng liên kết cũ thuộc tỉnh khác, hoặc chưa có liên kết cũ) |
+
+**Kiểm thử:** [`ListingLinkPlannerTest`](../src/test/java/com/mycompany/myapp/service/dvhc/ListingLinkPlannerTest.java) 7/7: ưu tiên xã mới trong JSON, so khớp với xã cũ; JSON chỉ có tỉnh; suy từ xã cũ (nhập toàn bộ, nhập một phần), huyện cũ thành đặc khu, tỉnh cũ gộp; chọn đơn vị cụ thể nhất; thêm huyện cũ hoặc tỉnh cũ cho doanh nghiệp chỉ gắn xã mới; "QUỐC TẾ"; đọc mã từ JSON hỏng.
+
+#### Địa chỉ mới của doanh nghiệp (`address_new`)
+
+> Làm ngày 2026-10-08, theo yêu cầu: doanh nghiệp **giữ địa giới cũ và địa chỉ cũ**, **thêm địa giới mới và địa chỉ mới**; doanh nghiệp đã có địa chỉ mới thì không thêm; tìm kiếm lấy địa chỉ mới làm chính, địa chỉ cũ vẫn tìm được.
+
+**Cột mới `listing.address_new`** (varchar 500; changelog viết tay [`20261008110000_listing_address_new.xml`](../src/main/resources/config/liquibase/changelog/20261008110000_listing_address_new.xml); đã thêm `addressNew` vào `yp-schema.jdl`). **NULL** khi cột `address` đã là địa chỉ mới, chưa biết xã mới, hoặc địa chỉ rỗng. Quản trị viên sửa được trên form; trang chi tiết hiện cả hai địa chỉ (trống thì ghi "Địa chỉ trên đã theo địa giới mới"); danh sách có thêm cột.
+
+```
+GET /api/listings/1439378
+  address:    "Số 12, ngõ 72 Phố Tân Ấp, Phường Phúc Xá, Quận Ba Đình, Thành phố Hà Nội, Việt Nam"
+  addressNew: "Số 12, ngõ 72 Phố Tân Ấp, Phường Hồng Hà, Thành phố Hà Nội"
+  locations:  Phường Hồng Hà (mới) + Phường Phúc Xá (cũ)
+GET /api/listings/1832935
+  address:    "Số 47, phố Tôn Thất Thiệp, Phường Hoàn Kiếm, TP Hà Nội, Việt Nam"   (đã là địa chỉ mới)
+  addressNew: null
+```
+
+**Job tạo địa chỉ:** `POST /api/admin/administrative-units/new-addresses?dryRun=true|false&overwrite=true|false` (chạy nền; `GET` để xem tiến độ). Chạy sau `link-listings`. `overwrite=false` chỉ điền dòng đang trống (giữ bản quản trị viên đã sửa tay). Chỉ ghi dòng có giá trị thay đổi, ghi theo lô bằng `UPDATE … JOIN (VALUES ROW(…))`.
+
+Cách tạo ([`NewAddressPlanner.java`](../src/main/java/com/mycompany/myapp/service/dvhc/NewAddressPlanner.java), hàm thuần; [`ListingAddressService.java`](../src/main/java/com/mycompany/myapp/service/dvhc/ListingAddressService.java)):
+
+1. Tách địa chỉ theo dấu phẩy. Địa chỉ không có dấu phẩy mà dùng " - " thì tách theo " - " (36.819 địa chỉ dạng "82 Phước Lăng - Xã Tam Phước - Huyện Long Điền - Bà Rịa - Vũng Tàu."). Bỏ dấu chấm cuối đoạn.
+2. **Bỏ dần từ cuối** các đoạn hành chính: có tiền tố (Phường, Xã, Thị trấn, Đặc khu, Quận, Huyện, Thị xã, Thành phố, Tỉnh, P., F., X., TT., Q., H., TX., TP.); tên tỉnh (cũ và mới, kể cả "HCM", "TPHCM"); tên huyện cũ không có tiền tố ("Thanh Xuân"); "Việt Nam". Không bỏ nhầm đường giao thông: "Tỉnh lộ 10", "Xa lộ Hà Nội", "Quốc lộ 1A".
+3. Đơn vị viết dính vào đoạn trước, thiếu dấu phẩy ("ĐINH BỘ LĨNH P.26"): cắt phần đuôi bắt đầu bằng tiền tố viết tắt có dấu chấm.
+4. **Đã là địa chỉ mới** khi đuôi có tên xã mới và không có đoạn cấp quận/huyện. "Thành phố X" là cấp huyện nếu X là tên huyện cũ (Thủ Đức, Biên Hoà, "TP. Bắc Ninh" trước "Bắc Ninh"). Khi đó không tạo.
+5. Ghép phần còn lại + xã mới + tỉnh mới (lấy từ liên kết đơn vị mới ở bước 2). Không dùng cột `street` của `location_json` vì bị cắt mất chi tiết ("P3, KHU B4B, ..." chỉ còn "P3").
+
+Ví dụ thật:
+
+| Địa chỉ cũ | Địa chỉ mới |
+|---|---|
+| P3, KHU B4B, P. THÀNH CÔNG, Q. BA ĐÌNH, HÀ NỘI | P3, KHU B4B, Phường Giảng Võ, Thành phố Hà Nội |
+| 11A LÝ THÁI TỔ, P. SUỐI HOA, TP. BẮC NINH, BẮC NINH | 11A LÝ THÁI TỔ, Phường Kinh Bắc, Tỉnh Bắc Ninh |
+| Xưởng 3 (tầng 2), Lô 25, Đường 15B, KCN Tân Đức, Xã Hựu Thạnh, Huyện Đức Hoà, Tỉnh Long An, Việt Nam | Xưởng 3 (tầng 2), Lô 25, Đường 15B, KCN Tân Đức, Xã Đức Hòa, Tỉnh Tây Ninh |
+| 12 LAM SƠN, P.2, Q.TÂN BÌNH, TP.HỒ CHÍ MINH | 12 LAM SƠN, Phường Tân Sơn Hòa, Thành phố Hồ Chí Minh |
+| Khu 1, Phường Hải Tân, Thành phố Hải Dương, Tỉnh Hải Dương, Việt Nam | Khu 1, Phường Tân Hưng, Thành phố Hải Phòng |
+| Tổ 40 - Phường Hồng Hà - Phường Hồng Hà - Thành phố Yên Bái - Yên Bái. | Tổ 40, Phường Yên Bái, Tỉnh Lào Cai |
+
+**Kết quả 2026-10-08** (1.855.619 doanh nghiệp; lần đầu 6 phút, lần chạy lại sau khi thêm quy tắc " - " cập nhật 37.028 dòng):
+
+| Kết quả | Doanh nghiệp |
+|---|---|
+| Tạo địa chỉ mới | 1.533.726 |
+| Đã là địa chỉ mới (để trống) | 23.805 |
+| Chưa xác định được xã mới (chỉ biết tỉnh mới) | 296.634 |
+| Địa chỉ rỗng | 1.454 |
+
+Chạy lại: 0 dòng cần đổi.
+
+**Hạn chế:** địa chỉ không có cả dấu phẩy lẫn " - " (khoảng 11 nghìn, ví dụ "BỜ ĐA XÃ DỊ NẬU THẠCH THẤT") không tách được: phần đầu còn tên xã, huyện cũ, nhưng xã mới, tỉnh mới vẫn đúng. "TT CN" (trung tâm công nghiệp) đứng đầu một đoạn ở cuối địa chỉ bị hiểu nhầm là "thị trấn" và bị bỏ (hiếm). Doanh nghiệp chỉ biết tỉnh mới (296.634) chưa có địa chỉ mới.
+
+**Tìm kiếm:** sau khi tạo địa chỉ đã reindex `listing` (9 phút; `addressNew` có trong index ES). Tìm được theo địa chỉ mới: `addressNew:"Phường Hồng Hà"` ra 3.900 doanh nghiệp (khớp lọc theo xã mới); tên cũ ("Quận Tân Bình") vẫn tìm được qua `address`. **Chưa làm**: xếp kết quả khớp địa chỉ mới lên trước và tìm tiếng Việt cho listing (cần sắp xếp theo độ liên quan, đủ mọi từ, như bài viết): làm cùng phần tìm kiếm listing trên ES ([mục 14](#14-việc-còn-tồn-đọng) #22).
+
+**Kiểm thử:** [`NewAddressPlannerTest`](../src/test/java/com/mycompany/myapp/service/dvhc/NewAddressPlannerTest.java) 7/7 (các ví dụ thật ở trên, tên quận không tiền tố, thành phố thuộc tỉnh, đã là địa chỉ mới, thiếu dấu phẩy, dạng " - ", không bỏ nhầm đường giao thông, thiếu thông tin). Spec listing (form, chi tiết, danh sách) 53/53, ESLint sạch.
+
+#### Bước 3: trang Listing tra cứu theo địa giới mới, vẫn tìm được địa chỉ cũ
+
+> Làm ngày 2026-10-08. Yêu cầu: mặc định tra cứu theo địa giới mới; **gõ địa chỉ cũ hay chọn đơn vị cũ vẫn ra doanh nghiệp**.
+
+**Bộ lọc địa phương** (trang Listing):
+
+| | Mặc định: địa giới mới | Bật công tắc "Địa giới cũ (trước 01/7/2025)" |
+|---|---|---|
+| Ô cấp 1 | 34 tỉnh mới | 63 tỉnh cũ + "QUỐC TẾ" |
+| Ô cấp 2 | "Tất cả phường/xã": xã mới (Hà Nội 126) | "Tất cả quận/huyện" (Hà Nội 30) |
+| Ô cấp 3 | | "Tất cả phường/xã" cũ |
+
+- Hai bộ phân biệt bằng đuôi slug `-2025`: cấp gốc lấy `slug.contains=-2025` hoặc `slug.doesNotContain=-2025` (filter có sẵn của `/api/locations`), sắp theo tên. Không còn hai mục "Thành phố Hà Nội" lẫn nhau.
+- Chuyển công tắc thì bỏ lựa chọn địa phương đang có (thuộc bộ kia).
+- Mở link hoặc F5 khi đang lọc theo một đơn vị cũ (`filter[locationTreeId.equals]=793`): trang tự bật công tắc cũ và chọn lại đủ các cấp (Hà Nội → Quận Ba Đình → Phường Thành Công).
+- `createTreeSource` có thêm tùy chọn `rootCriteria`. `TreeFilter` dựng lại cả cấp gốc khi **đổi nguồn cây**: trước đó nếu id trong URL không đổi thì giữ danh sách tỉnh cũ, ô tỉnh trống. Kết quả của lần dựng cũ về muộn được bỏ qua.
+
+**Cột Địa chỉ** đặt ngay sau tên doanh nghiệp: địa chỉ mới ở dòng chính, "Cũ: …" chữ nhỏ bên dưới; doanh nghiệp không có địa chỉ mới thì hiện địa chỉ hiện có.
+
+**Ô tìm kiếm** (`/api/listings/_search`, [`ListingSearchRepository`](../src/main/java/com/mycompany/myapp/repository/search/ListingSearchRepository.java)):
+
+- **Phải có đủ mọi chữ** (`query_string` với `default_operator: AND`; trước đây chỉ cần một chữ nên "11 ngõ 51 lãng yên" ra cả chục nghìn kết quả). Tìm trên mọi field nên gõ **địa chỉ cũ, địa chỉ mới, hoặc trộn chữ của cả hai** đều được. Cú pháp `addressNew:"…"`, `address:"…"`, `name:"…"` vẫn dùng được.
+- **Đếm tổng chính xác** (`track_total_hits`; trước dừng ở 10.000).
+- Trang Listing khi tìm không gửi sắp xếp mặc định `id,asc` nữa, kết quả theo độ liên quan (như trang bài viết).
+- **Analyzer mặc định của index `listing`** ([`listing-settings.json`](../src/main/resources/config/elasticsearch/listing-settings.json), `@Setting` trên `Listing`): tách dấu chấm giữa hai chữ cái. Địa chỉ cũ hay viết "P.THANH LƯƠNG, Q.HAI BÀ TRƯNG", tokenizer mặc định giữ "p.thanh" thành một từ nên tìm "Thanh Lương" không ra. Đổi file này phải reindex `listing` (khoảng 9 phút).
+
+| Gõ vào ô tìm | Trước | Sau |
+|---|---|---|
+| `11 NGÕ 51 LÃNG YÊN THANH LƯƠNG` (địa chỉ cũ) | 10.000+, đúng doanh nghiệp không đứng đầu | **1** (Vân Hà) |
+| `11 NGÕ 51 LÃNG YÊN HAI BÀ TRƯNG` (địa chỉ cũ) | 10.000+ | 2 (Vân Hà, bản ghi trùng) |
+| `11 NGÕ 51 LÃNG YÊN VĨNH TUY` (địa chỉ mới) | 10.000+ | **1** |
+| `Thanh Lương Hai Bà Trưng` | | 710 |
+| `Vĩnh Tuy Hà Nội` | | 2.487 |
+| `bao bì Vĩnh Tuy` | | 2 |
+
+Thời gian 35–370 ms.
+
+**Lọc kết hợp trên giao diện:** Hà Nội (mới) → Phường Vĩnh Tuy + ngành BAO BÌ → 13 doanh nghiệp, Vân Hà đứng đầu. Từ 2026-10-09 ô tìm kiếm **kết hợp được** với bộ lọc ngành, địa phương, và bộ lọc chạy trên Elasticsearch ([mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3)).
+
+> ⚠️ **F5 hoặc dán link có bộ lọc trả HTTP 400** ("Invalid character found in the request target"): URL dạng `filter[locationTreeId.equals]=…` có `[ ]`, trình duyệt không mã hóa, Tomcat mặc định từ chối. Đã thêm `server.tomcat.relaxed-query-chars: '[,]'` vào `application.yml`. Lỗi có từ khi làm bộ lọc theo cây, chỉ lộ ra khi tải lại trang (bấm chọn trong ứng dụng thì Angular đổi URL, không gửi lên server).
+
+**Kiểm thử:** `listing.spec.ts`: mặc định tỉnh mới 2 cấp, bật cũ thì tỉnh cũ 3 cấp và bỏ lựa chọn cũ; tìm kiếm không gửi sort (12/12). `tree-filter.spec.ts`: đổi nguồn cây thì dựng lại cấp gốc, giữ lựa chọn theo URL (6/6). ESLint sạch. Chrome headless trên app: các kịch bản ở trên, kể cả mở link đơn vị cũ.
 
 > ⚠️ Đọc cột nullable bằng JDBC: dùng `rs.getObject("parent_id", Long.class)`. `rs.wasNull()` chỉ đúng với cột đọc ngay trước nó; lần chạy thử đầu tiên đã coi mọi xã mới là tỉnh vì lỗi này (chưa ghi gì nhờ `dryRun`).
 
@@ -946,7 +1104,48 @@ Giảm tải trên máy dev:
 | 0 | Cấu hình container (mục 8.3); xóa các index có mapping cũ | ✅ Xong 2026-10-01 |
 | 1 | Job reindex ([mục 8.4](#84-job-reindex-giai-đoạn-1)) | ✅ Xong 2026-10-02: 6/6 entity đủ, tìm kiếm `/api/listings/_search` trả kết quả trong 0,1–0,6 s |
 | 2 | Tìm kiếm tiếng Việt: bỏ dấu (`asciifolding`), ưu tiên tên doanh nghiệp, các từ phải cùng xuất hiện, đếm tổng đúng (xem nhận xét ở mục 8.4) | ✅ **Bài viết** xong 2026-10-05 ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)), dùng làm mẫu cho listing. ⏳ Listing: tiếp theo |
-| 3 | Lọc theo cây địa phương/ngành nghề bằng ES, kết hợp với tìm kiếm | Chưa làm |
+| 3 | Lọc theo cây địa phương/ngành nghề bằng ES, kết hợp với tìm kiếm | ✅ **Listing** xong 2026-10-09 ([mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3)): lọc 0,05–0,3 s (trước 9–45 s với nhóm lớn) |
+
+### 8.7 Lọc listing theo cây trên Elasticsearch (giai đoạn 3)
+
+> Làm ngày 2026-10-09. Trang Listing chậm khi chọn bộ lọc địa phương, ngành nghề: các bộ lọc này chạy bằng MySQL trên bảng nối (doanh nghiệp × ngành 25 triệu dòng, doanh nghiệp × địa phương 3,7 triệu dòng), còn ô tìm kiếm đã dùng ES và nhanh.
+
+**Cách làm:** mỗi doanh nghiệp trong index `listing` có thêm field chỉ có trong ES (`@jakarta.persistence.Transient` trên [`Listing`](../src/main/java/com/mycompany/myapp/domain/Listing.java), không phải cột DB):
+
+| Field | Nội dung |
+|---|---|
+| `categoryIds` | id các ngành của doanh nghiệp **và mọi ngành cha** |
+| `locationIds` | id các địa phương (bộ cũ và bộ mới) **và mọi cấp cha**. Ví dụ Vân Hà: `[12000 Vĩnh Tuy mới, 11960 Hà Nội mới, 2 Hà Nội cũ]` |
+| `sortId` | bằng `id`, kiểu số: field `id` trong ES là keyword, sắp theo nó thì "100" đứng trước "2" |
+
+Lọc theo một nút cây chỉ là một `term` trên `locationIds` / `categoryIds`.
+
+| Đường | Thay đổi |
+|---|---|
+| `GET /api/listings?locationTreeId.equals=&categoryTreeId.equals=` | [`ListingQueryService`](../src/main/java/com/mycompany/myapp/service/ListingQueryService.java): nếu **chỉ** có bộ lọc cây (`onlyTreeFilters`: so `ListingCriteria` sau khi bỏ hai filter này với criteria rỗng) thì tìm trên ES. Có filter khác, hoặc ES lỗi, thì dùng MySQL như cũ ([mục 7.4](#74-backend-luồng-xử-lý)) |
+| `GET /api/listings/count` | Tương tự: chỉ có bộ lọc cây thì đếm bằng ES |
+| `GET /api/listings/_search` | Nhận thêm `locationTreeId.equals`, `categoryTreeId.equals`: **gõ tìm kết hợp được với bộ lọc** (trang Listing vốn đã gửi kèm các tham số này, trước đây bị bỏ qua); `query` không bắt buộc |
+| Kết quả | ES chỉ trả `id` (`_source` lọc còn `id`), đếm chính xác (`track_total_hits`); 20 doanh nghiệp của trang đọc lại từ MySQL kèm ngành, địa phương, giữ thứ tự ES ([`ListingSearchRepository`](../src/main/java/com/mycompany/myapp/repository/search/ListingSearchRepository.java)). Sắp xếp: `id` → `sortId`; field số, ngày giữ nguyên; field chữ → `.keyword` |
+| Điền field khi reindex | [`ListingSearchFields.fillFromDatabase`](../src/main/java/com/mycompany/myapp/repository/search/ListingSearchFields.java): mỗi lô 1.000 doanh nghiệp đọc liên kết bằng 2 câu JDBC theo khóa chính bảng nối; cây cha (ngành ~2.400, địa phương ~15.300) giữ trong bộ nhớ, đọc lại sau 5 phút |
+| Điền field khi lưu doanh nghiệp | `ListingServiceImpl` gọi `ListingSearchFields.fill` **trong transaction lưu**, `index()` chạy nền chỉ ghi lên ES (sửa luôn lỗi index chạy nền đọc DB trước khi commit cho listing, [mục 14](#14-việc-còn-tồn-đọng) #18) |
+
+**Kết quả 2026-10-09** (reindex `listing` 11 phút; index 1,2 GB → 1,8 GB; đo lần hai khi cache đã nóng; tổng số khớp đúng kết quả MySQL trước đó):
+
+| Thao tác | MySQL (trước) | ES (sau) | Tổng |
+|---|---|---|---|
+| Lọc tỉnh mới Hà Nội | 8,8 s (lần đầu 45 s) | **0,15 s** | 271.041 |
+| Lọc ngành VSIC "Lập trình máy vi tính" (1524) | 35 s | **0,1 s** | 85.609 |
+| Lọc Hà Nội mới + nhóm BAO BÌ | 3,9 s | **0,1 s** | 1.755 |
+| Lọc xã mới Vĩnh Tuy / nhóm BAO BÌ | 0,06–1 s | 0,06–0,16 s | 2.375 / 6.625 |
+| Đếm Hà Nội mới (`/count`) | | 0,03 s | 271.041 |
+| Gõ "lãng yên" + Hà Nội mới + BAO BÌ | không làm được | **0,05 s** | 5 |
+| Gõ "thanh lương" + Hà Nội cũ | không làm được | 0,06 s | 2.013 |
+
+Trên giao diện: chọn Hà Nội mới + BAO BÌ (1.755), gõ thêm "lãng yên" ra 5 doanh nghiệp, có Vân Hà.
+
+> ⚠️ **Phải reindex `listing`** khi: thay đổi cây ngành hoặc cây địa phương (cấp cha được chép vào từng doanh nghiệp); sau khi chép dữ liệu thẳng vào MySQL (đồng bộ, job `link-listings`, `new-addresses`). Trong lúc reindex, lọc theo cây và tìm kiếm chỉ ra một phần kết quả.
+
+**Kiểm thử:** [`ListingSearchTest`](../src/test/java/com/mycompany/myapp/repository/search/ListingSearchTest.java) 3/3 (id kèm cấp cha, cây có vòng lặp; sắp xếp `id` → `sortId`, chữ → `.keyword`; truy vấn từ khóa và lọc cây); [`ListingQueryServiceTreeFilterTest`](../src/test/java/com/mycompany/myapp/service/ListingQueryServiceTreeFilterTest.java) 2/2 (chỉ bộ lọc cây thì dùng ES, có filter khác thì MySQL); đo trên app và kiểm tra trên trình duyệt như trên.
 
 ---
 
@@ -1504,6 +1703,9 @@ Lưu ý:
 | `config/PublicApiSecurityConfiguration.java`, `security/PublicApiKeyFilter.java`, `repository/GalleryPublicRepository.java`, `GalleryPublicRow.java`, `service/PublicGalleryService.java`, `service/dto/publicapi/*`, `web/rest/publicapi/*` (file mới) | API công khai, gallery | File viết tay, không bị ghi đè |
 | `entities/gallery-image/update/gallery-image-form.service.ts` (+ `gallery-image-form.dates.spec.ts` mới) | Ảnh mới để trống `startAt`/`endAt`; ô trống lưu `null` | JHipster mặc định cả hai = giờ hiện tại, làm ảnh hết hạn ngay ([mục 10.3](#103-banner-quảng-cáo-gallery)). **Sinh lại GalleryImage sẽ mất, phải sửa lại.** |
 | `liquibase/changelog/20261008100000_location_conversion.xml`, `liquibase/data/location_conversion.csv`, `master.xml` (include), `db-sync/dvhc/excel-to-csv.mjs`, `service/dvhc/*`, `web/rest/AdministrativeUnitResource.java` (file mới) | Bảng chuyển đổi ĐVHC, sửa bộ đơn vị mới | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). Sinh lại code: kiểm tra `master.xml` còn include changelog này |
+| `domain/Listing.java`, `service/dto/ListingDTO.java` (field `addressNew`), `ListingAsserts.java`, `yp-schema.jdl`, `liquibase/changelog/20261008110000_listing_address_new.xml` + `master.xml`; `entities/listing/` (model, form, chi tiết, danh sách, spec), `i18n/{vi,en}/listing.json` | Địa chỉ mới của doanh nghiệp | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). JDL đã có field này; **sinh lại Listing** thì JHipster tạo changelog thêm cột trùng: xóa changelog đó vì cột đã có |
+| `entities/listing/list/listing.ts`, `listing.html`, `listing.spec.ts`; `shared/tree/tree-source.ts` (`rootCriteria`), `tree-filter.ts` (dựng lại khi đổi nguồn), `tree-filter.spec.ts`; `repository/search/ListingSearchRepository.java` (AND, đếm đủ); `domain/Listing.java` (`@Setting`), `config/elasticsearch/listing-settings.json`; `application.yml` (`relaxed-query-chars`); `i18n/{vi,en}/location.json`, `listing.json` | Trang Listing theo địa giới mới, tìm được địa chỉ cũ | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). Sinh lại Listing sẽ mất `@Setting`, cột địa chỉ gộp, công tắc địa giới, sửa tìm kiếm |
+| `domain/Listing.java` (`categoryIds`, `locationIds`, `sortId`), `repository/search/ListingSearchRepository.java`, `ListingSearchFields.java`, `ListingSearchFilter.java` (file mới), `service/ListingService.java`, `service/impl/ListingServiceImpl.java`, `service/ListingQueryService.java` (`onlyTreeFilters`), `web/rest/ListingResource.java` (`_search` nhận bộ lọc cây), `service/ElasticsearchReindexService.java` | Lọc listing theo cây trên ES, tìm kết hợp bộ lọc | [Mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3). **Sinh lại Listing sẽ mất**, lọc quay về MySQL chậm |
 | `web/rest/CategoryIndexResource.java`, `entities/category/index/*`, `entities/category/service/category-index.service.ts` (file mới); mục **Mục lục A–Z** trong `navbar.html` (nhóm Ngành nghề) | Trang Mục lục ngành nghề A–Z | [Mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị). Sinh lại Category: kiểm tra `category.routes.ts` còn route `index`, menu còn mục này |
 | `web/rest/publicapi/PublicCategoryResource.java`, `service/PublicCategoryService.java`, `repository/CategoryPublicRepository.java`, `service/dto/publicapi/PublicCategoryDTO.java`, `service/CategoryListingCountService.java`, `service/CategorySubtreeCounter.java`, `web/rest/CategoryListingCountResource.java` (file mới) | Mục lục ngành nghề theo chữ cái; job tính số doanh nghiệp | File viết tay ([mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) |
 | `web/rest/publicapi/PublicBlogResource.java`, `service/PublicBlogService.java`, `service/BlogContent.java`, `repository/BlogPublicRepository.java`, `service/dto/publicapi/PublicBlog*DTO.java`, `PublicPageDTO.java` (file mới) | API công khai bài viết, cây danh mục | File viết tay ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
@@ -1553,6 +1755,7 @@ Lưu ý:
 | Lưu bài viết nhưng tìm kiếm không thấy bài mới, hoặc vẫn ra nội dung cũ | Code JHipster sinh: `index()` chạy `@Async` và **đọc lại bài từ DB**, trong khi transaction lưu bài **chưa commit**. Bài mới không thấy gì, bài sửa thì index bản cũ. Thêm vào đó, ngoài transaction `fetchBagRelationships` trả về bản thể có danh mục chưa nạp (LazyInitializationException) | Điền field tìm kiếm trong transaction lưu bài (`BlogPostSearchFields.fill`), `index()` chỉ ghi document lên ES. **Các entity khác do JHipster sinh (listing, category, location, tag, blogcategory, user) vẫn còn lỗi này**: sửa qua API có thể không cập nhật ES cho tới lần reindex sau ([mục 14](#14-việc-còn-tồn-đọng)). Không dùng `afterCommit` được vì test chạy `@Async` đồng bộ trong transaction của test, transaction đó không bao giờ commit |
 | Integration test lỗi hết (68/68), log báo `Timed out waiting for log output … started` của container Elasticsearch | Container ES của Testcontainers lấy heap 2 GB (`-Xms2g`, `AlwaysPreTouch`) trong máy ảo Docker 7,6 GB, trong khi ES dev, Kibana, MySQL đang chạy | Giới hạn heap ES test 512 MB trong `ElasticsearchTestContainer.java`, hoặc tắt Kibana trước khi chạy IT |
 | Giao diện "đơ": bấm sang menu khác, mở Swagger (`/admin/docs`) không được, sau khi sửa code Java (2026-10-05, gặp 2 lần) | Extension Java của VS Code (`redhat.java`) build vào **chung thư mục `target/classes`** với Maven. Khi nó build lại toàn bộ, nó dọn sạch thư mục này rồi chỉ chép lại resource Java, nên **bản build Angular `target/classes/static` bị mất**. Tab trình duyệt đang mở vẫn chạy phần đã tải, nhưng khi chuyển trang phải tải thêm file JS của trang đó → 404 → không chuyển được. Swagger UI cũng nằm trong `static/swagger-ui`. Đã kiểm tra: lệnh Maven có `-Dskip.npm` **không** xóa thư mục này | Kiểm tra `target/classes/static` còn không; build lại `npx ng build --configuration development` rồi F5. Cách tránh: dùng giao diện qua `npm start` (http://localhost:4200, phục vụ từ bộ nhớ, không phụ thuộc `target/classes`). Nếu language server Java ngốn CPU (đã gặp: khởi tạo lại mỗi giây, ~1,8 lõi): VS Code → `Java: Restart Java Language Server` hoặc `Developer: Reload Window` |
+| F5 hoặc dán link trang Listing có bộ lọc: HTTP 400 "Invalid character found in the request target" | URL có `filter[...]=`, trình duyệt không mã hóa `[ ]`, Tomcat mặc định từ chối | `server.tomcat.relaxed-query-chars: '[,]'` trong `application.yml` ([mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025)) |
 | Tiếng Việt bị lỗi (`Ð?a phuong`) khi gửi JSON bằng `curl -d "..."` trong Git Bash | Git Bash chuyển tham số dòng lệnh sang code page Windows | Gửi bằng file (`curl --data-binary @file.json`) hoặc script Node/PowerShell `-Encoding utf8` |
 
 ---
@@ -1568,10 +1771,10 @@ Lưu ý:
 | 5 | **User từ WordPress** (`jhi_user` của nguồn: 4 user, có `wp_user_id`) | Chưa chuyển |
 | 6 | **Bảo mật khi lên production** | Danh sách đầy đủ ở [mục 9.3](#93-còn-thiếu-và-cần-làm-trước-production): khóa JWT riêng qua biến môi trường, đổi tài khoản mặc định, chống dò mật khẩu, thu hồi token, HTTPS, quyết định API công khai. MySQL dev dùng `root` không mật khẩu; ES dev tắt `xpack.security`. |
 | 7 | Cố định cấu hình InnoDB | Nếu đồng bộ thường xuyên, ghi `innodb_buffer_pool_size` vào [`src/main/docker/config/mysql/my.cnf`](../src/main/docker/config/mysql/my.cnf) |
-| 8 | **Lọc theo nhóm ngành VSIC lớn còn chậm** (3–33 s, khoảng 170 nhóm có hơn 100 nghìn doanh nghiệp). **Không chỉ nhóm lớn:** đo 2026-10-08 khi bấm thẻ ở Mục lục A–Z ([mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị)), ngành 1524 "Lập trình máy vi tính" (85.609 doanh nghiệp, **dưới** ngưỡng 100 nghìn nên đi đường semi-join mặc định) mất 21–24 s qua API, còn ngành cha 1114 (116.715, trên ngưỡng) chỉ 2,1 s. Đo SQL lấy 20 id đầu: 1524 semi-join bật 5,4 s / tắt 7,4 s / gợi ý MATERIALIZATION 5,8 s / lấy id thẳng từ bảng nối `DISTINCT listing_id … ORDER BY LIMIT 20` 1,3 s; đếm `COUNT(DISTINCT listing_id)` từ bảng nối chỉ 50 ms. Ngành nhỏ (1962, 555, 2227) dưới 1 s mọi cách | **Chưa chọn hướng.** (a) Để nguyên. (b) Bảng phẳng hóa doanh nghiệp × mọi ngành tổ tiên (~30–45 triệu dòng, phải dựng lại sau mỗi lần đồng bộ). (c) Đưa bộ lọc sang Elasticsearch, gắn với việc reindex (#1). (d) Mới: lấy trang id và đếm thẳng từ bảng nối khi chỉ lọc theo một cây (nhanh hơn 4–20 lần theo số đo trên), rồi đọc listing theo id. Xem [mục 7.4](#74-backend-luồng-xử-lý). |
+| 8 | ~~**Lọc theo nhóm ngành VSIC lớn còn chậm**~~ ✅ Xong 2026-10-09: chọn hướng (c), lọc trên Elasticsearch ([mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3)); nhóm lớn từ 9–45 s xuống 0,1–0,3 s. MySQL chỉ còn dùng khi có thêm filter khác ngoài bộ lọc cây | Số đo cũ: ngành 1524 (85.609) 21–35 s, Hà Nội mới 9–45 s |
 | 9 | Tên ngành có `&amp;` | Dữ liệu gốc của WordPress. API công khai đã giải mã khi trả ra ([mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)); trang quản trị vẫn hiện `&amp;`. Có thể viết script SQL đổi thành `&` |
 | 10 | Integration test backend cho `locationTreeId`, `categoryTreeId` | Hiện chỉ kiểm tra thủ công bằng API |
-| 11 | Kết hợp tìm kiếm (Elasticsearch) với lọc theo cây | `/api/listings/_search` bỏ qua filter |
+| 11 | ~~Kết hợp tìm kiếm (Elasticsearch) với lọc theo cây~~ | ✅ Xong 2026-10-09 ([mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3)) |
 | 12 | **Các API công khai còn lại cho FE Next.js** (doanh nghiệp, ngành nghề, địa phương, tin tức) | Xem [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
 | 13 | Chuyên mục bài viết, mã ngành của ngành nghề | Cần dữ liệu WordPress (`wp_term_relationships` của bài viết, `termmeta industry_code`) |
 | 14 | Quản trị viên nhập banner thật | Theo các vị trí trên WordPress: footer banner, quảng cáo listing, right banner 1, left center banner, right-banner-2 ([mục 10.3](#103-banner-quảng-cáo-gallery)) |
@@ -1581,7 +1784,7 @@ Lưu ý:
 | 18 | Sửa lỗi index chạy nền đọc DB trước khi commit cho các entity còn lại | Đã sửa cho bài viết ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)); listing, category, location, tag, blogcategory, user vẫn là code JHipster |
 | 19 | Tự reindex bài viết khi đổi tên, đổi cha của danh mục bài viết hoặc đổi tên thẻ | Hiện phải chạy tay `reindex?entities=blogpost` ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)) |
 | 20 | Nội dung bài cũ còn shortcode WPBakery (`[vc_row]`, `[vc_column_text]`… ở 371 bài). **Đã bỏ khi trả API công khai** ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)); còn lại: **ảnh trong `[vc_single_image image="id"]` bị mất** ở 363 bài, cần đồng bộ thêm media WordPress (`/wp/v2/media?include=…`) để đổi id thành URL ảnh | ES đã bỏ qua khi tìm. Khi làm API công khai cho Next.js (#16) cần bỏ shortcode khỏi `content` (giữ phần chữ, ảnh bên trong) |
-| 22 | **Đơn vị hành chính 2025, bước 2–4**: gắn doanh nghiệp vào đơn vị mới, giao diện mặc định địa giới mới, API tra cứu cũ → mới | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025) |
+| 22 | **Đơn vị hành chính 2025, bước 4** (bước 1–3 xong 2026-10-08): API tra cứu cũ → mới. Sau đó tìm kiếm listing trên ES: tìm không dấu, xếp địa chỉ mới lên trước, kết hợp với lọc ngành và địa phương | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025) |
 | 21 | Bộ lọc danh mục, thẻ trên trang danh sách bài viết (quản trị) | API đã có (`categoryId`, `tagId`); giao diện hiện chỉ có ô tìm kiếm |
 
 ---

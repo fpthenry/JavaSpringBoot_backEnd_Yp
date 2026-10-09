@@ -58,6 +58,20 @@ describe('TreeFilter', () => {
     expect(comp.levels()).toEqual([{ options: [NODES[0], NODES[1]], selected: null }]);
   });
 
+  it('should rebuild the root level when the source changes, even if the selected id in the URL stays the same', () => {
+    // Mở link đang lọc theo nút 10: lúc đầu nguồn chỉ có gốc 2 (vd danh sách tỉnh mới), sau đó trang đổi sang nguồn đầy đủ (tỉnh cũ)
+    const onlyRoot2: TreeSource = { ...fakeSource, roots: () => of([NODES[1]]) };
+    fixture.componentRef.setInput('source', onlyRoot2);
+    queryParamMap.next(convertToParamMap({ [`filter[${FILTER}]`]: '10' }));
+    TestBed.tick();
+    expect(comp.levels()[0].options).toEqual([NODES[1]]);
+
+    fixture.componentRef.setInput('source', fakeSource);
+    TestBed.tick();
+    expect(comp.levels()[0].options).toEqual([NODES[0], NODES[1]]);
+    expect(levelIds()).toEqual([1, 10, null]);
+  });
+
   it('should add a level only when the selected node has children and filter by the deepest node', () => {
     comp.onSelect(0, 1);
     expect(levelIds()).toEqual([1, null]);

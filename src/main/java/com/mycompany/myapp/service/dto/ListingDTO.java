@@ -58,6 +58,10 @@ public class ListingDTO implements Serializable {
     @Lob
     private String address;
 
+    @Schema(description = "Địa chỉ theo địa giới hành chính mới (từ 01/7/2025); null nếu address đã là địa chỉ mới")
+    @Size(max = 500)
+    private String addressNew;
+
     @Schema(description = "JSON gốc: province, ward, street, province_code, ward_code, coordinate dạng lat:long (giữ nguyên dạng text)")
     @Lob
     private String locationJson;
@@ -217,6 +221,14 @@ public class ListingDTO implements Serializable {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getAddressNew() {
+        return addressNew;
+    }
+
+    public void setAddressNew(String addressNew) {
+        this.addressNew = addressNew;
     }
 
     public String getLocationJson() {
@@ -425,6 +437,7 @@ public class ListingDTO implements Serializable {
             ", email='" + getEmail() + "'" +
             ", website='" + getWebsite() + "'" +
             ", address='" + getAddress() + "'" +
+            ", addressNew='" + getAddressNew() + "'" +
             ", locationJson='" + getLocationJson() + "'" +
             ", taxCode='" + getTaxCode() + "'" +
             ", representative='" + getRepresentative() + "'" +

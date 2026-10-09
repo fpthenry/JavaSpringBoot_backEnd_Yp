@@ -52,6 +52,8 @@ entity Listing(listing) {
 
     // Địa chỉ
     address TextBlob
+    /** Địa chỉ theo địa giới hành chính mới (từ 01/7/2025); null nếu address đã là địa chỉ mới */
+    addressNew String maxlength(500)
     /** JSON gốc: province, ward, street, province_code, ward_code, coordinate dạng lat:long (giữ nguyên dạng text) */
     locationJson TextBlob
 

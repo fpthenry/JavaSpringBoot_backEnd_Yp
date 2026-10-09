@@ -59,6 +59,7 @@ public class ListingAsserts {
             .satisfies(a -> assertThat(a.getEmail()).as("check email").isEqualTo(expected.getEmail()))
             .satisfies(a -> assertThat(a.getWebsite()).as("check website").isEqualTo(expected.getWebsite()))
             .satisfies(a -> assertThat(a.getAddress()).as("check address").isEqualTo(expected.getAddress()))
+            .satisfies(a -> assertThat(a.getAddressNew()).as("check addressNew").isEqualTo(expected.getAddressNew()))
             .satisfies(a -> assertThat(a.getLocationJson()).as("check locationJson").isEqualTo(expected.getLocationJson()))
             .satisfies(a -> assertThat(a.getTaxCode()).as("check taxCode").isEqualTo(expected.getTaxCode()))
             .satisfies(a -> assertThat(a.getRepresentative()).as("check representative").isEqualTo(expected.getRepresentative()))

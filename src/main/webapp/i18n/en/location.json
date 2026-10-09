@@ -48,7 +48,8 @@
         "ward": "Ward",
         "allProvinces": "-- All provinces --",
         "allDistricts": "-- All districts --",
-        "allWards": "-- All wards --"
+        "allWards": "-- All wards --",
+        "oldUnits": "Old administrative units (before 1 Jul 2025)"
       }
     }
   }

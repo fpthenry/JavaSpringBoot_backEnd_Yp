@@ -50,6 +50,7 @@ type ListingFormGroupContent = {
   email: FormControl<ListingFormRawValue['email']>;
   website: FormControl<ListingFormRawValue['website']>;
   address: FormControl<ListingFormRawValue['address']>;
+  addressNew: FormControl<ListingFormRawValue['addressNew']>;
   locationJson: FormControl<ListingFormRawValue['locationJson']>;
   taxCode: FormControl<ListingFormRawValue['taxCode']>;
   representative: FormControl<ListingFormRawValue['representative']>;
@@ -123,6 +124,9 @@ export class ListingFormService {
         validators: [Validators.maxLength(500)],
       }),
       address: new FormControl(listingRawValue.address),
+      addressNew: new FormControl(listingRawValue.addressNew, {
+        validators: [Validators.maxLength(500)],
+      }),
       locationJson: new FormControl(listingRawValue.locationJson),
       taxCode: new FormControl(listingRawValue.taxCode, {
         validators: [Validators.maxLength(100)],

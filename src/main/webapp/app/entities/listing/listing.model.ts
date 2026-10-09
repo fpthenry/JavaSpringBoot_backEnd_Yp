@@ -17,6 +17,7 @@ export interface IListing {
   email?: string | null;
   website?: string | null;
   address?: string | null;
+  addressNew?: string | null;
   locationJson?: string | null;
   taxCode?: string | null;
   representative?: string | null;
