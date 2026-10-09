@@ -1549,6 +1549,48 @@ GET /api/public/v1/locations?level=province&sort=listingCount,desc  # tỉnh nhi
 
 **Kiểm thử:** [`PublicLocationServiceTest`](../src/test/java/com/mycompany/myapp/service/PublicLocationServiceTest.java) 6/6 (chữ cái theo tên riêng, Đ riêng; tỉnh và đơn vị cha; lọc địa giới, cấp, ẩn trống; Đ sau D; xã trùng tên phân biệt theo tỉnh; từ khóa khớp đầu từ; sắp xếp, phân trang; tên bắt đầu bằng số xếp cuối; tham số sai → 400). Gọi thật trên app: các ví dụ trên; `letter=ab`, `generation=x`, `sort=slug` → 400; thiếu khóa → 401.
 
+### 10.8 Bộ request Postman cho mọi API
+
+> Làm ngày 2026-10-09. Để thử API trên Postman trước khi làm FE.
+
+**File:** `docs/postman/yp-api.postman_collection.json`. Postman → **Import** → chọn file.
+
+> Thư mục `docs/postman/` (collection, `generate-collection.mjs`, `test-crud.mjs`) **nằm trong `.gitignore`**, chỉ giữ trên máy: không commit lên git. Muốn chia sẻ cho người khác thì gửi file trực tiếp (không kèm mật khẩu/khóa thật).
+
+| Thư mục | Nội dung |
+|---|---|
+| 0. Bắt đầu | Đăng nhập (lưu JWT vào biến `jwt`), kiểm tra JWT, tài khoản đang đăng nhập |
+| 1. API công khai cho FE Next.js | Banner, bài viết + cây danh mục, mục lục ngành nghề, mục lục tỉnh thành, ví dụ lỗi 400/401/404. Header `X-API-Key: {{apiKey}}` |
+| 2. Doanh nghiệp | Danh sách, lọc theo cây (tỉnh mới, xã mới + ngành, tỉnh cũ), lọc field, đếm, tìm theo địa chỉ mới / cũ / mã số thuế, chi tiết, Tạo/Sửa/Xóa |
+| 3. Ngành nghề | Duyệt cây, đếm, tìm, mục lục A–Z quản trị, job số doanh nghiệp, Tạo/Sửa/Xóa |
+| 4. Tỉnh thành | Tỉnh cũ/mới, con của tỉnh, mục lục A–Z quản trị, job ĐVHC 2025 (fix-locations, link-listings, new-addresses), Tạo/Sửa/Xóa |
+| 5. Bài viết | Bài viết, danh mục bài viết, thẻ (danh sách, tìm, chi tiết, Tạo/Sửa/Xóa), đồng bộ WordPress |
+| 6. Banner | Vị trí banner, ảnh banner, `with-images` |
+| 7. Elasticsearch | Kiểm tra index, trạng thái, reindex |
+| 8. Người dùng | Quản trị người dùng, quyền, tài khoản (đăng ký, đổi/quên mật khẩu) |
+| 9. Hệ thống | `/management/health`, `/management/info` |
+
+- **Phủ đủ 110/110 API** có trong OpenAPI (`/v3/api-docs`); 144 request vì nhiều API có vài ví dụ (ví dụ `_search` theo địa chỉ mới, địa chỉ cũ, mã số thuế).
+- **Ví dụ phản hồi** (tab Examples của từng request): API đọc là **phản hồi thật** trên dữ liệu dev (mảng dài giữ 3 phần tử đầu, chữ dài cắt bớt), kèm thời gian và header `X-Total-Count`, `Cache-Control`. API ghi có ví dụ minh họa; job chạy nền dùng trạng thái thật của lần chạy gần nhất.
+- **Tự đăng nhập:** collection dùng Bearer `{{jwt}}`; script của collection tự gọi `/api/authenticate` khi `jwt` trống, gặp 401 thì xóa `jwt` để lần sau đăng nhập lại.
+- **Tạo/Sửa/Xóa an toàn:** mỗi nhóm có 4 request theo thứ tự. **Tạo** lưu `id` mới vào biến `createdId`; Sửa toàn bộ, Sửa một phần, Xóa chỉ dùng `{{createdId}}`, nên không đụng dữ liệu thật. Slug/mã dùng `{{$timestamp}}` để không trùng.
+- **Biến** (tab Variables): `baseUrl` (mặc định `http://localhost:8081`), `username`/`password` (admin/admin của dev), `apiKey` (khóa dev), các id mẫu (doanh nghiệp, ngành BAO BÌ 4, Phường Vĩnh Tuy 12000, Hà Nội mới 11960, Hà Nội cũ 2…).
+
+> ⚠️ **Server thật:** tạo một **Environment** trong Postman ghi đè `baseUrl`, `password`, `apiKey` (kiểu secret). Không sửa giá trị thật vào file collection rồi commit. File không chứa JWT (phản hồi đăng nhập đã được che).
+
+> ⚠️ Request "Lọc theo field (MySQL, chậm)" mất ~24 s: `name.contains` quét toàn bảng doanh nghiệp. Tìm theo tên nên dùng `_search`.
+
+**Sinh lại file** khi thêm/sửa API (app đang chạy ở `localhost:8081`, chỉ gọi API đọc):
+
+```
+node docs/postman/generate-collection.mjs   # ghi đè yp-api.postman_collection.json, báo nếu còn API chưa có trong collection
+node docs/postman/test-crud.mjs             # chạy thử 8 bộ Tạo → Sửa → Sửa một phần → Xóa trên bản ghi thử
+```
+
+`generate-collection.mjs` khai báo request theo từng thư mục; API mới phải thêm vào đây (script so với `/v3/api-docs` và báo "Thiếu: …"). `test-crud.mjs` đọc đúng request trong file, chạy Tạo rồi Sửa, Xóa bản ghi vừa tạo (luôn xóa kể cả khi bước giữa lỗi). Lần chạy 2026-10-09: 32/32 bước đúng mã trạng thái, 8 bản ghi thử đã xóa (GET sau xóa → 404). Nhóm người dùng, quyền, tài khoản không chạy thử (gửi email, đổi mật khẩu admin).
+
+Cùng lúc sửa mô tả Swagger cũ trong [`OpenApiDocsConfiguration`](../src/main/java/com/mycompany/myapp/config/OpenApiDocsConfiguration.java): `GET /api/listings/_search` nay ghi "lọc theo cây địa phương, ngành nghề" (trước ghi "không áp dụng bộ lọc"); mô tả `locationTreeId`, `categoryTreeId` ghi rõ chỉ bộ lọc cây thì chạy Elasticsearch.
+
 ---
 
 ## 11. Bài viết (Blog): đồng bộ WordPress và trang soạn bài

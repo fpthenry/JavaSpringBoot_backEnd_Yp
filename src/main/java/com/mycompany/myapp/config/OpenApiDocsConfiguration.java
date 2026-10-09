@@ -78,6 +78,7 @@ public class OpenApiDocsConfiguration {
         Map.entry("GET /api/users", "Danh sách người dùng công khai"),
         Map.entry("GET /api/users/_search/{query}", "Tìm người dùng (Elasticsearch)"),
         Map.entry("GET /api/blog-posts/_search", "Tìm bài viết (Elasticsearch, không dấu), lọc theo danh mục, thẻ, trạng thái"),
+        Map.entry("GET /api/listings/_search", "Tìm doanh nghiệp (Elasticsearch, địa chỉ cũ và mới), lọc theo cây địa phương, ngành nghề"),
         Map.entry("GET /api/admin/users", "Danh sách người dùng (quản trị)"),
         Map.entry("POST /api/admin/users", "Tạo người dùng"),
         Map.entry("PUT /api/admin/users", "Cập nhật người dùng"),
@@ -94,10 +95,12 @@ public class OpenApiDocsConfiguration {
     private static final Map<String, String> TREE_FILTERS = Map.of(
         "locationTreeId",
         "Lọc doanh nghiệp thuộc địa phương này hoặc bất kỳ cấp con nào (tỉnh -> quận/huyện -> phường/xã). " +
-            "Khác locationId.equals (chỉ khớp đúng địa phương được gắn). Ví dụ Hà Nội (id 2): 265.942 doanh nghiệp.",
+            "Khác locationId.equals (chỉ khớp đúng địa phương được gắn). Ví dụ Hà Nội mới (id 11960), Hà Nội cũ (id 2). " +
+            "Chỉ dùng bộ lọc cây thì chạy trên Elasticsearch (dưới 0,3 s); kèm filter khác thì chạy MySQL, có thể chậm.",
         "categoryTreeId",
         "Lọc doanh nghiệp thuộc ngành này hoặc bất kỳ ngành con nào (tối đa 4 cấp). " +
-            "Khác categoryId.equals (chỉ khớp đúng ngành được gắn). Nhóm ngành VSIC rất lớn có thể mất vài chục giây."
+            "Khác categoryId.equals (chỉ khớp đúng ngành được gắn). Chỉ dùng bộ lọc cây thì chạy trên Elasticsearch; " +
+            "kèm filter khác thì chạy MySQL, nhóm ngành VSIC lớn có thể mất vài chục giây."
     );
 
     private static final String TREE_PARENT_DESCRIPTION =
