@@ -12,6 +12,7 @@ import java.text.Collator;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -143,13 +144,27 @@ public class PublicLocationService {
             .filter(l -> wanted == null || wanted.equals(l.letter()))
             .filter(l -> words.isEmpty() || matchesAll(fold(l.name() + " " + nullToEmpty(l.provinceName())), words))
             .collect(Collectors.toCollection(ArrayList::new));
+        Comparator<PublicLocationDTO> order = null;
+        if (!words.isEmpty() && !sortsByCountFirst(pageable.getSort())) {
+            // "thanh luong": Phường Thanh Lương (khớp trong tên) trước Xã Bắc Lương, Thanh Hóa (khớp nhờ tên tỉnh)
+            Set<PublicLocationDTO> inName = Collections.newSetFromMap(new IdentityHashMap<>());
+            matched
+                .stream()
+                .filter(l -> matchesAll(fold(l.name()), words))
+                .forEach(inName::add);
+            order = Comparator.comparingInt(l -> inName.contains(l) ? 0 : 1);
+        }
         if (pageable.getSort().isSorted()) {
             // Danh sách vào đã theo tên: thứ tự theo tên chính là vị trí; sắp ổn định nên số bằng nhau vẫn giữ thứ tự tên
             Map<PublicLocationDTO, Integer> position = new IdentityHashMap<>();
             for (int i = 0; i < matched.size(); i++) {
                 position.put(matched.get(i), i);
             }
-            matched.sort(comparator(pageable.getSort(), Comparator.comparingInt(position::get)));
+            Comparator<PublicLocationDTO> sorted = comparator(pageable.getSort(), Comparator.comparingInt(position::get));
+            order = order == null ? sorted : order.thenComparing(sorted);
+        }
+        if (order != null) {
+            matched.sort(order);
         }
         int size = Math.clamp(pageable.getPageSize(), 1, MAX_PAGE_SIZE);
         int page = Math.max(pageable.getPageNumber(), 0);
@@ -225,6 +240,14 @@ public class PublicLocationService {
             result = result == null ? one : result.thenComparing(one);
         }
         return result == null ? byName : result.thenComparing(byName);
+    }
+
+    private static boolean sortsByCountFirst(Sort sort) {
+        return sort
+            .stream()
+            .findFirst()
+            .map(order -> "listingCount".equals(order.getProperty()))
+            .orElse(false);
     }
 
     private static String fold(String text) {

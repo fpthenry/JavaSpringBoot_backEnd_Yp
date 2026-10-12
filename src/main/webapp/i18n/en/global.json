@@ -1,6 +1,6 @@
 {
   "global": {
-    "title": "JavaSpringBootBackEnd",
+    "title": "Yellow Pages – Admin",
     "browsehappy": "You are using an <strong>outdated</strong> browser. Please <a href=\"https://browsehappy.com/?locale=en\">upgrade your browser</a> to improve your experience.",
     "menu": {
       "home": "Home",
@@ -63,7 +63,14 @@
       "confirmpassword.label": "New password confirmation",
       "confirmpassword.placeholder": "Confirm the new password",
       "email.label": "Email",
-      "email.placeholder": "Your email"
+      "email.placeholder": "Your email",
+      "unsaved": "Unsaved changes",
+      "unsavedConfirm": "You have unsaved changes. Leave this page and discard them?",
+      "saveHint": "Press Ctrl + S to save",
+      "invalidFields": "Please check:",
+      "noMatch": "No matching results",
+      "remove": "Remove",
+      "columns": "Columns"
     },
     "messages": {
       "info": {
@@ -106,7 +113,12 @@
     "ribbon": {
       "dev": "Development"
     },
-    "item-count": "Showing {{first}} - {{second}} of {{total}} items."
+    "item-count": "Showing {{first}}–{{second}} of {{total}}",
+    "detail": {
+      "copy": "Copy",
+      "copied": "Copied",
+      "sections": "Page sections"
+    }
   },
   "entity": {
     "action": {
@@ -119,7 +131,11 @@
       "open": "Open",
       "save": "Save",
       "view": "View",
-      "show": "Show {{otherEntity}}"
+      "show": "Show {{otherEntity}}",
+      "create": "Create",
+      "refresh": "Refresh",
+      "moreActions": "More actions",
+      "search": "Search"
     },
     "detail": {
       "field": "Field",
@@ -194,5 +210,5 @@
       "not.image": "File was expected to be an image but was found to be \"{{ fileType }}\""
     }
   },
-  "footer": "This is your footer"
+  "footer": "© Yellow Pages · Data administration"
 }

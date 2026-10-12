@@ -30,6 +30,14 @@ export interface LocationIndexItem {
   listingCount: number;
 }
 
+/** Dòng phụ dưới tên: "Quận Hai Bà Trưng, Thành phố Hà Nội"; xã mới chỉ có tỉnh; tỉnh thì không có. */
+export function placeOf(item: LocationIndexItem): string | null {
+  if (item.parentId === null || !item.provinceName) {
+    return null;
+  }
+  return item.parentName && item.parentName !== item.provinceName ? `${item.parentName}, ${item.provinceName}` : item.provinceName;
+}
+
 export interface LocationIndexPage {
   items: LocationIndexItem[];
   page: number;

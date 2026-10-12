@@ -114,6 +114,19 @@ class PublicLocationServiceTest {
             .extracting(PublicLocationDTO::id)
             .containsExactly(12001L);
         assertThat(PublicLocationService.filter(moi, null, "ong", PageRequest.of(0, 20)).items()).isEmpty();
+        // Khớp trong tên đơn vị xếp trước khớp nhờ tên tỉnh: Tỉnh Vĩnh Long trước Xã Châu Thới (Vĩnh Long), kể cả khi sort=name
+        assertThat(PublicLocationService.filter(moi, null, "vinh long", PageRequest.of(0, 20)).items())
+            .extracting(PublicLocationDTO::id)
+            .containsExactly(14000L, 14001L);
+        assertThat(PublicLocationService.filter(moi, null, "vinh long", PageRequest.of(0, 20, Sort.by("name"))).items())
+            .extracting(PublicLocationDTO::id)
+            .containsExactly(14000L, 14001L);
+        // Sắp theo số doanh nghiệp: không ưu tiên khớp trong tên (cả hai 0 doanh nghiệp nên giữ thứ tự tên: Châu Thới trước)
+        assertThat(
+            PublicLocationService.filter(moi, null, "vinh long", PageRequest.of(0, 20, Sort.by(Sort.Order.desc("listingCount")))).items()
+        )
+            .extracting(PublicLocationDTO::id)
+            .containsExactly(14001L, 14000L);
         // Mặc định theo tên riêng: Bến Tre, Châu Thới, Châu Thới, Đông Anh, Hà Nội, Vĩnh Long, Vĩnh Tuy
         assertThat(PublicLocationService.filter(moi, null, null, PageRequest.of(0, 20)).items())
             .extracting(PublicLocationDTO::id)

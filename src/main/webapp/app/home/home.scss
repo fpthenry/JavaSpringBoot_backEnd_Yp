@@ -1,23 +1,50 @@
-/* ==========================================================================
-Main page styles
-========================================================================== */
+/* Sửa tay: trang chủ quản trị */
+.stat-card {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.125rem 1.25rem;
+  color: var(--bs-body-color);
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 
-.hipster {
-  display: inline-block;
-  width: 347px;
-  height: 497px;
-  background: url('../../content/images/jhipster_family_member_3.svg') no-repeat center top;
-  background-size: contain;
+  &:hover {
+    color: var(--bs-body-color);
+    box-shadow: 0 0.5rem 1.25rem rgba(16, 24, 40, 0.1);
+    transform: translateY(-1px);
+  }
 }
 
-/* wait autoprefixer update to allow simple generation of high pixel density media query */
-@media only screen and (-webkit-min-device-pixel-ratio: 2),
-  only screen and (-moz-min-device-pixel-ratio: 2),
-  only screen and (-o-min-device-pixel-ratio: 2/1),
-  only screen and (min-resolution: 192dpi),
-  only screen and (min-resolution: 2dppx) {
-  .hipster {
-    background: url('../../content/images/jhipster_family_member_3.svg') no-repeat center top;
-    background-size: contain;
-  }
+.stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 0.375rem;
+  border-radius: 0.625rem;
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  color: var(--bs-primary);
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color);
+}
+
+.home-login {
+  max-width: 32rem;
+  margin: 3rem auto;
+}
+
+.list-group-item {
+  font-weight: 500;
 }

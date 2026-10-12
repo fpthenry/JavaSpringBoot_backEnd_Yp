@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { ASC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { unsavedChangesGuard } from 'app/shared/form';
 
 import ListingResolve from './route/listing-routing-resolve.service';
 
@@ -29,6 +30,7 @@ const listingRoute: Routes = [
       listing: ListingResolve,
     },
     canActivate: [userRouteAccessService],
+    canDeactivate: [unsavedChangesGuard],
   },
   {
     path: ':id/edit',
@@ -37,6 +39,7 @@ const listingRoute: Routes = [
       listing: ListingResolve,
     },
     canActivate: [userRouteAccessService],
+    canDeactivate: [unsavedChangesGuard],
   },
 ];
 

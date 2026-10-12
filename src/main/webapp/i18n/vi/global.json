@@ -1,6 +1,6 @@
 {
   "global": {
-    "title": "JavaSpringBootBackEnd",
+    "title": "Trang Vàng – Quản trị",
     "browsehappy": "Bạn đang sử dụng một trình duyệt <strong>quá cũ</strong>. Vui lòng <a href=\"https://browsehappy.com/?locale=en\">nâng cấp trình duyệt</a> của bạn để có trải nghiệm tốt nhất.",
     "menu": {
       "home": "Trang chủ",
@@ -61,7 +61,14 @@
       "confirmpassword.label": "Xác nhận mật khẩu mới",
       "confirmpassword.placeholder": "Nhập lại mật khẩu mới",
       "email.label": "Email",
-      "email.placeholder": "Nhập email của bạn"
+      "email.placeholder": "Nhập email của bạn",
+      "unsaved": "Có thay đổi chưa lưu",
+      "unsavedConfirm": "Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?",
+      "saveHint": "Ctrl + S để lưu nhanh",
+      "invalidFields": "Kiểm tra lại:",
+      "noMatch": "Không tìm thấy kết quả phù hợp",
+      "remove": "Bỏ",
+      "columns": "Cột hiển thị"
     },
     "messages": {
       "info": {
@@ -104,7 +111,12 @@
     "ribbon": {
       "dev": "Phát triển"
     },
-    "item-count": "Showing {{first}} - {{second}} of {{total}} items."
+    "item-count": "Hiển thị {{first}}–{{second}} trên tổng {{total}}",
+    "detail": {
+      "copy": "Chép",
+      "copied": "Đã chép",
+      "sections": "Mục lục trang"
+    }
   },
   "entity": {
     "action": {
@@ -117,7 +129,11 @@
       "open": "Mở",
       "save": "Lưu",
       "view": "Xem",
-      "show": "Show {{otherEntity}}"
+      "show": "Show {{otherEntity}}",
+      "create": "Thêm mới",
+      "refresh": "Tải lại",
+      "moreActions": "Thao tác khác",
+      "search": "Tìm"
     },
     "detail": {
       "field": "Trường",
@@ -192,5 +208,5 @@
       "not.image": "File was expected to be an image but was found to be \"{{ fileType }}\""
     }
   },
-  "footer": "Đây là chân trang của bạn"
+  "footer": "© Trang Vàng · Hệ thống quản trị dữ liệu"
 }

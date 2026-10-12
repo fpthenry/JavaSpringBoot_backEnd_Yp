@@ -19,6 +19,7 @@
 13. [Lỗi đã gặp và cách xử lý](#13-lỗi-đã-gặp-và-cách-xử-lý)
 14. [Việc còn tồn đọng](#14-việc-còn-tồn-đọng)
 15. [Lệnh hay dùng](#15-lệnh-hay-dùng)
+16. [Giao diện quản trị (bàn giao khách hàng)](#16-giao-diện-quản-trị-bàn-giao-khách-hàng)
 
 ---
 
@@ -1811,6 +1812,7 @@ Lưu ý:
 | `domain/Listing.java`, `service/dto/ListingDTO.java` (field `addressNew`), `ListingAsserts.java`, `yp-schema.jdl`, `liquibase/changelog/20261008110000_listing_address_new.xml` + `master.xml`; `entities/listing/` (model, form, chi tiết, danh sách, spec), `i18n/{vi,en}/listing.json` | Địa chỉ mới của doanh nghiệp | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). JDL đã có field này; **sinh lại Listing** thì JHipster tạo changelog thêm cột trùng: xóa changelog đó vì cột đã có |
 | `entities/listing/list/listing.ts`, `listing.html`, `listing.spec.ts`; `shared/tree/tree-source.ts` (`rootCriteria`), `tree-filter.ts` (dựng lại khi đổi nguồn), `tree-filter.spec.ts`; `repository/search/ListingSearchRepository.java` (AND, đếm đủ); `domain/Listing.java` (`@Setting`), `config/elasticsearch/listing-settings.json`; `application.yml` (`relaxed-query-chars`); `i18n/{vi,en}/location.json`, `listing.json` | Trang Listing theo địa giới mới, tìm được địa chỉ cũ | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025). Sinh lại Listing sẽ mất `@Setting`, cột địa chỉ gộp, công tắc địa giới, sửa tìm kiếm |
 | `domain/Listing.java` (`categoryIds`, `locationIds`, `sortId`), `repository/search/ListingSearchRepository.java`, `ListingSearchFields.java`, `ListingSearchFilter.java` (file mới), `service/ListingService.java`, `service/impl/ListingServiceImpl.java`, `service/ListingQueryService.java` (`onlyTreeFilters`), `web/rest/ListingResource.java` (`_search` nhận bộ lọc cây), `service/ElasticsearchReindexService.java` | Lọc listing theo cây trên ES, tìm kết hợp bộ lọc | [Mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3). **Sinh lại Listing sẽ mất**, lọc quay về MySQL chậm |
+| `content/scss/global.scss`, `_bootstrap-variables.scss`, `shared/form/*` (file mới), `home/*`, `entities/listing/update/*` (form, spec), `entities/listing/list/listing.html` (+ spec nạp đủ icon), `entities/listing/detail/*` (trang xem, scss, spec), `shared/detail/*` (file mới), `layouts/navbar/navbar.html` (`navbar-expand-lg`), `entities/listing/listing-display.ts` (+ spec, file mới), `listing.routes.ts` (`canDeactivate`), `config/font-awesome-icons.ts`, `i18n/{vi,en}/global.json`, `home.json`, `listing.json`; `location/service/location-index.service.ts` (`placeOf` chuyển vào đây) | Giao diện quản trị bước 1 | [Mục 16](#16-giao-diện-quản-trị-bàn-giao-khách-hàng). **Sinh lại Listing sẽ mất** form chia nhóm, chọn bằng gõ tìm, danh sách gọn; sinh lại app (`jhipster`) sẽ ghi đè `home`, `global.scss` |
 | `web/rest/LocationIndexResource.java`, `entities/location/index/*`, `entities/location/service/location-index.service.ts`, `web/rest/publicapi/PublicLocationResource.java`, `service/PublicLocationService.java`, `service/dto/publicapi/PublicLocationDTO.java` (file mới); mục **Mục lục A–Z** trong `navbar.html` (nhóm Tỉnh thành); `i18n/{vi,en}/location.json` (`location.index.*`), `global.json` | Mục lục tỉnh thành A–Z, API công khai | [Mục 7.11](#711-mục-lục-tỉnh-thành-az-trang-quản-trị), [mục 10.7](#107-tỉnh-thành-mục-lục-theo-chữ-cái-số-doanh-nghiệp). Sinh lại Location: kiểm tra `location.routes.ts` còn route `index`, menu và `location.json` còn khóa `index` |
 | `web/rest/CategoryIndexResource.java`, `entities/category/index/*`, `entities/category/service/category-index.service.ts` (file mới); mục **Mục lục A–Z** trong `navbar.html` (nhóm Ngành nghề) | Trang Mục lục ngành nghề A–Z | [Mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị). Sinh lại Category: kiểm tra `category.routes.ts` còn route `index`, menu còn mục này |
 | `web/rest/publicapi/PublicCategoryResource.java`, `service/PublicCategoryService.java`, `repository/CategoryPublicRepository.java`, `service/dto/publicapi/PublicCategoryDTO.java`, `service/CategoryListingCountService.java`, `service/CategorySubtreeCounter.java`, `web/rest/CategoryListingCountResource.java` (file mới) | Mục lục ngành nghề theo chữ cái; job tính số doanh nghiệp | File viết tay ([mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) |
@@ -1891,6 +1893,7 @@ Lưu ý:
 | 19 | Tự reindex bài viết khi đổi tên, đổi cha của danh mục bài viết hoặc đổi tên thẻ | Hiện phải chạy tay `reindex?entities=blogpost` ([mục 11.4](#114-tìm-kiếm-bài-viết-bằng-elasticsearch)) |
 | 20 | Nội dung bài cũ còn shortcode WPBakery (`[vc_row]`, `[vc_column_text]`… ở 371 bài). **Đã bỏ khi trả API công khai** ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)); còn lại: **ảnh trong `[vc_single_image image="id"]` bị mất** ở 363 bài, cần đồng bộ thêm media WordPress (`/wp/v2/media?include=…`) để đổi id thành URL ảnh | ES đã bỏ qua khi tìm. Khi làm API công khai cho Next.js (#16) cần bỏ shortcode khỏi `content` (giữ phần chữ, ảnh bên trong) |
 | 22 | **Đơn vị hành chính 2025, bước 4** (bước 1–3 xong 2026-10-08): API tra cứu cũ → mới. Sau đó tìm kiếm listing trên ES: tìm không dấu, xếp địa chỉ mới lên trước, kết hợp với lọc ngành và địa phương | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025) |
+| 23 | **Giao diện quản trị bước 2–4** (bước 1 xong 2026-10-12): áp dụng form chia nhóm, ô tự xuống dòng, chọn bằng gõ tìm, nhãn tiếng Việt cho các entity còn lại; trang chi tiết; quản trị người dùng | [Mục 16.3](#163-các-bước-tiếp-theo). Lưu ý các entity còn lại cũng dùng `<select>` 20 dòng đầu để chọn cha |
 | 21 | Bộ lọc danh mục, thẻ trên trang danh sách bài viết (quản trị) | API đã có (`categoryId`, `tagId`); giao diện hiện chỉ có ô tìm kiếm |
 
 ---
@@ -1931,3 +1934,97 @@ docker exec javaspringbootbackend-mysql-1 sh -c 'mysqldump -uroot --single-trans
   --set-gtid-purged=OFF --default-character-set=utf8mb4 --databases jhipster_vnyp | gzip -c > /tmp/jhipster_vnyp.sql.gz'
 docker cp javaspringbootbackend-mysql-1:/tmp/jhipster_vnyp.sql.gz ./jhipster_vnyp.sql.gz
 ```
+
+---
+
+## 16. Giao diện quản trị (bàn giao khách hàng)
+
+> Bắt đầu 2026-10-12. Mục tiêu: trang quản trị đủ chuyên nghiệp để bàn giao, dễ dùng cho người không phải lập trình viên. Làm theo từng bước; **bước 1 xong**: nền chung + trang chủ + Doanh nghiệp (Listing).
+
+### 16.1 Hiện trạng trước khi sửa
+
+| Chỗ | Vấn đề |
+|---|---|
+| Danh sách doanh nghiệp | 35 cột (Wp Id, Api Id, slug, mô tả HTML thô `<ul><li>…`), chữ dài vỡ giữa từ, không đọc được |
+| Form sửa doanh nghiệp | Một cột dài 35 ô, field kỹ thuật (Wp Id, Location Json, Es Indexed) lẫn với field nghiệp vụ, dữ liệu dài nằm trong ô một dòng, nút Lưu ở tận cuối |
+| Chọn ngành nghề, địa phương trong form | `<select multiple>` chỉ nạp **20 dòng đầu** (`query()` không phân trang) trên 2.394 ngành, 15.314 địa phương: **không chọn được** phần lớn giá trị |
+| Nhãn tiếng Việt | Field vẫn là tiếng Anh ("Name", "Tax Code"…); chữ "Showing … items" chưa dịch |
+| Trang chủ | Trang giới thiệu JHipster ("Welcome, Java Hipster", "This is your footer") |
+| Kiểu chữ | Font 300 mảnh, link nâu đậm, ô hợp lệ/không hợp lệ có viền trái xanh/đỏ 5px |
+
+### 16.2 Bước 1 (xong 2026-10-12)
+
+**Nền chung** ([`global.scss`](../src/main/webapp/content/scss/global.scss), [`_bootstrap-variables.scss`](../src/main/webapp/content/scss/_bootstrap-variables.scss)): nền xám nhạt, khối trắng bo góc; chữ 400; link màu primary; chỉ báo đỏ ô sai **sau khi** người dùng đã chạm vào. Lớp dùng lại cho các trang sau:
+
+| Lớp | Dùng cho |
+|---|---|
+| `.page-header`, `.page-title` | Đầu trang: đường dẫn, tiêu đề, nút thao tác |
+| `.form-card`, `.form-card-title`, `details.form-card-collapsible` | Nhóm field có tiêu đề + icon; khối thu gọn được (thông tin kỹ thuật) |
+| `.side-sticky` | Cột phải của form dính khi cuộn (màn hình ≥ 1200px) |
+| `.form-actions`, `.form-actions-status` | **Thanh Lưu/Hủy dính đáy màn hình**, bên trái là trạng thái |
+| `.surface`, `.list-toolbar`, `.table-entities`, `.btn-icon` | Danh sách: thanh tìm kiếm + bộ lọc, bảng nền trắng, đầu bảng dính khi cuộn, chữ dài tự xuống dòng, nút icon |
+| `.detail-grid` | Trang chi tiết dạng lưới nhãn/giá trị (dùng ở bước sau) |
+| `label.form-label.required` | Dấu * đỏ cho field bắt buộc |
+| `.rte-compact` | Trình soạn thảo HTML gọn (cao 160px) cho mô tả ngắn |
+
+**Thành phần dùng chung** ([`shared/form/`](../src/main/webapp/app/shared/form/)):
+
+| Thành phần | Tác dụng | Dùng |
+|---|---|---|
+| `AutoResizeDirective` | **Ô chữ dài tự cao theo nội dung, tự xuống dòng** (tối đa 480px rồi cuộn). `[allowNewline]="false"`: field một dòng (tên, email, website) chữ vẫn xuống dòng khi dài nhưng Enter không chèn ký tự xuống dòng | `<textarea jhiAutoResize [allowNewline]="false" rows="1" formControlName="name"></textarea>` |
+| `ChipPicker` | Chọn nhiều bằng **gõ tìm** thay cho `<select multiple>`: đã chọn hiện thành thẻ có ×; gõ → gọi API sau 250 ms; ↑ ↓ Enter chọn; Backspace bỏ thẻ cuối; Esc đóng. Giải mã `&amp;` khi hiển thị. Là form control (`formControlName`) | `<jhi-chip-picker formControlName="categories" [search]="searchCategories" />`, `search(term) → Observable<{id, name, hint?, badge?}[]>` |
+| `unsavedChangesGuard` + `HasUnsavedChanges` | **Hỏi lại khi rời trang sửa còn thay đổi chưa lưu** (bấm menu, đường dẫn, Hủy) | Route: `canDeactivate: [unsavedChangesGuard]`; component có `hasUnsavedChanges()` |
+
+**Doanh nghiệp: form thêm/sửa** ([`listing-update.html`](../src/main/webapp/app/entities/listing/update/listing-update.html), `.ts`):
+
+- Cột chính chia nhóm: **Thông tin chung** (tên chữ lớn, tên tiếng Anh/viết tắt, slug, giới thiệu bằng trình soạn thảo HTML), **Liên hệ**, **Địa chỉ và khu vực** (địa chỉ mới, địa chỉ cũ, địa phương), **Ngành nghề**, **Thông tin doanh nghiệp** (mã số thuế, đại diện, vốn…), **Hình ảnh**. Hai cột trên màn hình rộng, một cột trên điện thoại.
+- Cột phải: **Xuất bản** (trạng thái chọn "Đã xuất bản / Bản nháp"; giá trị lạ có sẵn trong dữ liệu vẫn giữ), nổi bật, ngày đăng; **Thống kê**; **Thông tin kỹ thuật** thu gọn (ID, Mã WordPress, Mã API, JSON vị trí, đã đưa vào tìm kiếm). Thêm mới: mặc định bản nháp, khối kỹ thuật mở sẵn vì Mã WordPress bắt buộc.
+- Field chữ có thể dài dùng `jhiAutoResize`: **dữ liệu dài tự xuống dòng**, ô cao theo nội dung.
+- **Ngành nghề, địa phương chọn bằng gõ tìm** (`ChipPicker`) qua API mục lục A–Z (`/api/category-index?q=`, `/api/location-index?q=&generation=all`): tìm không dấu, dòng phụ là ngành cha / quận, tỉnh; đơn vị cũ có nhãn "Cũ". Không còn tải 20 dòng đầu.
+- **Thanh lưu dính đáy**: "Có thay đổi chưa lưu" khi đã sửa; khi form sai liệt kê **"Kiểm tra lại: Mã WordPress, Tên doanh nghiệp"**, bấm tên field thì cuộn tới (tự mở khối kỹ thuật nếu cần). **Ctrl + S** để lưu (form sai thì nhảy tới field sai đầu tiên).
+- Rời trang khi chưa lưu → hỏi lại. **Hủy** khi mở thẳng trang sửa (link, tab mới) thì về danh sách thay vì rời ứng dụng.
+
+**Doanh nghiệp: danh sách** ([`listing.html`](../src/main/webapp/app/entities/listing/list/listing.html)): 6 cột (ID, **tên + nhãn Đã xuất bản/Bản nháp/Nổi bật + mã số thuế**, địa chỉ mới kèm địa chỉ cũ, liên hệ có icon, ngày cập nhật, nút icon xem/sửa/xóa); tìm kiếm và 2 bộ lọc cây gộp trong một khối; bảng nền trắng, đầu bảng dính khi cuộn.
+
+**Doanh nghiệp: trang xem** ([`listing-detail.html`](../src/main/webapp/app/entities/listing/detail/listing-detail.html), `.ts`, `.scss`, hàm thuần [`listing-display.ts`](../src/main/webapp/app/entities/listing/listing-display.ts); làm lại 2026-10-12 cho hiện đại, dễ dùng trên mọi màn hình):
+
+- **Khối đầu trang**: ô chữ viết tắt màu theo tên (bỏ từ loại hình: "CTY TNHH TM ĐẦU TƯ…" → "ĐT"), tên, tên tiếng Anh/viết tắt, nhãn trạng thái, nổi bật, **"Hồ sơ 88%"**; nút quay lại, xóa (icon) và **Sửa** (phím tắt **E**). Hàng số liệu chính: địa chỉ, mã số thuế (nút chép), lượt xem, ngày cập nhật. Hàng **thao tác nhanh** dạng nút tròn: **Gọi** (số đầu tiên), **Gửi email**, **Website**, **Xem bản đồ**, **Chép địa chỉ**.
+- **Thanh mục lục dính** (Giới thiệu · Liên hệ · Địa chỉ · Ngành nghề · Doanh nghiệp): bấm để cuộn mượt tới phần đó, phần đang xem được tô màu; cuộn tới cuối trang thì mục cuối sáng.
+- **Chỉ hiện field có dữ liệu.** Field trống gom thành một dòng viền đứt "**Chưa có:** Email · Website … **Bổ sung**" (bấm mở form sửa đúng field đầu tiên còn thiếu), thay cho nhiều dòng "Chưa có".
+- **Liên hệ bấm được**: `tel:` (ô nhiều số tách theo `;` `,` `/` `" - "`), `mailto:` cho từng email (ô "a@x.com;b@y.com" thành 2 link), website thêm `https://`; nút chép cạnh từng giá trị (✓ 1,5 s; trang http không có Clipboard API thì chép bằng ô ẩn).
+- **Địa chỉ**: địa chỉ mới chữ lớn, địa chỉ cũ chữ mờ (ẩn nếu trùng), **vị trí gốc** từ `locationJson` thành các ô Đường / Phường / Tỉnh / Tọa độ (tọa độ giữ nguyên chữ). Bản đồ Google theo tọa độ, không có thì tìm theo địa chỉ. Địa phương, ngành nghề là thẻ bấm được → danh sách doanh nghiệp cùng khu vực/ngành; địa phương có cấp cha và nhãn **Mới/Cũ** (một lệnh `/api/locations?id.in=…`).
+- **Cột phải** (dính khi cuộn): **vòng tròn mức độ đầy đủ** (xanh ≥ 80%, vàng dưới 80%) và danh sách còn thiếu, mỗi mục có **Bổ sung** → form sửa `?focus=<field>` (cuộn tới, đặt con trỏ, nháy viền ô); **Xuất bản** (trạng thái, ngày đăng, ngày sửa nội dung, ngày tạo); **Thông tin kỹ thuật** thu gọn.
+- **Điện thoại** (< 768px): thanh dưới dính đáy **Gọi · Bản đồ · Sửa**; khối đầu trang xếp dọc; thanh mục lục cuộn ngang. **Máy tính bảng**: số liệu 3 cột. Thử ở 1400px, 900px, 390px: không cuộn ngang.
+- Kèm theo: menu trên cùng đổi `navbar-expand-md` → `navbar-expand-lg` ([`navbar.html`](../src/main/webapp/app/layouts/navbar/navbar.html)): ở 768–991px menu đầy đủ không vừa (chữ "Trang chủ" xuống dòng, "Tài khoản" bị cắt, trang cuộn ngang) trong khi nút ☰ vốn đã đặt hiện dưới 992px.
+
+**Thành phần dùng lại cho trang xem các entity khác** ([`shared/detail/`](../src/main/webapp/app/shared/detail/)):
+
+| Thành phần | Dùng |
+|---|---|
+| `CopyButton` (`<jhi-copy-button [text]="…" [label]="khóa dịch?" />`), `copyText()` | Nút chép, có dự phòng khi không có Clipboard API |
+| `SectionNav` (`<jhi-section-nav [sections]="[{ id, label, icon }]" />`) | Thanh mục lục dính; section cần `id` trùng và lớp `.detail-section` |
+| `initials()`, `avatarHue()` | Ô chữ viết tắt và màu ổn định theo tên |
+| Lớp global `.section-nav`, `.detail-section`, `.detail-chip`, `.contact-row`, `.detail-html`, `.detail-json`, `.copy-btn` | Kiểu dáng chung |
+
+> Bản đồ nhúng ngay trong trang (iframe Google Maps) **chưa làm**: Content-Security-Policy hiện là `frame-src 'self' data:` ([`application.yml`](../src/main/resources/config/application.yml), `jhipster.security.content-security-policy`) nên iframe ngoài bị chặn. Muốn nhúng phải thêm `https://www.google.com` vào `frame-src` (quyết định bảo mật, chưa đổi). Cùng lý do, `img-src 'self' data:` chặn ảnh từ website ngoài (ví dụ ảnh đại diện bài viết lấy từ yp.com.vn).
+
+**Trang chủ** ([`home.html`](../src/main/webapp/app/home/home.html)): lời chào; 5 ô số liệu bấm được (doanh nghiệp 1.855.619, ngành 2.394, đơn vị hành chính 15.314, bài viết, vị trí banner; dùng các API `/count` không lọc, 0,02–0,13 s); **Thao tác nhanh** (thêm doanh nghiệp, viết bài, thêm banner, tìm doanh nghiệp); **Tra cứu** (mục lục ngành nghề/tỉnh thành, cây, tài liệu API cho admin). Chưa đăng nhập: ô đăng nhập (bỏ gợi ý tài khoản mặc định admin/admin).
+
+**Chữ:** tên ứng dụng "Trang Vàng – Quản trị" (`global.title` trong `i18n/vi/global.json`, đổi được), chân trang, "Hiển thị 1–20 trên tổng …", nhãn toàn bộ field Doanh nghiệp tiếng Việt, câu hướng dẫn viết cho người dùng (bỏ ghi chú kỹ thuật kiểu "Không unique: dữ liệu gốc có slug NULL").
+
+**Kèm theo:** tìm địa phương (API mục lục tỉnh thành, [mục 10.7](#107-tỉnh-thành-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) nay **xếp đơn vị khớp trong tên trước** đơn vị chỉ khớp nhờ tên tỉnh ("thanh luong" không còn ra Xã Bắc Lương, Thanh Hóa đầu tiên); sắp theo số doanh nghiệp thì không áp dụng.
+
+> ⚠️ Ngôn ngữ giao diện theo **ngôn ngữ của tài khoản**: tài khoản `admin`, `user` trên dev đang là `en` nên sau khi đăng nhập hiện tiếng Anh. Đổi ở **Tài khoản → Cài đặt → Ngôn ngữ** (hoặc menu Ngôn ngữ). Khi bàn giao nên tạo tài khoản cho khách với ngôn ngữ Tiếng Việt.
+
+> ⚠️ Lọc `/api/listings/count?status.equals=…` mất ~22 s (MySQL, không có chỉ mục trạng thái), nên trang chủ không có ô "bản nháp".
+
+**Kiểm thử (2026-10-12):** `chip-picker.spec.ts` 8/8 (thẻ từ giá trị form, gõ chờ 250 ms, ↓ Enter thêm, không thêm trùng, Backspace/×, Esc, disabled, giải mã `&amp;`, Enter không xuống dòng); `listing-update.spec.ts` 11/11 (không tải select 20 dòng, mặc định bản nháp, giữ trạng thái lạ, ánh xạ gợi ý ngành/địa phương, chưa lưu, Ctrl+S, mở khối kỹ thuật); cả thư mục listing, location, shared, home 197/197; ESLint sạch; `PublicLocationServiceTest` 6/6. Trang xem (làm lại): `detail.spec.ts` 5/5 (chữ viết tắt, màu ổn định, nút chép + dự phòng http, thanh mục lục), `listing-detail.spec.ts` 13/13 (thêm: chữ viết tắt, chỉ hiện field có dữ liệu, giới thiệu rỗng, phím E không chạy khi đang gõ hoặc giữ Ctrl, thanh mục lục và nút gọi/bản đồ); tổng 161/161; Chrome: bấm mục cuối của thanh mục lục giữ đúng mục, phím E mở form sửa, 1400/900/390px không cuộn ngang. Bản trước: `listing-display.spec.ts` 6/6 (tách nhiều email/số điện thoại, `tel:`, website thêm https, đọc JSON vị trí, link bản đồ giữ nguyên chữ số tọa độ, mức độ đầy đủ coi giới thiệu chỉ có thẻ HTML rỗng là thiếu), `listing-detail.spec.ts` 9/9 (link liên hệ, bản đồ, một lệnh đọc địa phương, còn thiếu + `?focus=`, giải mã `&amp;`, chép, xóa xong về danh sách, Quay lại), form sửa thêm test `?focus=` (bỏ qua tên lạ như `constructor`); tổng listing + shared + home 153/153. Chrome headless trên app (tiếng Việt): trang xem #181746 và #5 đúng như trên, bấm "Bổ sung" mã số thuế → form sửa focus `field_taxCode` và nháy viền, điện thoại 390px không cuộn ngang. Gõ "bao bi" ra gợi ý, ↓ Enter thêm thẻ; ô tên dài 48 → 108px, Enter bị chặn; "Có thay đổi chưa lưu"; bấm đường dẫn và Hủy khi chưa lưu đều hỏi lại và ở lại trang; điện thoại 390px không cuộn ngang. Không lưu dữ liệu nào trong lúc thử.
+
+### 16.3 Các bước tiếp theo
+
+| Bước | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Nền chung, trang chủ, Doanh nghiệp (danh sách + form + trang xem) | ✅ 2026-10-12 |
+| 2 | Áp dụng cho Ngành nghề, Tỉnh thành, Danh mục bài viết, Thẻ, Vị trí banner, Ảnh banner (danh sách gọn, form chia nhóm, ô tự xuống dòng, chọn cha bằng gõ tìm, nhãn tiếng Việt) | Chưa làm |
+| 3 | Trang xem cho các entity còn lại theo mẫu trang xem Doanh nghiệp (`.detail-grid`, `.detail-chip`, `.contact-row`, nút chép); hộp thoại xóa; menu gọn (bỏ nhóm "Thực thể" tiếng Anh) | Doanh nghiệp xong; còn lại chưa làm |
+| 4 | Trang quản trị hệ thống (Người dùng, Tài khoản) tiếng Việt; trang đăng nhập có logo | Chưa làm |

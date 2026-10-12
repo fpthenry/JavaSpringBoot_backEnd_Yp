@@ -1,218 +1,549 @@
-<div class="d-flex justify-content-center">
-  <div class="col-8">
-    @if (listing(); as listingRef) {
-      <div>
-        <h2 data-cy="listingDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.listing.detail.title">Listing</span></h2>
+<!-- Sửa tay: trang xem doanh nghiệp (khối đầu trang, mục lục dính, chỉ hiện field có dữ liệu, mức độ đầy đủ). Sinh lại Listing sẽ mất. -->
+@if (listing(); as listingRef) {
+  <div class="listing-detail">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb small mb-2">
+        <li class="breadcrumb-item">
+          <a routerLink="/listing" jhiTranslate="javaSpringBootBackEndApp.listing.home.title">Doanh nghiệp</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page" jhiTranslate="javaSpringBootBackEndApp.listing.detail.breadcrumb">
+          Chi tiết
+        </li>
+      </ol>
+    </nav>
 
-        <hr />
+    <jhi-alert-error />
 
-        <jhi-alert-error />
+    <jhi-alert />
 
-        <jhi-alert />
-
-        <dl class="row-md jh-entity-details">
-          <dt><span jhiTranslate="global.field.id">ID</span></dt>
-          <dd>
-            <span>{{ listingRef.id }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.listing.help.wpId' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.listing.wpId"
-              >Wp Id</span
-            >
-          </dt>
-          <dd>
-            <span>{{ listingRef.wpId }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.listing.help.apiId' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.listing.apiId"
-              >Api Id</span
-            >
-          </dt>
-          <dd>
-            <span>{{ listingRef.apiId }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.name">Name</span></dt>
-          <dd>
-            <span>{{ listingRef.name }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.nameEn">Name En</span></dt>
-          <dd>
-            <span>{{ listingRef.nameEn }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.nameAlias">Name Alias</span></dt>
-          <dd>
-            <span>{{ listingRef.nameAlias }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.listing.help.slug' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.listing.slug"
-              >Slug</span
-            >
-          </dt>
-          <dd>
-            <span>{{ listingRef.slug }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.description">Description</span></dt>
-          <dd>
-            <span>{{ listingRef.description }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.phone">Phone</span></dt>
-          <dd>
-            <span>{{ listingRef.phone }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.mobile">Mobile</span></dt>
-          <dd>
-            <span>{{ listingRef.mobile }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.email">Email</span></dt>
-          <dd>
-            <span>{{ listingRef.email }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.website">Website</span></dt>
-          <dd>
-            <span>{{ listingRef.website }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.address">Address</span></dt>
-          <dd>
-            <span>{{ listingRef.address }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.addressNew">Địa chỉ mới</span></dt>
-          <dd>
-            @if (listingRef.addressNew) {
-              <span>{{ listingRef.addressNew }}</span>
-            } @else {
-              <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listing.help.addressNewEmpty"
-                >Địa chỉ trên đã theo địa giới mới</span
+    <!-- Khối đầu trang -->
+    <section class="hero surface mb-3">
+      <div class="hero-top">
+        <div class="hero-avatar" [style.--hue]="avatarHue()" aria-hidden="true">{{ initials() }}</div>
+        <div class="hero-heading">
+          <h2 class="hero-title" data-cy="listingDetailsHeading">{{ listingRef.name }}</h2>
+          @if (listingRef.nameEn || listingRef.nameAlias) {
+            <div class="hero-sub">
+              {{ listingRef.nameEn }}
+              @if (listingRef.nameEn && listingRef.nameAlias) {
+                ·
+              }
+              {{ listingRef.nameAlias }}
+            </div>
+          }
+          <div class="hero-badges">
+            @if (listingRef.status) {
+              <span
+                class="badge rounded-pill fw-medium"
+                [class.bg-success-subtle]="listingRef.status === 'publish'"
+                [class.text-success-emphasis]="listingRef.status === 'publish'"
+                [class.bg-secondary-subtle]="listingRef.status !== 'publish'"
+                [class.text-secondary-emphasis]="listingRef.status !== 'publish'"
+              >
+                <fa-icon [icon]="listingRef.status === 'publish' ? 'circle-check' : 'pen-to-square'" />
+                {{ statusLabelKey(listingRef.status) | translate }}
+              </span>
+            }
+            @if (listingRef.isFeatured) {
+              <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis fw-medium"
+                ><fa-icon icon="star" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.featured">Nổi bật</span></span
               >
             }
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.listing.help.locationJson' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.listing.locationJson"
-              >Location Json</span
+            <a
+              class="badge rounded-pill fw-medium text-decoration-none"
+              href="#completeness"
+              [class.bg-success-subtle]="percent() >= 80"
+              [class.text-success-emphasis]="percent() >= 80"
+              [class.bg-warning-subtle]="percent() < 80"
+              [class.text-warning-emphasis]="percent() < 80"
+              >{{ 'javaSpringBootBackEndApp.listing.detail.profilePercent' | translate: { percent: percent() } }}</a
             >
-          </dt>
-          <dd>
-            <span>{{ listingRef.locationJson }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.taxCode">Tax Code</span></dt>
-          <dd>
-            <span>{{ listingRef.taxCode }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.representative">Representative</span></dt>
-          <dd>
-            <span>{{ listingRef.representative }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.capital">Capital</span></dt>
-          <dd>
-            <span>{{ listingRef.capital }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.listing.help.foundedYear' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.listing.foundedYear"
-              >Founded Year</span
-            >
-          </dt>
-          <dd>
-            <span>{{ listingRef.foundedYear }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.businessType">Business Type</span></dt>
-          <dd>
-            <span>{{ listingRef.businessType }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.businessStatus">Business Status</span></dt>
-          <dd>
-            <span>{{ listingRef.businessStatus }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.industryCode">Industry Code</span></dt>
-          <dd>
-            <span>{{ listingRef.industryCode }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.managedBy">Managed By</span></dt>
-          <dd>
-            <span>{{ listingRef.managedBy }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.thumbnail">Thumbnail</span></dt>
-          <dd>
-            <span>{{ listingRef.thumbnail }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.images">Images</span></dt>
-          <dd>
-            <span>{{ listingRef.images }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.viewCount">View Count</span></dt>
-          <dd>
-            <span>{{ listingRef.viewCount }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.isFeatured">Is Featured</span></dt>
-          <dd>
-            <span>{{ listingRef.isFeatured }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.listing.help.status' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.listing.status"
-              >Status</span
-            >
-          </dt>
-          <dd>
-            <span>{{ listingRef.status }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.publishedAt">Published At</span></dt>
-          <dd>
-            <span>{{ listingRef.publishedAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.modifiedAt">Modified At</span></dt>
-          <dd>
-            <span>{{ listingRef.modifiedAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.createdAt">Created At</span></dt>
-          <dd>
-            <span>{{ listingRef.createdAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.updatedAt">Updated At</span></dt>
-          <dd>
-            <span>{{ listingRef.updatedAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.esIndexed">Es Indexed</span></dt>
-          <dd>
-            <span>{{ listingRef.esIndexed }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.category">Category</span></dt>
-          <dd>
-            @for (category of listingRef.categories; track $index; let last = $last) {
-              <span>
-                <a [routerLink]="['/category', category.id, 'view']">{{ category?.name }}</a
-                >{{ last ? '' : ', ' }}
-              </span>
-            }
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.listing.location">Location</span></dt>
-          <dd>
-            @for (location of listingRef.locations; track $index; let last = $last) {
-              <span>
-                <a [routerLink]="['/location', location.id, 'view']">{{ location?.name }}</a
-                >{{ last ? '' : ', ' }}
-              </span>
-            }
-          </dd>
-        </dl>
-
-        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
-          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
-        </button>
-
-        <button type="button" [routerLink]="['/listing', listingRef.id, 'edit']" class="btn btn-primary">
-          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
-        </button>
+            <span class="text-muted small">ID {{ listingRef.id }}</span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button
+            type="button"
+            class="btn btn-light btn-icon"
+            data-cy="entityDetailsBackButton"
+            (click)="previousState()"
+            [title]="'entity.action.back' | translate"
+          >
+            <fa-icon icon="arrow-left" />
+          </button>
+          <button
+            type="button"
+            class="btn btn-light btn-icon text-danger"
+            data-cy="entityDeleteButton"
+            (click)="delete(listingRef)"
+            [title]="'entity.action.delete' | translate"
+          >
+            <fa-icon icon="trash-alt" />
+          </button>
+          <a
+            [routerLink]="['/listing', listingRef.id, 'edit']"
+            class="btn btn-primary px-4"
+            data-cy="entityEditButton"
+            [title]="'javaSpringBootBackEndApp.listing.detail.editShortcut' | translate"
+          >
+            <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Sửa</span>
+            <kbd class="hero-kbd d-none d-lg-inline">E</kbd>
+          </a>
+        </div>
       </div>
-    }
+
+      <!-- Số liệu chính -->
+      <dl class="hero-facts">
+        <div class="hero-fact hero-fact-wide">
+          <dt><fa-icon icon="location-dot" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.addressColumn">Địa chỉ</span></dt>
+          <dd>
+            @if (mainAddress(); as address) {
+              {{ address }}
+            } @else {
+              <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listing.detail.empty">Chưa có</span>
+            }
+          </dd>
+        </div>
+        <div class="hero-fact">
+          <dt><fa-icon icon="hashtag" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.taxCode">Mã số thuế</span></dt>
+          <dd>
+            @if (listingRef.taxCode) {
+              <span class="font-monospace">{{ listingRef.taxCode }}</span>
+              <jhi-copy-button [text]="listingRef.taxCode" />
+            } @else {
+              <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listing.detail.empty">Chưa có</span>
+            }
+          </dd>
+        </div>
+        <div class="hero-fact">
+          <dt><fa-icon icon="eye" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.viewCount">Lượt xem</span></dt>
+          <dd class="fw-semibold">{{ (listingRef.viewCount ?? 0).toLocaleString('vi-VN') }}</dd>
+        </div>
+        <div class="hero-fact">
+          <dt><fa-icon icon="clock" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.updatedAt">Ngày cập nhật</span></dt>
+          <dd>{{ (listingRef.updatedAt | formatMediumDatetime) || '—' }}</dd>
+        </div>
+      </dl>
+
+      <!-- Thao tác nhanh -->
+      <div class="hero-quick">
+        @if (phones()[0]; as phone) {
+          <a class="btn btn-outline-primary btn-sm" [href]="telHref(phone)" data-cy="quickCall">
+            <fa-icon icon="phone" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.listing.detail.call">Gọi</span> {{ phone }}
+          </a>
+        }
+        @if (emails()[0]; as email) {
+          <a class="btn btn-outline-primary btn-sm" [href]="'mailto:' + email" data-cy="quickEmail">
+            <fa-icon icon="envelope" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.listing.detail.sendEmail">Gửi email</span>
+          </a>
+        }
+        @if (website(); as url) {
+          <a class="btn btn-outline-primary btn-sm" [href]="url" target="_blank" rel="noopener noreferrer" data-cy="quickWebsite">
+            <fa-icon icon="globe" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.listing.website">Website</span>
+          </a>
+        }
+        @if (mapUrl(); as url) {
+          <a class="btn btn-outline-primary btn-sm" [href]="url" target="_blank" rel="noopener noreferrer" data-cy="quickMap">
+            <fa-icon icon="map" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.listing.detail.map">Xem bản đồ</span>
+          </a>
+        }
+        @if (mainAddress()) {
+          <jhi-copy-button [text]="mainAddress()" label="javaSpringBootBackEndApp.listing.detail.copyAddress" />
+        }
+      </div>
+    </section>
+
+    <jhi-section-nav [sections]="sections" />
+
+    <div class="row g-4 mt-0">
+      <!-- Cột chính -->
+      <div class="col-xl-8">
+        <section class="form-card detail-section" id="section-overview">
+          <h3 class="form-card-title">
+            <fa-icon icon="building" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.description">Giới thiệu</span>
+          </h3>
+          @if (description(); as html) {
+            <div class="detail-html" [innerHTML]="html"></div>
+          } @else {
+            <div class="empty-hint">
+              <span jhiTranslate="javaSpringBootBackEndApp.listing.detail.noDescription">Chưa có giới thiệu.</span>
+              <a
+                [routerLink]="['/listing', listingRef.id, 'edit']"
+                [queryParams]="editQueryParams('description')"
+                jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                >Bổ sung</a
+              >
+            </div>
+          }
+        </section>
+
+        <section class="form-card detail-section" id="section-contact">
+          <h3 class="form-card-title">
+            <fa-icon icon="phone" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.section.contact">Liên hệ</span>
+          </h3>
+          <div class="contact-list">
+            @if (phones().length > 0) {
+              <div class="contact-row">
+                <fa-icon icon="phone" class="contact-icon" [fixedWidth]="true" />
+                <div class="contact-label" jhiTranslate="javaSpringBootBackEndApp.listing.phone">Điện thoại</div>
+                <div class="contact-value">
+                  @for (phone of phones(); track $index) {
+                    <span class="contact-item"
+                      ><a [href]="telHref(phone)">{{ phone }}</a
+                      ><jhi-copy-button [text]="phone"
+                    /></span>
+                  }
+                </div>
+              </div>
+            }
+            @if (emails().length > 0) {
+              <div class="contact-row">
+                <fa-icon icon="envelope" class="contact-icon" [fixedWidth]="true" />
+                <div class="contact-label" jhiTranslate="javaSpringBootBackEndApp.listing.email">Email</div>
+                <div class="contact-value">
+                  @for (email of emails(); track $index) {
+                    <span class="contact-item"
+                      ><a [href]="'mailto:' + email">{{ email }}</a
+                      ><jhi-copy-button [text]="email"
+                    /></span>
+                  }
+                </div>
+              </div>
+            }
+            @if (website(); as url) {
+              <div class="contact-row">
+                <fa-icon icon="globe" class="contact-icon" [fixedWidth]="true" />
+                <div class="contact-label" jhiTranslate="javaSpringBootBackEndApp.listing.website">Website</div>
+                <div class="contact-value">
+                  <a [href]="url" target="_blank" rel="noopener noreferrer"
+                    >{{ listingRef.website }} <fa-icon icon="arrow-up-right-from-square" class="small"
+                  /></a>
+                </div>
+              </div>
+            }
+          </div>
+          @if (phones().length === 0 || emails().length === 0 || !website()) {
+            <div class="empty-hint" [class.mt-3]="phones().length > 0 || emails().length > 0 || !!website()">
+              <span jhiTranslate="javaSpringBootBackEndApp.listing.detail.missingPrefix">Chưa có:</span>
+              @if (phones().length === 0) {
+                <span class="empty-item" jhiTranslate="javaSpringBootBackEndApp.listing.phone">Điện thoại</span>
+              }
+              @if (emails().length === 0) {
+                <span class="empty-item" jhiTranslate="javaSpringBootBackEndApp.listing.email">Email</span>
+              }
+              @if (!website()) {
+                <span class="empty-item" jhiTranslate="javaSpringBootBackEndApp.listing.website">Website</span>
+              }
+              <a
+                [routerLink]="['/listing', listingRef.id, 'edit']"
+                [queryParams]="editQueryParams(phones().length === 0 ? 'phone' : emails().length === 0 ? 'email' : 'website')"
+                jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                >Bổ sung</a
+              >
+            </div>
+          }
+        </section>
+
+        <section class="form-card detail-section" id="section-address">
+          <h3 class="form-card-title">
+            <fa-icon icon="location-dot" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.section.address">Địa chỉ và khu vực</span>
+          </h3>
+          <div class="address-block">
+            <div class="detail-label" jhiTranslate="javaSpringBootBackEndApp.listing.addressNew">Địa chỉ mới (từ 01/7/2025)</div>
+            @if (listingRef.addressNew) {
+              <div class="address-main">
+                {{ listingRef.addressNew }}
+                <jhi-copy-button [text]="listingRef.addressNew" />
+              </div>
+            } @else {
+              <div class="empty-hint">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.detail.noAddressNew">Chưa có địa chỉ theo đơn vị hành chính mới.</span>
+                <a
+                  [routerLink]="['/listing', listingRef.id, 'edit']"
+                  [queryParams]="editQueryParams('addressNew')"
+                  jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                  >Bổ sung</a
+                >
+              </div>
+            }
+          </div>
+          @if (listingRef.address && listingRef.address !== listingRef.addressNew) {
+            <div class="address-block">
+              <div class="detail-label" jhiTranslate="javaSpringBootBackEndApp.listing.address">Địa chỉ cũ</div>
+              <div class="text-muted">{{ listingRef.address }}</div>
+            </div>
+          }
+          @if (place(); as placeRef) {
+            <div class="address-block">
+              <div class="detail-label" jhiTranslate="javaSpringBootBackEndApp.listing.detail.originalPlace">Vị trí gốc</div>
+              <div class="place-tags">
+                @if (placeRef.street) {
+                  <span><small jhiTranslate="javaSpringBootBackEndApp.listing.detail.street">Đường</small>{{ placeRef.street }}</span>
+                }
+                @if (placeRef.ward) {
+                  <span><small jhiTranslate="javaSpringBootBackEndApp.listing.detail.ward">Phường/xã</small>{{ placeRef.ward }}</span>
+                }
+                @if (placeRef.province) {
+                  <span
+                    ><small jhiTranslate="javaSpringBootBackEndApp.listing.detail.province">Tỉnh/thành</small>{{ placeRef.province }}</span
+                  >
+                }
+                @if (placeRef.coordinate) {
+                  <span
+                    ><small jhiTranslate="javaSpringBootBackEndApp.listing.detail.coordinate">Tọa độ</small
+                    ><span class="font-monospace">{{ placeRef.coordinate }}</span></span
+                  >
+                }
+              </div>
+            </div>
+          }
+          <div class="address-block mb-0">
+            <div class="detail-label" jhiTranslate="javaSpringBootBackEndApp.listing.location">Địa phương</div>
+            <div class="d-flex flex-wrap gap-2">
+              @for (location of linkedLocations(); track location.id) {
+                <a
+                  class="detail-chip"
+                  [routerLink]="['/listing']"
+                  [queryParams]="locationQueryParams(location.id)"
+                  [title]="'javaSpringBootBackEndApp.listing.detail.sameArea' | translate"
+                >
+                  <span>{{ location.name }}</span>
+                  @if (location.parentName) {
+                    <span class="text-muted">· {{ location.parentName }}</span>
+                  }
+                  @if (location.isNew === true) {
+                    <span
+                      class="badge bg-primary-subtle text-primary-emphasis fw-medium"
+                      jhiTranslate="javaSpringBootBackEndApp.listing.detail.newUnit"
+                      >Mới</span
+                    >
+                  } @else if (location.isNew === false) {
+                    <span
+                      class="badge bg-secondary-subtle text-secondary-emphasis fw-medium"
+                      jhiTranslate="javaSpringBootBackEndApp.location.index.oldBadge"
+                      >Cũ</span
+                    >
+                  }
+                </a>
+              } @empty {
+                <div class="empty-hint">
+                  <span jhiTranslate="javaSpringBootBackEndApp.listing.detail.noLocations">Chưa gắn địa phương.</span>
+                  <a
+                    [routerLink]="['/listing', listingRef.id, 'edit']"
+                    [queryParams]="editQueryParams('locations')"
+                    jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                    >Bổ sung</a
+                  >
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+
+        <section class="form-card detail-section" id="section-categories">
+          <h3 class="form-card-title">
+            <fa-icon icon="briefcase" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.section.categories">Ngành nghề</span>
+            @if ((listingRef.categories?.length ?? 0) > 0) {
+              <span class="badge rounded-pill bg-body-secondary text-body fw-medium">{{ listingRef.categories?.length }}</span>
+            }
+          </h3>
+          <div class="d-flex flex-wrap gap-2">
+            @for (category of listingRef.categories ?? []; track category.id) {
+              <a
+                class="detail-chip"
+                [routerLink]="['/listing']"
+                [queryParams]="categoryQueryParams(category.id)"
+                [title]="'javaSpringBootBackEndApp.listing.detail.sameCategory' | translate"
+                >{{ decode(category.name) }}</a
+              >
+            } @empty {
+              <div class="empty-hint">
+                <span jhiTranslate="javaSpringBootBackEndApp.listing.detail.noCategories">Chưa gắn ngành nghề.</span>
+                <a
+                  [routerLink]="['/listing', listingRef.id, 'edit']"
+                  [queryParams]="editQueryParams('categories')"
+                  jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                  >Bổ sung</a
+                >
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="form-card detail-section" id="section-business">
+          <h3 class="form-card-title">
+            <fa-icon icon="id-card" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.section.business">Thông tin doanh nghiệp</span>
+          </h3>
+          @if (businessFilled().length > 0) {
+            <dl class="detail-grid mb-0">
+              @for (field of businessFilled(); track field) {
+                <div>
+                  <dt>{{ 'javaSpringBootBackEndApp.listing.' + field | translate }}</dt>
+                  <dd>{{ businessValue(listingRef, field) }}</dd>
+                </div>
+              }
+            </dl>
+          }
+          @if (businessEmpty().length > 0) {
+            <div class="empty-hint" [class.mt-3]="businessFilled().length > 0">
+              <span jhiTranslate="javaSpringBootBackEndApp.listing.detail.missingPrefix">Chưa có:</span>
+              @for (field of businessEmpty(); track field) {
+                <span class="empty-item">{{ 'javaSpringBootBackEndApp.listing.' + field | translate }}</span>
+              }
+              <a
+                [routerLink]="['/listing', listingRef.id, 'edit']"
+                [queryParams]="editQueryParams(businessEmpty()[0])"
+                jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                >Bổ sung</a
+              >
+            </div>
+          }
+        </section>
+
+        @if (listingRef.thumbnail || listingRef.images) {
+          <section class="form-card">
+            <h3 class="form-card-title">
+              <fa-icon icon="images" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.section.media">Hình ảnh</span>
+            </h3>
+            <dl class="detail-grid mb-0">
+              @if (listingRef.thumbnail) {
+                <div>
+                  <dt jhiTranslate="javaSpringBootBackEndApp.listing.thumbnail">Ảnh đại diện</dt>
+                  <dd class="font-monospace">{{ listingRef.thumbnail }}</dd>
+                </div>
+              }
+              @if (listingRef.images) {
+                <div class="detail-wide">
+                  <dt jhiTranslate="javaSpringBootBackEndApp.listing.images">Thư viện ảnh</dt>
+                  <dd class="font-monospace small">{{ listingRef.images }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+        }
+      </div>
+
+      <!-- Cột phải -->
+      <div class="col-xl-4">
+        <div class="side-sticky side-sticky-nav">
+          <section class="form-card" id="completeness" data-cy="completeness">
+            <div class="completeness">
+              <div
+                class="completeness-ring"
+                [style.--percent]="percent()"
+                [class.good]="percent() >= 80"
+                role="img"
+                [attr.aria-label]="'javaSpringBootBackEndApp.listing.detail.profilePercent' | translate: { percent: percent() }"
+              >
+                <span>{{ percent() }}%</span>
+              </div>
+              <div class="min-w-0">
+                <div class="fw-semibold" jhiTranslate="javaSpringBootBackEndApp.listing.detail.completeness">Mức độ đầy đủ hồ sơ</div>
+                <div class="small text-muted">
+                  @if (missing().length === 0) {
+                    <span jhiTranslate="javaSpringBootBackEndApp.listing.detail.complete">Hồ sơ đã đủ các thông tin chính.</span>
+                  } @else {
+                    {{ 'javaSpringBootBackEndApp.listing.detail.missingCount' | translate: { count: missing().length } }}
+                  }
+                </div>
+              </div>
+            </div>
+            @if (missing().length > 0) {
+              <ul class="missing-list">
+                @for (check of missing(); track check.key) {
+                  <li>
+                    <span>{{ 'javaSpringBootBackEndApp.listing.detail.check.' + check.key | translate }}</span>
+                    <a
+                      [routerLink]="['/listing', listingRef.id, 'edit']"
+                      [queryParams]="editQueryParams(check.field)"
+                      jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                      >Bổ sung</a
+                    >
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <section class="form-card">
+            <h3 class="form-card-title">
+              <fa-icon icon="circle-check" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.section.publish">Xuất bản</span>
+            </h3>
+            <dl class="meta-list">
+              <div>
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.status">Trạng thái</dt>
+                <dd>{{ listingRef.status ? (statusLabelKey(listingRef.status) | translate) : '—' }}</dd>
+              </div>
+              <div>
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.publishedAt">Ngày đăng</dt>
+                <dd>{{ (listingRef.publishedAt | formatMediumDatetime) || '—' }}</dd>
+              </div>
+              <div>
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.modifiedAt">Ngày sửa nội dung</dt>
+                <dd>{{ (listingRef.modifiedAt | formatMediumDatetime) || '—' }}</dd>
+              </div>
+              <div>
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.createdAt">Ngày tạo</dt>
+                <dd>{{ (listingRef.createdAt | formatMediumDatetime) || '—' }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <details class="form-card form-card-collapsible">
+            <summary class="form-card-title">
+              <fa-icon icon="gear" /> <span jhiTranslate="javaSpringBootBackEndApp.listing.section.technical">Thông tin kỹ thuật</span>
+            </summary>
+            <dl class="meta-list">
+              <div>
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.wpId">Mã WordPress</dt>
+                <dd class="font-monospace">{{ listingRef.wpId }}</dd>
+              </div>
+              <div>
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.apiId">Mã API nguồn</dt>
+                <dd class="font-monospace">{{ listingRef.apiId || '—' }}</dd>
+              </div>
+              <div>
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.esIndexed">Đã đưa vào tìm kiếm</dt>
+                <dd>
+                  {{
+                    (listingRef.esIndexed ? 'javaSpringBootBackEndApp.listing.detail.yes' : 'javaSpringBootBackEndApp.listing.detail.no')
+                      | translate
+                  }}
+                </dd>
+              </div>
+              <div class="meta-block">
+                <dt jhiTranslate="javaSpringBootBackEndApp.listing.slug">Đường dẫn (slug)</dt>
+                <dd class="font-monospace small">{{ listingRef.slug || '—' }}</dd>
+              </div>
+              @if (listingRef.locationJson) {
+                <div class="meta-block">
+                  <dt jhiTranslate="javaSpringBootBackEndApp.listing.locationJson">Dữ liệu vị trí (JSON)</dt>
+                  <dd>
+                    <pre class="detail-json mb-0">{{ listingRef.locationJson }}</pre>
+                  </dd>
+                </div>
+              }
+            </dl>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- Điện thoại: thanh thao tác dính đáy -->
+    <div class="detail-mobile-bar d-md-none">
+      @if (phones()[0]; as phone) {
+        <a class="btn btn-outline-primary" [href]="telHref(phone)"
+          ><fa-icon icon="phone" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.listing.detail.call">Gọi</span></a
+        >
+      }
+      @if (mapUrl(); as url) {
+        <a class="btn btn-outline-primary" [href]="url" target="_blank" rel="noopener noreferrer"
+          ><fa-icon icon="map" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.listing.detail.mapShort">Bản đồ</span></a
+        >
+      }
+      <a class="btn btn-primary flex-grow-1" [routerLink]="['/listing', listingRef.id, 'edit']"
+        ><fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Sửa</span></a
+      >
+    </div>
   </div>
-</div>
+}

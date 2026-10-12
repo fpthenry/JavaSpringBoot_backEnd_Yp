@@ -1,19 +1,33 @@
 {
   "home": {
-    "title": "Welcome, Java Hipster!",
-    "subtitle": "This is your homepage",
+    "title": "Yellow Pages – Admin",
+    "greeting": "Hello, {{ name }}",
+    "subtitle": "Pick an item below to start managing data.",
+    "loginPrompt": "Sign in to manage businesses, industries, posts and banners.",
     "logged": {
       "message": "You are logged in as user \"{{username}}\"."
     },
-    "question": "If you have any questions on JHipster:",
-    "link": {
-      "homepage": "JHipster homepage",
-      "stackoverflow": "JHipster on Stack Overflow",
-      "bugtracker": "JHipster bug tracker",
-      "chat": "JHipster public chat room",
-      "follow": "follow @jhipster on Twitter"
+    "stats": {
+      "listings": "Businesses",
+      "categories": "Industries",
+      "locations": "Administrative units",
+      "blogPosts": "Posts",
+      "galleries": "Banner slots"
     },
-    "like": "If you like JHipster, don't forget to give us a star on",
-    "github": "GitHub"
+    "quick": {
+      "title": "Quick actions",
+      "newListing": "Add business",
+      "newPost": "Write a post",
+      "newBanner": "Add banner image",
+      "searchListing": "Find businesses by name, address, tax code"
+    },
+    "browse": {
+      "title": "Browse",
+      "categoryIndex": "Industry index A–Z",
+      "locationIndex": "Location index A–Z",
+      "categoryTree": "Industry tree",
+      "locationTree": "Administrative units",
+      "api": "API documentation"
+    }
   }
 }

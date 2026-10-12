@@ -19,20 +19,15 @@ import {
   LocationIndexService,
   LocationLetter,
   LocationLevel,
+  placeOf,
 } from '../service/location-index.service';
+
+export { placeOf };
 
 export type LocationIndexSort = 'name' | 'count';
 
 const GENERATIONS: LocationGeneration[] = ['new', 'old', 'all'];
 const LEVELS: LocationLevel[] = ['province', 'district', 'ward'];
-
-/** Dòng phụ dưới tên: "Quận Hai Bà Trưng, Thành phố Hà Nội"; xã mới chỉ có tỉnh; tỉnh thì không có. */
-export function placeOf(item: LocationIndexItem): string | null {
-  if (item.parentId === null || !item.provinceName) {
-    return null;
-  }
-  return item.parentName && item.parentName !== item.provinceName ? `${item.parentName}, ${item.provinceName}` : item.provinceName;
-}
 
 /**
  * Mục lục tỉnh thành: dãy nút chữ cái A–Z (Đ riêng), ô tìm theo tên (không dấu, cả tên tỉnh), thẻ đơn vị kèm số doanh

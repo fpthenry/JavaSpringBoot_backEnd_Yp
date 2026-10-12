@@ -1,0 +1,70 @@
+<div class="chip-picker form-control" [class.disabled]="disabled()" [class.focused]="open()" (click)="focusInput()">
+  @for (item of selected(); track item.id) {
+    <span class="chip" [title]="label(hints.get(item.id) ?? item.name)">
+      <span class="chip-text">{{ label(item.name) }}</span>
+      @if (hints.get(item.id); as hint) {
+        <span class="chip-hint">· {{ label(hint) }}</span>
+      }
+      @if (!disabled()) {
+        <button
+          type="button"
+          class="chip-remove"
+          [attr.aria-label]="'global.form.remove' | translate"
+          (click)="remove(item); $event.stopPropagation()"
+        >
+          <fa-icon icon="xmark" />
+        </button>
+      }
+    </span>
+  }
+  <input
+    type="text"
+    class="chip-input"
+    autocomplete="off"
+    role="combobox"
+    [attr.aria-controls]="listboxId"
+    [attr.id]="inputId()"
+    [attr.aria-expanded]="open()"
+    [disabled]="disabled()"
+    [value]="term()"
+    [placeholder]="selected().length ? '' : placeholder()"
+    (input)="onInput($any($event.target).value)"
+    (keydown)="onKeydown($event)"
+    (blur)="onBlur()"
+  />
+  @if (loading()) {
+    <fa-icon icon="spinner" animation="spin" class="text-muted ms-1" />
+  }
+</div>
+@if (open()) {
+  <div class="chip-menu shadow" role="listbox" [id]="listboxId">
+    @for (option of options(); track option.id; let i = $index) {
+      <button
+        type="button"
+        role="option"
+        class="chip-option"
+        [class.active]="i === active()"
+        [class.chosen]="isSelected(option.id)"
+        [attr.aria-selected]="i === active()"
+        (mouseenter)="active.set(i)"
+        (mousedown)="$event.preventDefault()"
+        (click)="add(option)"
+      >
+        <span class="d-flex align-items-center gap-2">
+          <span class="fw-semibold">{{ label(option.name) }}</span>
+          @if (option.badge) {
+            <span class="badge text-bg-secondary fw-normal">{{ option.badge }}</span>
+          }
+          @if (isSelected(option.id)) {
+            <fa-icon icon="check" class="text-success ms-auto" />
+          }
+        </span>
+        @if (option.hint) {
+          <span class="small text-muted d-block">{{ label(option.hint) }}</span>
+        }
+      </button>
+    } @empty {
+      <div class="px-3 py-2 text-muted small">{{ 'global.form.noMatch' | translate }}</div>
+    }
+  </div>
+}

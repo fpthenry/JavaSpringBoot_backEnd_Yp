@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HttpResponse } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
 import { provideTranslateService } from '@ngx-translate/core';
-import { Subject, from, of } from 'rxjs';
+import { Subject, firstValueFrom, from, of } from 'rxjs';
 
 import { ICategory } from 'app/entities/category/category.model';
+import { CategoryIndexService } from 'app/entities/category/service/category-index.service';
 import { CategoryService } from 'app/entities/category/service/category.service';
 import { ILocation } from 'app/entities/location/location.model';
+import { LocationIndexService } from 'app/entities/location/service/location-index.service';
 import { LocationService } from 'app/entities/location/service/location.service';
 import { IListing } from '../listing.model';
 import { ListingService } from '../service/listing.service';
@@ -30,11 +32,13 @@ describe('Listing Management Update Component', () => {
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
+        provideHttpClient(),
         provideHttpClientTesting(),
         {
           provide: ActivatedRoute,
           useValue: {
             params: from([{}]),
+            snapshot: { queryParamMap: convertToParamMap({}) },
           },
         },
       ],
@@ -51,63 +55,158 @@ describe('Listing Management Update Component', () => {
   });
 
   describe('ngOnInit', () => {
-    it('should call Category query and add missing value', () => {
-      const listing: IListing = { id: 86 };
-      const categories: ICategory[] = [{ id: 6752 }];
-      listing.categories = categories;
-
-      const categoryCollection: ICategory[] = [{ id: 6752 }];
-      vi.spyOn(categoryService, 'query').mockReturnValue(of(new HttpResponse({ body: categoryCollection })));
-      const additionalCategories = [...categories];
-      const expectedCollection: ICategory[] = [...additionalCategories, ...categoryCollection];
-      vi.spyOn(categoryService, 'addCategoryToCollectionIfMissing').mockReturnValue(expectedCollection);
+    it('should update editForm with categories and locations without preloading a 20-row select', () => {
+      const category: ICategory = { id: 6752, name: 'BAO BÌ' };
+      const location: ILocation = { id: 8454, name: 'Phường Vĩnh Tuy' };
+      const listing: IListing = { id: 86, status: 'publish', categories: [category], locations: [location] };
+      const categoryQuery = vi.spyOn(categoryService, 'query');
+      const locationQuery = vi.spyOn(locationService, 'query');
 
       activatedRoute.data = of({ listing });
       comp.ngOnInit();
 
-      expect(categoryService.query).toHaveBeenCalled();
-      expect(categoryService.addCategoryToCollectionIfMissing).toHaveBeenCalledWith(
-        categoryCollection,
-        ...additionalCategories.map(i => expect.objectContaining(i) as typeof i),
-      );
-      expect(comp.categoriesSharedCollection()).toEqual(expectedCollection);
-    });
-
-    it('should call Location query and add missing value', () => {
-      const listing: IListing = { id: 86 };
-      const locations: ILocation[] = [{ id: 8454 }];
-      listing.locations = locations;
-
-      const locationCollection: ILocation[] = [{ id: 8454 }];
-      vi.spyOn(locationService, 'query').mockReturnValue(of(new HttpResponse({ body: locationCollection })));
-      const additionalLocations = [...locations];
-      const expectedCollection: ILocation[] = [...additionalLocations, ...locationCollection];
-      vi.spyOn(locationService, 'addLocationToCollectionIfMissing').mockReturnValue(expectedCollection);
-
-      activatedRoute.data = of({ listing });
-      comp.ngOnInit();
-
-      expect(locationService.query).toHaveBeenCalled();
-      expect(locationService.addLocationToCollectionIfMissing).toHaveBeenCalledWith(
-        locationCollection,
-        ...additionalLocations.map(i => expect.objectContaining(i) as typeof i),
-      );
-      expect(comp.locationsSharedCollection()).toEqual(expectedCollection);
-    });
-
-    it('should update editForm', () => {
-      const listing: IListing = { id: 86 };
-      const category: ICategory = { id: 6752 };
-      listing.categories = [category];
-      const location: ILocation = { id: 8454 };
-      listing.locations = [location];
-
-      activatedRoute.data = of({ listing });
-      comp.ngOnInit();
-
-      expect(comp.categoriesSharedCollection()).toContainEqual(category);
-      expect(comp.locationsSharedCollection()).toContainEqual(location);
       expect(comp.listing).toEqual(listing);
+      expect(comp.editForm.controls.categories.value).toEqual([category]);
+      expect(comp.editForm.controls.locations.value).toEqual([location]);
+      expect(categoryQuery).not.toHaveBeenCalled();
+      expect(locationQuery).not.toHaveBeenCalled();
+      expect(comp.hasUnsavedChanges()).toBe(false);
+    });
+
+    it('new listing: draft by default, technical block open, required fields listed', () => {
+      activatedRoute.data = of({ listing: null });
+      comp.ngOnInit();
+
+      expect(comp.editForm.controls.status.value).toBe('draft');
+      expect(comp.technicalOpen()).toBe(true);
+      expect(comp.invalidFields().map(field => field.key)).toEqual(['wpId', 'name']);
+    });
+
+    it('keeps an unknown status from the data as an extra option', () => {
+      activatedRoute.data = of({ listing: { id: 1, status: 'pending' } });
+      comp.ngOnInit();
+
+      expect(comp.statusOptions()).toEqual(['publish', 'draft', 'pending']);
+      expect(comp.statusLabel('publish')).toBe('javaSpringBootBackEndApp.listing.statusValue.publish');
+      expect(comp.statusLabel('pending')).toBe('pending');
+    });
+  });
+
+  describe('search pickers', () => {
+    it('searchCategories maps the A–Z index to options with the parent as hint', async () => {
+      vi.spyOn(TestBed.inject(CategoryIndexService), 'search').mockReturnValue(
+        of({
+          items: [{ id: 4, name: 'BAO BÌ', slug: null, letter: 'B', parentId: 1, parentName: 'SẢN XUẤT', listingCount: 9 }],
+          page: 0,
+          size: 20,
+          totalItems: 1,
+          totalPages: 1,
+        }),
+      );
+      expect(await firstValueFrom(comp.searchCategories('bao bi'))).toEqual([{ id: 4, name: 'BAO BÌ', hint: 'SẢN XUẤT' }]);
+    });
+
+    it('searchLocations searches new and old units; old ones get a badge', async () => {
+      const search = vi.spyOn(TestBed.inject(LocationIndexService), 'search').mockReturnValue(
+        of({
+          items: [
+            {
+              id: 12000,
+              name: 'Phường Vĩnh Tuy',
+              slug: null,
+              type: 'ward',
+              isNew: true,
+              letter: 'V',
+              parentId: 11960,
+              parentName: 'Thành phố Hà Nội',
+              provinceName: 'Thành phố Hà Nội',
+              listingCount: 1,
+            },
+            {
+              id: 800,
+              name: 'Phường Thanh Lương',
+              slug: null,
+              type: 'ward',
+              isNew: false,
+              letter: 'T',
+              parentId: 30,
+              parentName: 'Quận Hai Bà Trưng',
+              provinceName: 'Thành phố Hà Nội',
+              listingCount: 1,
+            },
+          ],
+          page: 0,
+          size: 20,
+          totalItems: 2,
+          totalPages: 1,
+        }),
+      );
+      const options = await firstValueFrom(comp.searchLocations('vinh tuy'));
+      expect(search).toHaveBeenCalledWith({ q: 'vinh tuy', generation: 'all', size: 20 });
+      expect(options).toEqual([
+        { id: 12000, name: 'Phường Vĩnh Tuy', hint: 'Thành phố Hà Nội', badge: null },
+        {
+          id: 800,
+          name: 'Phường Thanh Lương',
+          hint: 'Quận Hai Bà Trưng, Thành phố Hà Nội',
+          badge: 'javaSpringBootBackEndApp.location.index.oldBadge',
+        },
+      ]);
+    });
+  });
+
+  describe('unsaved changes and shortcut', () => {
+    it('reports unsaved changes until saved', () => {
+      const saveSubject = new Subject<IListing>();
+      vi.spyOn(listingService, 'update').mockReturnValue(saveSubject);
+      vi.spyOn(comp, 'previousState').mockImplementation(() => undefined);
+      activatedRoute.data = of({ listing: { id: 7, wpId: 1, name: 'A' } });
+      comp.ngOnInit();
+      comp.editForm.controls.phone.setValue('0240000000');
+      comp.editForm.markAsDirty();
+      expect(comp.hasUnsavedChanges()).toBe(true);
+
+      comp.save();
+      saveSubject.next({ id: 7 });
+      saveSubject.complete();
+      expect(comp.hasUnsavedChanges()).toBe(false);
+    });
+
+    it('Ctrl+S saves a valid form, otherwise jumps to the first invalid field', () => {
+      const save = vi.spyOn(comp, 'save').mockImplementation(() => undefined);
+      const focusField = vi.spyOn(comp, 'focusField').mockImplementation(() => undefined);
+      activatedRoute.data = of({ listing: { id: 7, wpId: 1, name: 'A' } });
+      comp.ngOnInit();
+      const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, cancelable: true });
+      comp.onSaveShortcut(event);
+      expect(event.defaultPrevented).toBe(true);
+      expect(save).toHaveBeenCalledTimes(1);
+
+      comp.editForm.controls.name.setValue(null);
+      comp.onSaveShortcut(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, cancelable: true }));
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(focusField).toHaveBeenCalledWith('name');
+    });
+
+    it('?focus=email from the detail page jumps to that field; unknown fields are ignored', () => {
+      const focusField = vi.spyOn(comp, 'focusField').mockImplementation(() => undefined);
+      Object.assign(activatedRoute, { snapshot: { queryParamMap: convertToParamMap({ focus: 'email' }) } });
+      activatedRoute.data = of({ listing: { id: 7, wpId: 1, name: 'A' } });
+      comp.ngOnInit();
+      expect(focusField).toHaveBeenCalledWith('email');
+
+      focusField.mockClear();
+      Object.assign(activatedRoute, { snapshot: { queryParamMap: convertToParamMap({ focus: 'constructor' }) } });
+      comp.ngOnInit();
+      expect(focusField).not.toHaveBeenCalled();
+    });
+
+    it('focusField opens the technical block for technical fields', () => {
+      activatedRoute.data = of({ listing: { id: 7 } });
+      comp.ngOnInit();
+      comp.focusField('wpId');
+      expect(comp.technicalOpen()).toBe(true);
+      expect(comp.editForm.controls.wpId.touched).toBe(true);
     });
   });
 
@@ -176,28 +275,6 @@ describe('Listing Management Update Component', () => {
       expect(listingService.update).toHaveBeenCalled();
       expect(comp.isSaving()).toEqual(false);
       expect(comp.previousState).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Compare relationships', () => {
-    describe('compareCategory', () => {
-      it('should forward to categoryService', () => {
-        const entity = { id: 6752 };
-        const entity2 = { id: 4374 };
-        vi.spyOn(categoryService, 'compareCategory');
-        comp.compareCategory(entity, entity2);
-        expect(categoryService.compareCategory).toHaveBeenCalledWith(entity, entity2);
-      });
-    });
-
-    describe('compareLocation', () => {
-      it('should forward to locationService', () => {
-        const entity = { id: 8454 };
-        const entity2 = { id: 13013 };
-        vi.spyOn(locationService, 'compareLocation');
-        comp.compareLocation(entity, entity2);
-        expect(locationService.compareLocation).toHaveBeenCalledWith(entity, entity2);
-      });
     });
   });
 });
