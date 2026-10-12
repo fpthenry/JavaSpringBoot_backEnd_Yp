@@ -2,16 +2,17 @@
   "javaSpringBootBackEndApp": {
     "blogPost": {
       "home": {
-        "title": "Blog Posts",
-        "refreshListLabel": "Refresh list",
-        "createLabel": "Create a new Blog Post",
-        "createOrEditLabel": "Create or edit a Blog Post",
-        "search": "Search for Blog Post",
-        "notFound": "No Blog Posts found"
+        "title": "Posts",
+        "refreshListLabel": "Refresh",
+        "createLabel": "Write a post",
+        "createOrEditLabel": "Write or edit a post",
+        "search": "Search title, content, category, tag…",
+        "notFound": "No posts found",
+        "postColumn": "Post"
       },
-      "created": "A new Blog Post is created with identifier {{ param }}",
-      "updated": "A Blog Post is updated with identifier {{ param }}",
-      "deleted": "A Blog Post is deleted with identifier {{ param }}",
+      "created": "Post added (ID {{ param }})",
+      "updated": "Post saved (ID {{ param }})",
+      "deleted": "Post deleted (ID {{ param }})",
       "delete": {
         "question": "Are you sure you want to delete Blog Post {{ id }}?"
       },
@@ -19,18 +20,18 @@
         "title": "Blog Post"
       },
       "id": "ID",
-      "wpId": "Wp Id",
+      "wpId": "WordPress ID",
       "title": "Title",
-      "slug": "Slug",
+      "slug": "URL slug",
       "content": "Content",
       "excerpt": "Excerpt",
-      "thumbnail": "Thumbnail",
+      "thumbnail": "Featured image",
       "status": "Status",
-      "viewCount": "View Count",
-      "publishedAt": "Published At",
-      "createdAt": "Created At",
-      "updatedAt": "Updated At",
-      "authorName": "Author Name",
+      "viewCount": "Views",
+      "publishedAt": "Published",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "authorName": "Author",
       "category": "Category",
       "tag": "Tag",
       "help": {
@@ -61,6 +62,18 @@
         "thumbnail": "Featured image",
         "thumbnailUrl": "Paste image URL (https://...)",
         "pickFromContent": "Pick image from post"
+      },
+      "statusValue": {
+        "publish": "Published",
+        "draft": "Draft"
+      },
+      "filter": {
+        "all": "All",
+        "allCategories": "All categories",
+        "allTags": "All tags",
+        "found": "{{ count }} posts found",
+        "clear": "Clear filters",
+        "byCategory": "Filter by this category"
       }
     }
   }

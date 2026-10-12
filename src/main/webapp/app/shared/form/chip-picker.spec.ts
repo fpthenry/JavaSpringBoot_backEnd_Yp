@@ -11,6 +11,7 @@ import { fontAwesomeIcons } from 'app/config/font-awesome-icons';
 
 import { AutoResizeDirective } from './auto-resize.directive';
 import { ChipPicker, PickerOption, PickerValue, decodeEntities } from './chip-picker';
+import { slugify } from './slugify';
 
 const OPTIONS: PickerOption[] = [
   { id: 4, name: 'BAO BÌ', hint: 'SẢN XUẤT' },
@@ -112,6 +113,8 @@ describe('decodeEntities', () => {
     expect(decodeEntities('TIỂU HỌC - THCS &amp;amp; THPT')).toBe('TIỂU HỌC - THCS &amp; THPT');
     expect(decodeEntities('A &amp; B &quot;C&quot; &#039;D&#039; &lt;E&gt;')).toBe(`A & B "C" 'D' <E>`);
     expect(decodeEntities(null)).toBe('');
+    expect(decodeEntities('&#8220;Bán&#8221; &#x2013; &nbsp;A')).toBe('“Bán” –  A'.replace(' ', ' '));
+    expect(decodeEntities('&#0; &bogus;')).toBe('&#0; &bogus;');
   });
 });
 
@@ -126,5 +129,44 @@ describe('AutoResizeDirective', () => {
     textarea.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
     expect(textarea.classList).toContain('auto-resize');
+  });
+});
+
+@Component({
+  template: `<jhi-chip-picker [formControl]="parent" [single]="true" [excludeIds]="[4]" [search]="search" />`,
+  imports: [ChipPicker, ReactiveFormsModule],
+})
+class SingleHost {
+  parent = new FormControl<PickerValue | null>({ id: 1, name: 'SẢN XUẤT' });
+  search = (): Observable<PickerOption[]> => of(OPTIONS);
+}
+
+describe('ChipPicker single mode', () => {
+  it('value is one object or null; picking replaces it; excluded ids are not suggested', () => {
+    vi.useFakeTimers();
+    TestBed.configureTestingModule({ imports: [SingleHost], providers: [provideTranslateService()] });
+    TestBed.inject(FaIconLibrary).addIcons(...fontAwesomeIcons);
+    const fixture = TestBed.createComponent(SingleHost);
+    fixture.detectChanges();
+    const picker = fixture.debugElement.children[0].componentInstance as ChipPicker;
+    expect(picker.selected()).toEqual([{ id: 1, name: 'SẢN XUẤT' }]);
+
+    picker.onInput('bao');
+    vi.advanceTimersByTime(250);
+    expect(picker.options().map(o => o.id)).toEqual([5]);
+    picker.add(picker.options()[0]);
+    expect(fixture.componentInstance.parent.value).toEqual({ id: 5, name: 'BAO BÌ GIẤY' });
+
+    picker.remove({ id: 5 });
+    expect(fixture.componentInstance.parent.value).toBeNull();
+    vi.useRealTimers();
+  });
+});
+
+describe('slugify', () => {
+  it('folds Vietnamese, đ and HTML entities into a URL slug', () => {
+    expect(slugify('Lập trình máy vi tính')).toBe('lap-trinh-may-vi-tinh');
+    expect(slugify('  BAO BÌ &amp; ĐÓNG GÓI!! ')).toBe('bao-bi-dong-goi');
+    expect(slugify(null)).toBe('');
   });
 });

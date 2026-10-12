@@ -1,13 +1,17 @@
-<div>
-  <h2 id="page-heading" data-cy="BlogPostHeading">
-    <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.title">Blog Posts</span>
-
-    <div class="d-flex justify-content-end">
-      <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading()">
+<!-- Sửa tay: danh sách bài viết gọn (ảnh, tiêu đề + đoạn trích + danh mục, trạng thái, tác giả, lượt xem, ngày đăng),
+     tab trạng thái có số bài, lọc danh mục/thẻ (tìm trên Elasticsearch), bài mới lên đầu. Sinh lại BlogPost sẽ mất. -->
+<div class="entity-list">
+  <div class="page-header">
+    <div>
+      <h2 id="page-heading" data-cy="BlogPostHeading" class="page-title">
+        <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.title">Bài viết</span>
+      </h2>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary" (click)="load()" [disabled]="isLoading()" [title]="'entity.action.refresh' | translate">
         <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
-        <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.refreshListLabel">Refresh list</span>
+        <span class="d-none d-md-inline" jhiTranslate="javaSpringBootBackEndApp.blogPost.home.refreshListLabel">Tải lại</span>
       </button>
-
       <button
         id="jh-create-entity"
         data-cy="entityCreateButton"
@@ -15,184 +19,226 @@
         [routerLink]="['/blog-post/new']"
       >
         <fa-icon icon="plus" />
-        <span class="hidden-sm-down" jhiTranslate="javaSpringBootBackEndApp.blogPost.home.createLabel">Create a new Blog Post</span>
+        <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.createLabel">Viết bài mới</span>
       </button>
     </div>
-  </h2>
+  </div>
 
   <jhi-alert-error />
 
   <jhi-alert />
 
-  <form name="searchForm" class="row row-cols-sm-auto align-items-center">
-    <div class="col-sm-12">
-      <div class="input-group w-100 mt-3">
-        <label class="visually-hidden" for="currentSearch" jhiTranslate="javaSpringBootBackEndApp.blogPost.home.search"
-          >Search for Blog Post</label
+  <!-- Tab trạng thái -->
+  <ul class="nav status-tabs mb-3" data-cy="statusTabs">
+    <li class="nav-item">
+      <button type="button" class="nav-link" [class.active]="statusFilter() === null" (click)="setStatus(null)">
+        <span jhiTranslate="javaSpringBootBackEndApp.blogPost.filter.all">Tất cả</span>
+        <span class="tab-count">{{ statusCounts()['all']?.toLocaleString('vi-VN') ?? '…' }}</span>
+      </button>
+    </li>
+    @for (status of statuses; track status) {
+      <li class="nav-item">
+        <button
+          type="button"
+          class="nav-link"
+          [class.active]="statusFilter() === status"
+          (click)="setStatus(status)"
+          [attr.data-cy]="'status-' + status"
         >
-        <input
-          type="text"
-          class="form-control"
-          [(ngModel)]="currentSearch"
-          id="currentSearch"
-          name="currentSearch"
-          placeholder="{{ 'javaSpringBootBackEndApp.blogPost.home.search' | translate }}"
-        />
-
-        <button class="btn btn-info" (click)="search(currentSearch())">
-          <fa-icon icon="search" />
+          {{ blogStatusLabelKey(status) | translate }}
+          <span class="tab-count">{{ statusCounts()[status]?.toLocaleString('vi-VN') ?? '…' }}</span>
         </button>
+      </li>
+    }
+  </ul>
 
-        @if (currentSearch()) {
-          <button class="btn btn-danger" (click)="search('')">
-            <fa-icon icon="trash-alt" />
-          </button>
-        }
+  <!-- Tìm kiếm, lọc -->
+  <div class="surface list-toolbar">
+    <div class="row g-2 align-items-center">
+      <div class="col-lg-6">
+        <form name="searchForm" (ngSubmit)="search(currentSearch())">
+          <div class="input-group">
+            <span class="input-group-text bg-transparent"><fa-icon icon="search" class="text-muted" /></span>
+            <label class="visually-hidden" for="currentSearch" jhiTranslate="javaSpringBootBackEndApp.blogPost.home.search"
+              >Tìm bài viết</label
+            >
+            <input
+              type="text"
+              class="form-control border-start-0"
+              [(ngModel)]="currentSearch"
+              id="currentSearch"
+              name="currentSearch"
+              placeholder="{{ 'javaSpringBootBackEndApp.blogPost.home.search' | translate }}"
+            />
+            @if (currentSearch()) {
+              <button type="button" class="btn btn-outline-secondary" (click)="search('')" [title]="'global.form.remove' | translate">
+                <fa-icon icon="xmark" />
+              </button>
+            }
+            <button type="submit" class="btn btn-primary px-3" data-cy="searchButton">
+              <span jhiTranslate="entity.action.search">Tìm</span>
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <select
+          class="form-select"
+          [attr.aria-label]="'javaSpringBootBackEndApp.blogPost.category' | translate"
+          [ngModel]="categoryFilter()"
+          (ngModelChange)="setCategory($event)"
+          data-cy="categoryFilter"
+        >
+          <option [ngValue]="null">{{ 'javaSpringBootBackEndApp.blogPost.filter.allCategories' | translate }}</option>
+          @for (option of categoryOptions(); track option.id) {
+            <option [ngValue]="option.id">{{ decode(option.label) }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <select
+          class="form-select"
+          [attr.aria-label]="'javaSpringBootBackEndApp.blogPost.tag' | translate"
+          [ngModel]="tagFilter()"
+          (ngModelChange)="setTag($event)"
+          data-cy="tagFilter"
+        >
+          <option [ngValue]="null">{{ 'javaSpringBootBackEndApp.blogPost.filter.allTags' | translate }}</option>
+          @for (option of tagOptions(); track option.id) {
+            <option [ngValue]="option.id">{{ option.name }}</option>
+          }
+        </select>
       </div>
     </div>
-  </form>
-
-  <jhi-filter [filters]="filters" />
+    @if (hasFilters() || currentSearch()) {
+      <div class="d-flex flex-wrap align-items-center gap-2 mt-2 small">
+        <span class="text-muted">{{
+          'javaSpringBootBackEndApp.blogPost.filter.found' | translate: { count: totalItems().toLocaleString('vi-VN') }
+        }}</span>
+        <button type="button" class="btn btn-link btn-sm p-0" (click)="clearFilters()" data-cy="clearFilters">
+          <fa-icon icon="xmark" /> <span jhiTranslate="javaSpringBootBackEndApp.blogPost.filter.clear">Bỏ lọc</span>
+        </button>
+      </div>
+    }
+    <jhi-filter [filters]="filters" />
+  </div>
 
   @if (blogPosts().length === 0) {
     <div class="alert alert-warning" id="no-result">
-      <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.notFound">No Blog Posts found</span>
+      @if (isLoading()) {
+        <fa-icon icon="spinner" animation="spin" />
+      } @else {
+        <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.notFound">Không có bài viết nào</span>
+      }
     </div>
   } @else {
-    <div class="table-responsive table-entities" id="entities">
-      <table class="table table-striped" aria-describedby="page-heading">
+    <div class="table-responsive table-entities" id="entities" [class.opacity-50]="isLoading()">
+      <table class="table align-middle" aria-describedby="page-heading">
         <thead>
           <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
-            <th scope="col" jhiSortBy="id">
-              <div class="d-flex">
-                <span jhiTranslate="global.field.id">ID</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
+            <th scope="col" class="d-none d-sm-table-cell" style="width: 5rem"></th>
+            @if (sortable('title')) {
+              <th scope="col" jhiSortBy="title" class="col-post">
+                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.postColumn">Bài viết</span> <fa-icon icon="sort" />
+              </th>
+            } @else {
+              <th scope="col" class="col-post">
+                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.home.postColumn">Bài viết</span>
+              </th>
+            }
+            <th scope="col" class="d-none d-md-table-cell">
+              <span jhiTranslate="javaSpringBootBackEndApp.blogPost.status">Trạng thái</span>
             </th>
-            <th scope="col" jhiSortBy="wpId">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.wpId">Wp Id</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
+            <th scope="col" class="d-none d-lg-table-cell">
+              <span jhiTranslate="javaSpringBootBackEndApp.blogPost.authorName">Tác giả</span>
             </th>
-            <th scope="col" jhiSortBy="title">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.title">Title</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
+            <th scope="col" jhiSortBy="viewCount" class="text-end text-nowrap d-none d-lg-table-cell">
+              <span jhiTranslate="javaSpringBootBackEndApp.blogPost.viewCount">Lượt xem</span> <fa-icon icon="sort" />
             </th>
-            <th scope="col" jhiSortBy="slug">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.slug">Slug</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
+            <th scope="col" jhiSortBy="publishedAt" class="text-nowrap d-none d-md-table-cell">
+              <span jhiTranslate="javaSpringBootBackEndApp.blogPost.publishedAt">Ngày đăng</span> <fa-icon icon="sort" />
             </th>
-            <th scope="col" jhiSortBy="content">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.content">Content</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="excerpt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.excerpt">Excerpt</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="thumbnail">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.thumbnail">Thumbnail</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="status">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.status">Status</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="viewCount">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.viewCount">View Count</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="publishedAt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.publishedAt">Published At</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="createdAt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.createdAt">Created At</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="updatedAt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.updatedAt">Updated At</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="authorName">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.blogPost.authorName">Author Name</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col"></th>
+            <th scope="col" class="text-end"><span class="visually-hidden" jhiTranslate="entity.action.moreActions">Thao tác</span></th>
           </tr>
         </thead>
         <tbody>
           @for (blogPost of blogPosts(); track trackId(blogPost)) {
             <tr data-cy="entityTable">
-              <td>
-                <a [routerLink]="['/blog-post', blogPost.id, 'view']">{{ blogPost.id }}</a>
+              <td class="d-none d-sm-table-cell">
+                <a class="post-thumb" [routerLink]="['/blog-post', blogPost.id, 'view']" tabindex="-1" aria-hidden="true">
+                  <fa-icon icon="newspaper" />
+                  @if (blogPost.thumbnail) {
+                    <img [src]="blogPost.thumbnail" alt="" loading="lazy" (error)="$any($event.target).remove()" />
+                  }
+                </a>
               </td>
-              <td>{{ blogPost.wpId }}</td>
-              <td>{{ blogPost.title }}</td>
-              <td>{{ blogPost.slug }}</td>
-              <td>{{ blogPost.content }}</td>
-              <td>{{ blogPost.excerpt }}</td>
-              <td>{{ blogPost.thumbnail }}</td>
-              <td>{{ blogPost.status }}</td>
-              <td>{{ blogPost.viewCount }}</td>
-              <td>{{ blogPost.publishedAt | formatMediumDatetime }}</td>
-              <td>{{ blogPost.createdAt | formatMediumDatetime }}</td>
-              <td>{{ blogPost.updatedAt | formatMediumDatetime }}</td>
-              <td>{{ blogPost.authorName }}</td>
-              <td class="text-end">
-                <div class="btn-group">
-                  <a [routerLink]="['/blog-post', blogPost.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">
-                    <fa-icon icon="eye" />
-                    <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
-                  </a>
-
-                  <a [routerLink]="['/blog-post', blogPost.id, 'edit']" class="btn btn-primary btn-sm" data-cy="entityEditButton">
-                    <fa-icon icon="pencil-alt" />
-                    <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
-                  </a>
-
-                  <button type="submit" (click)="delete(blogPost)" class="btn btn-danger btn-sm" data-cy="entityDeleteButton">
-                    <fa-icon icon="times" />
-                    <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
-                  </button>
+              <td>
+                <a class="fw-semibold text-body post-title" [routerLink]="['/blog-post', blogPost.id, 'view']">{{
+                  decode(blogPost.title)
+                }}</a>
+                <div class="d-md-none small text-muted mt-1">
+                  {{ blogPost.status ? (blogStatusLabelKey(blogPost.status) | translate) : '' }} ·
+                  {{ blogPost.publishedAt | formatMediumDate }}
                 </div>
+                @if (plainExcerpt(blogPost.excerpt || blogPost.content, 160); as excerpt) {
+                  <div class="post-excerpt">{{ excerpt }}</div>
+                }
+                @if ((blogPost.categories?.length ?? 0) > 0) {
+                  <div class="d-flex flex-wrap gap-1 mt-1">
+                    @for (category of blogPost.categories ?? []; track category.id) {
+                      <button
+                        type="button"
+                        class="post-tag"
+                        (click)="setCategory(category.id)"
+                        [title]="'javaSpringBootBackEndApp.blogPost.filter.byCategory' | translate"
+                      >
+                        {{ decode(category.name) }}
+                      </button>
+                    }
+                  </div>
+                }
+              </td>
+              <td class="d-none d-md-table-cell">
+                @if (blogPost.status) {
+                  <span
+                    class="badge rounded-pill fw-medium"
+                    [class.bg-success-subtle]="blogPost.status === 'publish'"
+                    [class.text-success-emphasis]="blogPost.status === 'publish'"
+                    [class.bg-secondary-subtle]="blogPost.status !== 'publish'"
+                    [class.text-secondary-emphasis]="blogPost.status !== 'publish'"
+                    >{{ blogStatusLabelKey(blogPost.status) | translate }}</span
+                  >
+                }
+              </td>
+              <td class="small text-nowrap d-none d-lg-table-cell">{{ blogPost.authorName }}</td>
+              <td class="small text-end text-muted d-none d-lg-table-cell">{{ (blogPost.viewCount ?? 0).toLocaleString('vi-VN') }}</td>
+              <td class="small text-muted text-nowrap d-none d-md-table-cell">{{ blogPost.publishedAt | formatMediumDate }}</td>
+              <td class="text-end text-nowrap">
+                <a
+                  [routerLink]="['/blog-post', blogPost.id, 'view']"
+                  class="btn btn-icon btn-light"
+                  data-cy="entityDetailsButton"
+                  [title]="'entity.action.view' | translate"
+                >
+                  <fa-icon icon="eye" />
+                </a>
+                <a
+                  [routerLink]="['/blog-post', blogPost.id, 'edit']"
+                  class="btn btn-icon btn-light text-primary ms-1"
+                  data-cy="entityEditButton"
+                  [title]="'entity.action.edit' | translate"
+                >
+                  <fa-icon icon="pencil-alt" />
+                </a>
+                <button
+                  type="button"
+                  (click)="delete(blogPost)"
+                  class="btn btn-icon btn-light text-danger ms-1"
+                  data-cy="entityDeleteButton"
+                  [title]="'entity.action.delete' | translate"
+                >
+                  <fa-icon icon="trash-alt" />
+                </button>
               </td>
             </tr>
           }
@@ -201,22 +247,20 @@
     </div>
   }
   @if (blogPosts().length > 0) {
-    <div>
-      <div class="d-flex justify-content-center">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+      <div class="text-muted small">
         <jhi-item-count [params]="{ page: page(), totalItems: totalItems(), itemsPerPage: itemsPerPage() }" />
       </div>
-
-      <div class="d-flex justify-content-center">
-        <ngb-pagination
-          [collectionSize]="totalItems()"
-          [page]="page()"
-          [pageSize]="itemsPerPage()"
-          [maxSize]="5"
-          [rotate]="true"
-          [boundaryLinks]="true"
-          (pageChange)="navigateToPage($event)"
-        />
-      </div>
+      <ngb-pagination
+        class="mb-0"
+        [collectionSize]="totalItems()"
+        [page]="page()"
+        [pageSize]="itemsPerPage()"
+        [maxSize]="5"
+        [rotate]="true"
+        [boundaryLinks]="true"
+        (pageChange)="navigateToPage($event)"
+      />
     </div>
   }
 </div>

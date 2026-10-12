@@ -2,35 +2,70 @@
   "javaSpringBootBackEndApp": {
     "category": {
       "home": {
-        "title": "Categories",
-        "refreshListLabel": "Refresh list",
-        "createLabel": "Create a new Category",
-        "createOrEditLabel": "Create or edit a Category",
-        "search": "Search for Category",
-        "notFound": "No Categories found"
+        "title": "Industries",
+        "refreshListLabel": "Refresh",
+        "createLabel": "Add industry",
+        "createOrEditLabel": "Add or edit an industry",
+        "search": "Search industries",
+        "notFound": "No industries found"
       },
-      "created": "A new Category is created with identifier {{ param }}",
-      "updated": "A Category is updated with identifier {{ param }}",
-      "deleted": "A Category is deleted with identifier {{ param }}",
+      "created": "Industry added (ID {{ param }})",
+      "updated": "Industry saved (ID {{ param }})",
+      "deleted": "Industry deleted (ID {{ param }})",
       "delete": {
         "question": "Are you sure you want to delete Category {{ id }}?"
       },
       "detail": {
-        "title": "Category"
+        "title": "Industry",
+        "breadcrumb": "Details",
+        "children": "Sub-industries",
+        "leaf": "Last level",
+        "recentListings": "Recently updated businesses",
+        "viewListings": "View businesses",
+        "viewListingsShort": "Businesses",
+        "viewAllListings": "View all {{ count }} businesses",
+        "addChild": "Add sub-industry",
+        "copyName": "Copy name",
+        "editShortcut": "Edit (E key)",
+        "cannotDelete": "{{ count }} sub-industries remain: move or delete them first",
+        "noDescription": "No description for the industry page yet.",
+        "noChildren": "This is a last-level industry with no sub-industries.",
+        "noListings": "No businesses in this industry yet.",
+        "suggestions": "Suggestions",
+        "suggest": {
+          "description": "Add a description so the page is easier to find on Google",
+          "slug": "Set a URL slug for the industry page"
+        },
+        "info": "Information",
+        "root": "Top level",
+        "childCount": "{{ count }} sub-industries",
+        "showMore": "Show {{ count }} more",
+        "showLess": "Show less",
+        "noDescriptionHint": "No description yet. A description helps the industry page show up on Google."
       },
       "id": "ID",
-      "wpTermId": "Wp Term Id",
-      "name": "Name",
-      "slug": "Slug",
+      "wpTermId": "WordPress ID",
+      "name": "Industry name",
+      "slug": "URL slug",
       "description": "Description",
       "icon": "Icon",
-      "listingCount": "Listing Count",
-      "createdAt": "Created At",
-      "updatedAt": "Updated At",
-      "parent": "Parent",
-      "listing": "Listing",
+      "listingCount": "Businesses",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "parent": "Parent industry",
+      "listing": "Businesses",
       "help": {
-        "wpTermId": "wp_terms.term_id"
+        "wpTermId": "Industry ID in WordPress (old system).",
+        "slug": "Last part of the industry page URL, e.g. computer-programming.",
+        "generateSlug": "From name",
+        "description": "Shown on the industry page; helps customers find it on Google.",
+        "parent": "Leave empty for a top-level industry (level 1).",
+        "parentPicker": "Type a parent industry to pick…",
+        "parentCycle": "An industry cannot be its own parent or the child of one of its sub-industries.",
+        "position": "Position:",
+        "thisCategory": "This industry",
+        "level": "Level {{ level }}",
+        "listingCount": "Includes sub-industries; recalculated by the system after each sync (not edited by hand)."
       },
       "tree": {
         "title": "Industry tree",
@@ -59,6 +94,12 @@
         "viewListings": "View businesses in this industry (including sub-industries)",
         "notFound": "No industries found",
         "treeView": "Tree view"
+      },
+      "section": {
+        "general": "General",
+        "tree": "Position in the industry tree",
+        "stats": "Statistics",
+        "technical": "Technical data"
       }
     }
   }

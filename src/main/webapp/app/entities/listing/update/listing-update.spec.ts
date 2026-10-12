@@ -217,7 +217,7 @@ describe('Listing Management Update Component', () => {
       const listing = { id: 14276 };
       vi.spyOn(listingFormService, 'getListing').mockReturnValue(listing);
       vi.spyOn(listingService, 'update').mockReturnValue(saveSubject);
-      vi.spyOn(comp, 'previousState');
+      vi.spyOn(comp, 'previousState').mockImplementation(() => undefined);
       activatedRoute.data = of({ listing });
       comp.ngOnInit();
 
@@ -240,7 +240,7 @@ describe('Listing Management Update Component', () => {
       const listing = { id: 14276 };
       vi.spyOn(listingFormService, 'getListing').mockReturnValue({ id: null });
       vi.spyOn(listingService, 'create').mockReturnValue(saveSubject);
-      vi.spyOn(comp, 'previousState');
+      vi.spyOn(comp, 'previousState').mockImplementation(() => undefined);
       activatedRoute.data = of({ listing: null });
       comp.ngOnInit();
 
@@ -262,7 +262,7 @@ describe('Listing Management Update Component', () => {
       const saveSubject = new Subject<IListing>();
       const listing = { id: 14276 };
       vi.spyOn(listingService, 'update').mockReturnValue(saveSubject);
-      vi.spyOn(comp, 'previousState');
+      vi.spyOn(comp, 'previousState').mockImplementation(() => undefined);
       activatedRoute.data = of({ listing });
       comp.ngOnInit();
 

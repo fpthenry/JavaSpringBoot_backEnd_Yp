@@ -8,11 +8,20 @@ import { Observable, Subject, catchError, debounceTime, of, switchMap, tap } fro
 
 let nextId = 0;
 
-const ENTITIES: Record<string, string> = { '&amp;': '&', '&quot;': '"', '&#039;': "'", '&#39;': "'", '&lt;': '<', '&gt;': '>' };
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ' };
 
-/** Tên lấy từ WordPress còn mã HTML (`&amp;`): giải mã để hiển thị, giá trị lưu giữ nguyên. */
+/**
+ * Tên, nội dung lấy từ WordPress còn mã HTML (`&amp;`, `&#8220;`, `&#x2013;`): giải mã để hiển thị, giá trị lưu giữ nguyên.
+ * Giải mã một lượt ("&amp;amp;" → "&amp;").
+ */
 export function decodeEntities(text: string | null | undefined): string {
-  return (text ?? '').replace(/&(amp|quot|#0?39|lt|gt);/g, match => ENTITIES[match] ?? match);
+  return (text ?? '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code: string) => {
+    if (code.startsWith('#')) {
+      const value = code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return value > 0 && value <= 0x10ffff ? String.fromCodePoint(value) : match;
+    }
+    return NAMED_ENTITIES[code.toLowerCase()] ?? match;
+  });
 }
 
 /** Một lựa chọn trong ô tìm: hint là dòng phụ (ngành cha, tỉnh…), badge là nhãn nhỏ (ví dụ "Cũ"). */
@@ -46,6 +55,10 @@ export class ChipPicker implements ControlValueAccessor {
   readonly search = input.required<(term: string) => Observable<PickerOption[]>>();
   readonly placeholder = input('');
   readonly inputId = input<string | null>(null);
+  /** Chọn một: giá trị form là một đối tượng hoặc null (ví dụ ngành cha); chọn mới thay cho cái cũ. */
+  readonly single = input(false);
+  /** Bỏ các id này khỏi gợi ý (ví dụ chính bản ghi đang sửa khi chọn cha). */
+  readonly excludeIds = input<number[]>([]);
 
   readonly selected = signal<PickerValue[]>([]);
   readonly options = signal<PickerOption[]>([]);
@@ -73,17 +86,22 @@ export class ChipPicker implements ControlValueAccessor {
       )
       .subscribe(options => {
         this.loading.set(false);
-        this.options.set(options);
+        const excluded = new Set(this.excludeIds());
+        this.options.set(options.filter(option => !excluded.has(option.id)));
         this.active.set(0);
         this.open.set(this.term().trim().length > 0);
       });
   }
 
-  writeValue(value: PickerValue[] | null): void {
-    this.selected.set(Array.isArray(value) ? [...value] : []);
+  writeValue(value: PickerValue[] | PickerValue | null): void {
+    if (Array.isArray(value)) {
+      this.selected.set([...value]);
+    } else {
+      this.selected.set(value ? [value] : []);
+    }
   }
 
-  registerOnChange(fn: (value: PickerValue[]) => void): void {
+  registerOnChange(fn: (value: PickerValue[] | PickerValue | null) => void): void {
     this.onChange = fn;
   }
 
@@ -116,7 +134,8 @@ export class ChipPicker implements ControlValueAccessor {
       if (option.hint) {
         this.hints.set(option.id, option.hint);
       }
-      this.emit([...this.selected(), { id: option.id, name: option.name }]);
+      const picked = { id: option.id, name: option.name };
+      this.emit(this.single() ? [picked] : [...this.selected(), picked]);
     }
     this.term.set('');
     this.options.set([]);
@@ -175,12 +194,12 @@ export class ChipPicker implements ControlValueAccessor {
     this.host.nativeElement.querySelector('input')?.focus();
   }
 
-  private onChange: (value: PickerValue[]) => void = () => undefined;
+  private onChange: (value: PickerValue[] | PickerValue | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
 
   private emit(value: PickerValue[]): void {
     this.selected.set(value);
-    this.onChange(value);
+    this.onChange(this.single() ? (value[0] ?? null) : value);
     this.onTouched();
   }
 }

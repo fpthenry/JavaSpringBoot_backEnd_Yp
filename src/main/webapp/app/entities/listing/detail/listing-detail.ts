@@ -66,7 +66,6 @@ export const LISTING_SECTIONS: DetailSection[] = [
 @Component({
   selector: 'jhi-listing-detail',
   templateUrl: './listing-detail.html',
-  styleUrl: './listing-detail.scss',
   imports: [
     FontAwesomeModule,
     Alert,

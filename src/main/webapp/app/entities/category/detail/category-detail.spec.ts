@@ -1,101 +1,137 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { HttpHeaders, HttpResponse, provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { Router, provideRouter, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
 import { FaIconLibrary } from '@fortawesome/angular-fontawesome';
-import { faArrowLeft, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap/modal';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 
-import { DataUtils } from 'app/core/util';
+import { ITEM_DELETED_EVENT } from 'app/config';
+import { fontAwesomeIcons } from 'app/config/font-awesome-icons';
+import { ListingService } from 'app/entities/listing/service/listing.service';
+import { ICategory } from '../category.model';
+import { CategoryService } from '../service/category.service';
 
 import { CategoryDetail } from './category-detail';
+
+const TREE: Record<number, ICategory> = {
+  1: { id: 1, name: 'SẢN XUẤT', parent: null },
+  4: { id: 4, name: 'BAO BÌ &amp; GIẤY', slug: 'bao-bi-103', description: '', listingCount: 6625, parent: { id: 1, name: 'SẢN XUẤT' } },
+};
 
 describe('Category Management Detail Component', () => {
   let comp: CategoryDetail;
   let fixture: ComponentFixture<CategoryDetail>;
-  let dataUtils: DataUtils;
+  let categoryService: CategoryService;
+  let listingService: ListingService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter(
           [
             {
               path: '**',
               loadComponent: () => import('./category-detail').then(m => m.CategoryDetail),
-              resolve: { category: () => of({ id: 6752 }) },
+              resolve: { category: () => of({ id: 123 }) },
             },
           ],
           withComponentInputBinding(),
         ),
       ],
     });
-    const library = TestBed.inject(FaIconLibrary);
-    library.addIcons(faArrowLeft);
-    library.addIcons(faPencilAlt);
-    dataUtils = TestBed.inject(DataUtils);
-    vi.spyOn(window, 'open').mockImplementation(() => null);
-  });
-
-  beforeEach(() => {
+    TestBed.inject(FaIconLibrary).addIcons(...fontAwesomeIcons);
+    categoryService = TestBed.inject(CategoryService);
+    listingService = TestBed.inject(ListingService);
+    vi.spyOn(categoryService, 'find').mockImplementation((id: number) => of(TREE[id]));
+    vi.spyOn(categoryService, 'query').mockReturnValue(
+      of(new HttpResponse({ body: [{ id: 5, name: 'BAO BÌ GIẤY', listingCount: 120 }] as ICategory[] })),
+    );
+    vi.spyOn(listingService, 'query').mockReturnValue(
+      of(
+        new HttpResponse({
+          body: [{ id: 9, name: 'CÔNG TY BAO BÌ A', addressNew: '1 Lãng Yên' }],
+          headers: new HttpHeaders({ 'X-Total-Count': '6625' }),
+        }),
+      ),
+    );
     fixture = TestBed.createComponent(CategoryDetail);
     comp = fixture.componentInstance;
   });
 
-  describe('OnInit', () => {
-    it('should load category on init', async () => {
-      const harness = await RouterTestingHarness.create();
-      const instance = await harness.navigateByUrl('/', CategoryDetail);
+  const show = (category: ICategory): void => {
+    fixture.componentRef.setInput('category', category);
+    fixture.detectChanges();
+  };
 
-      // THEN
-      expect(instance.category()).toEqual(expect.objectContaining({ id: 6752 }));
-    });
+  it('should load category on init', async () => {
+    vi.mocked(categoryService.find).mockReturnValue(of({ id: 123 }));
+    const harness = await RouterTestingHarness.create();
+    const instance = await harness.navigateByUrl('/', CategoryDetail);
+    expect(instance.category()).toEqual(expect.objectContaining({ id: 123 }));
   });
 
-  describe('PreviousState', () => {
-    it('should navigate to previous state', () => {
-      vi.spyOn(globalThis.history, 'back');
-      comp.previousState();
-      expect(globalThis.history.back).toHaveBeenCalled();
-    });
+  it('shows the tree path, level, children and recent businesses', () => {
+    show(TREE[4]);
+    expect(comp.name()).toBe('BAO BÌ & GIẤY');
+    expect(comp.ancestors()).toEqual([{ id: 1, name: 'SẢN XUẤT' }]);
+    expect(comp.level()).toBe(2);
+    expect(categoryService.query).toHaveBeenCalledWith({ 'parentId.equals': 4, size: 500, sort: ['name,asc'] });
+    expect(comp.childCount()).toBe(1);
+    expect(listingService.query).toHaveBeenCalledWith({ 'categoryTreeId.equals': 4, page: 0, size: 5, sort: ['updatedAt,desc'] });
+    expect(comp.recentListings()?.map(listing => listing.name)).toEqual(['CÔNG TY BAO BÌ A']);
+    expect(comp.recentTotal()).toBe(6625);
+    const text = (fixture.nativeElement as HTMLElement).textContent;
+    expect(text).toContain('BAO BÌ GIẤY');
   });
 
-  describe('byteSize', () => {
-    it('should call byteSize from DataUtils', () => {
-      // GIVEN
-      vi.spyOn(dataUtils, 'byteSize');
-      const fakeBase64 = 'fake base64';
-
-      // WHEN
-      comp.byteSize(fakeBase64);
-
-      // THEN
-      expect(dataUtils.byteSize).toHaveBeenCalledWith(fakeBase64);
-    });
+  it('empty description shows a hint with Bổ sung; A–Z link uses letter and name', () => {
+    show(TREE[4]);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.empty-hint a')?.getAttribute('href')).toContain('focus=description');
+    expect(comp.indexQueryParams()).toEqual({ letter: 'B', q: 'BAO BÌ & GIẤY' });
+    expect(comp.newChildQueryParams(4)).toEqual({ parentId: 4 });
+    show({ ...TREE[4], name: 'Đá quý' });
+    expect(comp.letter()).toBe('D');
   });
 
-  describe('openFile', () => {
-    it('should call openFile from DataUtils', () => {
-      const newWindow = { ...window };
-      vi.stubGlobal(
-        'open',
-        vi.fn(() => newWindow),
-      );
-      window.onload = vi.fn(() => newWindow);
-      window.URL.createObjectURL = vi.fn();
-      // GIVEN
-      vi.spyOn(dataUtils, 'openFile');
-      const fakeContentType = 'fake content type';
-      const fakeBase64 = 'fake base64';
+  it('shows 10 sub-categories first, then all with "Xem thêm"', () => {
+    const many = Array.from({ length: 21 }, (_, i) => ({ id: 100 + i, name: `NGÀNH ${i}`, listingCount: i }));
+    vi.mocked(categoryService.query).mockReturnValue(of(new HttpResponse({ body: many })));
+    show(TREE[4]);
+    expect(comp.visibleChildren().length).toBe(10);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelectorAll('[data-cy=children] li').length).toBe(10);
+    root.querySelector<HTMLButtonElement>('[data-cy=toggleChildren]')?.click();
+    fixture.detectChanges();
+    expect(root.querySelectorAll('[data-cy=children] li').length).toBe(21);
+  });
 
-      // WHEN
-      comp.openFile(fakeBase64, fakeContentType);
+  it('delete is disabled while the category has children', () => {
+    show(TREE[4]);
+    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-cy=entityDeleteButton]');
+    expect(button?.disabled).toBe(true);
+    vi.mocked(categoryService.query).mockReturnValue(of(new HttpResponse({ body: [] })));
+    show({ ...TREE[4], id: 40 });
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-cy=entityDeleteButton]')?.disabled).toBe(false);
+  });
 
-      // THEN
-      expect(dataUtils.openFile).toHaveBeenCalledWith(fakeBase64, fakeContentType);
-    });
+  it('after delete goes back to the list; E opens the edit form', () => {
+    const closed = new Subject<string>();
+    vi.spyOn(TestBed.inject(NgbModal), 'open').mockReturnValue({ componentInstance: {}, closed } as unknown as NgbModalRef);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    show(TREE[4]);
+    comp.delete(TREE[4]);
+    closed.next(ITEM_DELETED_EVENT);
+    expect(navigate).toHaveBeenCalledWith(['/category']);
+    comp.onKeydown(new KeyboardEvent('keydown', { key: 'e' }));
+    expect(navigate).toHaveBeenCalledWith(['/category', 4, 'edit']);
   });
 });

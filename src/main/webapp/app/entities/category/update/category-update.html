@@ -1,196 +1,274 @@
-<div class="d-flex justify-content-center">
-  <div class="col-8">
-    <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
-      <h2
-        id="jhi-category-heading"
-        data-cy="CategoryCreateUpdateHeading"
-        jhiTranslate="javaSpringBootBackEndApp.category.home.createOrEditLabel"
-      >
-        Create or edit a Category
-      </h2>
+<!-- Sửa tay: form ngành nghề chia nhóm, ngành cha chọn bằng gõ tìm + đường dẫn cây, chặn vòng lặp, thanh lưu dính đáy. Sinh lại Category sẽ mất. -->
+<ng-template #fieldErrors let-ref>
+  @if (ref.invalid && (ref.dirty || ref.touched)) {
+    <div class="invalid-feedback d-block">
+      @if (ref.errors?.required) {
+        <span jhiTranslate="entity.validation.required">Trường này bắt buộc.</span>
+      }
+      @if (ref.errors?.maxlength) {
+        <span jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: ref.errors.maxlength.requiredLength }">Quá dài.</span>
+      }
+    </div>
+  }
+</ng-template>
 
-      <div>
-        <jhi-alert-error />
-
-        @if (editForm.controls.id.value !== null) {
-          <div class="mb-3">
-            <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
-            <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
-          </div>
+<div class="entity-edit">
+  <div class="page-header">
+    <div class="min-w-0">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+          <li class="breadcrumb-item">
+            <a routerLink="/category" jhiTranslate="javaSpringBootBackEndApp.category.home.title">Ngành nghề</a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">
+            {{ (category?.id ? 'entity.action.edit' : 'entity.action.create') | translate }}
+          </li>
+        </ol>
+      </nav>
+      <h2 id="jhi-category-heading" data-cy="CategoryCreateUpdateHeading" class="page-title">
+        @if (category?.id) {
+          {{ decode(editForm.controls.name.value || category.name) }}
+        } @else {
+          <span jhiTranslate="javaSpringBootBackEndApp.category.home.createLabel">Thêm ngành nghề</span>
         }
+      </h2>
+      @if (category?.id) {
+        <div class="text-muted small">ID {{ category.id }}</div>
+      }
+    </div>
+    @if (category?.id) {
+      <a class="btn btn-outline-secondary" [routerLink]="['/category', category.id, 'view']">
+        <fa-icon icon="eye" />&nbsp;<span jhiTranslate="entity.action.view">Xem</span>
+      </a>
+    }
+  </div>
 
-        @let wpTermIdRef = editForm.get('wpTermId')!;
-        <div class="mb-3">
-          <label
-            class="form-label"
-            for="field_wpTermId"
-            [ngbTooltip]="'javaSpringBootBackEndApp.category.help.wpTermId' | translate"
-            jhiTranslate="javaSpringBootBackEndApp.category.wpTermId"
-            >Wp Term Id</label
-          >
-          <input type="number" class="form-control" name="wpTermId" id="field_wpTermId" data-cy="wpTermId" formControlName="wpTermId" />
-          @if (wpTermIdRef.invalid && (wpTermIdRef.dirty || wpTermIdRef.touched)) {
-            <div>
-              <small class="form-text text-danger" [hidden]="!wpTermIdRef.errors?.number" jhiTranslate="entity.validation.number"
-                >This field should be a number.</small
+  <jhi-alert-error />
+
+  <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
+    <div class="row g-4">
+      <!-- Cột chính -->
+      <div class="col-xl-8">
+        <section class="form-card">
+          <h3 class="form-card-title">
+            <fa-icon icon="briefcase" /> <span jhiTranslate="javaSpringBootBackEndApp.category.section.general">Thông tin chung</span>
+          </h3>
+          <div class="mb-3">
+            <label class="form-label required" for="field_name" jhiTranslate="javaSpringBootBackEndApp.category.name">Tên ngành</label>
+            <textarea
+              jhiAutoResize
+              [allowNewline]="false"
+              rows="1"
+              class="form-control form-control-lg fw-semibold"
+              [class.is-invalid]="editForm.controls.name.invalid && editForm.controls.name.touched"
+              name="name"
+              id="field_name"
+              data-cy="name"
+              formControlName="name"
+            ></textarea>
+            <ng-container *ngTemplateOutlet="fieldErrors; context: { $implicit: editForm.controls.name }" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="field_slug" jhiTranslate="javaSpringBootBackEndApp.category.slug">Đường dẫn (slug)</label>
+            <div class="input-group">
+              <textarea
+                jhiAutoResize
+                [allowNewline]="false"
+                rows="1"
+                class="form-control font-monospace small"
+                name="slug"
+                id="field_slug"
+                data-cy="slug"
+                formControlName="slug"
+              ></textarea>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="generateSlug()"
+                [disabled]="!editForm.controls.name.value"
+                data-cy="generateSlug"
+              >
+                <fa-icon icon="sync" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.category.help.generateSlug">Tạo từ tên</span>
+              </button>
+            </div>
+            <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.category.help.slug">
+              Phần cuối địa chỉ trang ngành trên website.
+            </div>
+            <ng-container *ngTemplateOutlet="fieldErrors; context: { $implicit: editForm.controls.slug }" />
+          </div>
+          <div>
+            <label class="form-label" for="field_description" jhiTranslate="javaSpringBootBackEndApp.category.description">Mô tả</label>
+            <textarea
+              jhiAutoResize
+              rows="3"
+              class="form-control"
+              name="description"
+              id="field_description"
+              data-cy="description"
+              formControlName="description"
+            ></textarea>
+            <div class="form-text d-flex justify-content-between gap-2">
+              <span jhiTranslate="javaSpringBootBackEndApp.category.help.description"
+                >Hiện trên trang ngành, giúp khách tìm thấy qua Google.</span
+              >
+              <span class="text-nowrap">{{ (editForm.controls.description.value ?? '').length }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-card">
+          <h3 class="form-card-title">
+            <fa-icon icon="sitemap" /> <span jhiTranslate="javaSpringBootBackEndApp.category.section.tree">Vị trí trong cây ngành</span>
+          </h3>
+          <label class="form-label" for="field_parent" jhiTranslate="javaSpringBootBackEndApp.category.parent">Ngành cha</label>
+          <jhi-chip-picker
+            inputId="field_parent"
+            data-cy="parent"
+            formControlName="parent"
+            [single]="true"
+            [excludeIds]="excludedParentIds()"
+            [search]="searchParents"
+            [placeholder]="'javaSpringBootBackEndApp.category.help.parentPicker' | translate"
+          />
+          @if (parentCycle()) {
+            <div class="invalid-feedback d-block" data-cy="parentCycle">
+              <fa-icon icon="triangle-exclamation" />
+              <span jhiTranslate="javaSpringBootBackEndApp.category.help.parentCycle"
+                >Không chọn được ngành con của chính ngành này làm ngành cha.</span
               >
             </div>
           }
-        </div>
-
-        @let nameRef = editForm.get('name')!;
-        <div class="mb-3">
-          <label class="form-label" for="field_name" jhiTranslate="javaSpringBootBackEndApp.category.name">Name</label>
-          <input type="text" class="form-control" name="name" id="field_name" data-cy="name" formControlName="name" />
-          @if (nameRef.invalid && (nameRef.dirty || nameRef.touched)) {
-            <div>
-              @if (nameRef.errors?.required) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
-              }
-              @if (nameRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
-                  >This field cannot be longer than 255 characters.</small
-                >
-              }
-            </div>
-          }
-        </div>
-
-        @let slugRef = editForm.get('slug')!;
-        <div class="mb-3">
-          <label class="form-label" for="field_slug" jhiTranslate="javaSpringBootBackEndApp.category.slug">Slug</label>
-          <input type="text" class="form-control" name="slug" id="field_slug" data-cy="slug" formControlName="slug" />
-          @if (slugRef.invalid && (slugRef.dirty || slugRef.touched)) {
-            <div>
-              @if (slugRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
-                  >This field cannot be longer than 255 characters.</small
-                >
-              }
-            </div>
-          }
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="field_description" jhiTranslate="javaSpringBootBackEndApp.category.description">Description</label>
-          <textarea
-            class="form-control"
-            name="description"
-            id="field_description"
-            data-cy="description"
-            formControlName="description"
-          ></textarea>
-        </div>
-
-        @let iconRef = editForm.get('icon')!;
-        <div class="mb-3">
-          <label class="form-label" for="field_icon" jhiTranslate="javaSpringBootBackEndApp.category.icon">Icon</label>
-          <input type="text" class="form-control" name="icon" id="field_icon" data-cy="icon" formControlName="icon" />
-          @if (iconRef.invalid && (iconRef.dirty || iconRef.touched)) {
-            <div>
-              @if (iconRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '255' }"
-                  >This field cannot be longer than 255 characters.</small
-                >
-              }
-            </div>
-          }
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="field_listingCount" jhiTranslate="javaSpringBootBackEndApp.category.listingCount"
-            >Listing Count</label
-          >
-          <input
-            type="number"
-            class="form-control"
-            name="listingCount"
-            id="field_listingCount"
-            data-cy="listingCount"
-            formControlName="listingCount"
-          />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="field_createdAt" jhiTranslate="javaSpringBootBackEndApp.category.createdAt">Created At</label>
-          <div class="d-flex">
-            <input
-              id="field_createdAt"
-              data-cy="createdAt"
-              type="datetime-local"
-              class="form-control"
-              name="createdAt"
-              formControlName="createdAt"
-              placeholder="YYYY-MM-DD HH:mm"
-            />
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="field_updatedAt" jhiTranslate="javaSpringBootBackEndApp.category.updatedAt">Updated At</label>
-          <div class="d-flex">
-            <input
-              id="field_updatedAt"
-              data-cy="updatedAt"
-              type="datetime-local"
-              class="form-control"
-              name="updatedAt"
-              formControlName="updatedAt"
-              placeholder="YYYY-MM-DD HH:mm"
-            />
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="field_parent" jhiTranslate="javaSpringBootBackEndApp.category.parent">Parent</label>
-          <select
-            class="form-control"
-            id="field_parent"
-            data-cy="parent"
-            name="parent"
-            formControlName="parent"
-            [compareWith]="compareCategory"
-          >
-            <option [ngValue]="null"></option>
-            @for (categoryOption of categoriesSharedCollection(); track $index) {
-              <option [ngValue]="categoryOption">{{ categoryOption.name }}</option>
+          <div class="tree-path mt-3" data-cy="treePath">
+            <span class="tree-path-label" jhiTranslate="javaSpringBootBackEndApp.category.help.position">Vị trí:</span>
+            @for (node of parentPath(); track node.id) {
+              <a class="tree-path-node" [routerLink]="['/category', node.id, 'view']" target="_blank">{{ decode(node.name) }}</a>
+              <fa-icon icon="chevron-right" class="tree-path-sep" />
             }
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label for="field_listings" jhiTranslate="javaSpringBootBackEndApp.category.listing">Listing</label>
-          <select
-            class="form-control"
-            id="field_listings"
-            data-cy="listing"
-            multiple
-            name="listings"
-            formControlName="listings"
-            [compareWith]="compareListing"
-          >
-            @for (listingOption of listingsSharedCollection(); track $index) {
-              <option [ngValue]="listingOption">{{ listingOption.id }}</option>
-            }
-          </select>
-        </div>
+            <span class="tree-path-node current">{{
+              decode(editForm.controls.name.value) || ('javaSpringBootBackEndApp.category.help.thisCategory' | translate)
+            }}</span>
+            <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis ms-1">{{
+              'javaSpringBootBackEndApp.category.help.level' | translate: { level: level() }
+            }}</span>
+          </div>
+          <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.category.help.parent">Để trống nếu là ngành gốc (cấp 1).</div>
+        </section>
       </div>
 
-      <div>
-        <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-secondary" (click)="previousState()">
-          <fa-icon icon="ban" />&nbsp;<span jhiTranslate="entity.action.cancel">Cancel</span>
-        </button>
+      <!-- Cột phải -->
+      <div class="col-xl-4">
+        <div class="side-sticky">
+          <section class="form-card">
+            <h3 class="form-card-title">
+              <fa-icon icon="chart-simple" /> <span jhiTranslate="javaSpringBootBackEndApp.category.section.stats">Thống kê</span>
+            </h3>
+            <div class="mb-3">
+              <div class="form-label" jhiTranslate="javaSpringBootBackEndApp.category.listingCount">Số doanh nghiệp</div>
+              <div class="fs-4 fw-semibold" data-cy="listingCount">
+                {{ (editForm.controls.listingCount.value ?? 0).toLocaleString('vi-VN') }}
+              </div>
+              <div class="form-text mt-0" jhiTranslate="javaSpringBootBackEndApp.category.help.listingCount">
+                Tính cả ngành con, do hệ thống tự tính (job "Tính số doanh nghiệp").
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-sm-6 col-xl-12">
+                <label class="form-label" for="field_createdAt" jhiTranslate="javaSpringBootBackEndApp.category.createdAt">Ngày tạo</label>
+                <input
+                  id="field_createdAt"
+                  data-cy="createdAt"
+                  type="datetime-local"
+                  class="form-control"
+                  name="createdAt"
+                  formControlName="createdAt"
+                />
+              </div>
+              <div class="col-sm-6 col-xl-12">
+                <label class="form-label" for="field_updatedAt" jhiTranslate="javaSpringBootBackEndApp.category.updatedAt"
+                  >Ngày cập nhật</label
+                >
+                <input
+                  id="field_updatedAt"
+                  data-cy="updatedAt"
+                  type="datetime-local"
+                  class="form-control"
+                  name="updatedAt"
+                  formControlName="updatedAt"
+                />
+              </div>
+            </div>
+          </section>
 
+          <details class="form-card form-card-collapsible" [open]="technicalOpen()" (toggle)="technicalOpen.set($any($event.target).open)">
+            <summary class="form-card-title">
+              <fa-icon icon="gear" /> <span jhiTranslate="javaSpringBootBackEndApp.category.section.technical">Thông tin kỹ thuật</span>
+            </summary>
+            @if (editForm.controls.id.value !== null) {
+              <div class="mb-3">
+                <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
+                <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
+              </div>
+            }
+            <div class="mb-3">
+              <label class="form-label" for="field_wpTermId" jhiTranslate="javaSpringBootBackEndApp.category.wpTermId">Mã WordPress</label>
+              <input type="number" class="form-control" name="wpTermId" id="field_wpTermId" data-cy="wpTermId" formControlName="wpTermId" />
+            </div>
+            <div>
+              <label class="form-label" for="field_icon" jhiTranslate="javaSpringBootBackEndApp.category.icon">Biểu tượng</label>
+              <input type="text" class="form-control" name="icon" id="field_icon" data-cy="icon" formControlName="icon" />
+              <ng-container *ngTemplateOutlet="fieldErrors; context: { $implicit: editForm.controls.icon }" />
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thanh lưu dính đáy -->
+    <div class="form-actions">
+      <div class="form-actions-status">
+        @if (invalidFields().length > 0) {
+          <span class="text-danger">
+            <fa-icon icon="triangle-exclamation" />
+            <span jhiTranslate="global.form.invalidFields">Kiểm tra lại:</span>
+            @for (field of invalidFields(); track field.key; let last = $last) {
+              <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-danger" (click)="focusField(field.key)">
+                {{ field.label | translate }}</button
+              >{{ last ? '' : ',' }}
+            }
+          </span>
+        } @else if (editForm.dirty) {
+          <span class="text-warning-emphasis"
+            ><fa-icon icon="circle" class="small" /> <span jhiTranslate="global.form.unsaved">Có thay đổi chưa lưu</span></span
+          >
+        } @else {
+          <span class="text-muted" jhiTranslate="global.form.saveHint">Ctrl + S để lưu nhanh</span>
+        }
+      </div>
+      <div class="d-flex gap-2">
+        <button
+          type="button"
+          id="cancel-save"
+          data-cy="entityCreateCancelButton"
+          class="btn btn-outline-secondary"
+          (click)="previousState()"
+        >
+          <fa-icon icon="ban" />&nbsp;<span jhiTranslate="entity.action.cancel">Hủy</span>
+        </button>
         <button
           type="submit"
           id="save-entity"
           data-cy="entityCreateSaveButton"
-          [disabled]="editForm.invalid || isSaving()"
-          class="btn btn-primary"
+          [disabled]="editForm.invalid || isSaving() || parentCycle()"
+          class="btn btn-primary px-4"
         >
-          <fa-icon icon="save" />&nbsp;<span jhiTranslate="entity.action.save">Save</span>
+          @if (isSaving()) {
+            <fa-icon icon="spinner" animation="spin" />
+          } @else {
+            <fa-icon icon="save" />
+          }
+          &nbsp;<span jhiTranslate="entity.action.save">Lưu</span>
         </button>
       </div>
-    </form>
-  </div>
+    </div>
+  </form>
 </div>

@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { ASC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { unsavedChangesGuard } from 'app/shared/form';
 
 import CategoryResolve from './route/category-routing-resolve.service';
 
@@ -39,6 +40,7 @@ const categoryRoute: Routes = [
       category: CategoryResolve,
     },
     canActivate: [userRouteAccessService],
+    canDeactivate: [unsavedChangesGuard],
   },
   {
     path: ':id/edit',
@@ -47,6 +49,7 @@ const categoryRoute: Routes = [
       category: CategoryResolve,
     },
     canActivate: [userRouteAccessService],
+    canDeactivate: [unsavedChangesGuard],
   },
 ];
 

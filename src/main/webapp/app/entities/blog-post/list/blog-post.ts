@@ -1,5 +1,5 @@
 import { HttpHeaders } from '@angular/common/http';
-import { Component, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Data, ParamMap, Router, RouterLink } from '@angular/router';
@@ -13,11 +13,15 @@ import { combineLatest, filter, map, tap } from 'rxjs';
 import { DEFAULT_SORT_DATA, ITEMS_PER_PAGE, ITEM_DELETED_EVENT, PAGE_HEADER, SORT, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config';
 import { DataUtils } from 'app/core/util';
 import { Alert, AlertError } from 'app/shared/alert';
-import { FormatMediumDatetimePipe } from 'app/shared/date';
+import { FormatMediumDatePipe } from 'app/shared/date';
 import { Filter, FilterOptions, IFilterOption, IFilterOptions } from 'app/shared/filter';
 import { TranslateDirective } from 'app/shared/language';
 import { ItemCount } from 'app/shared/pagination';
 import { SortByDirective, SortDirective, SortService, type SortState, sortStateSignal } from 'app/shared/sort';
+import { BlogCategoryService } from 'app/entities/blog-category/service/blog-category.service';
+import { TagService } from 'app/entities/tag/service/tag.service';
+import { decodeEntities } from 'app/shared/form';
+import { BLOG_POST_STATUSES, CategoryOption, blogStatusLabelKey, categoryTreeOptions, plainExcerpt } from '../blog-post-display';
 import { IBlogPost } from '../blog-post.model';
 import { BlogPostDeleteDialog } from '../delete/blog-post-delete-dialog';
 import { BlogPostService } from '../service/blog-post.service';
@@ -35,16 +39,39 @@ import { BlogPostService } from '../service/blog-post.service';
     SortByDirective,
     TranslateDirective,
     TranslatePipe,
-    FormatMediumDatetimePipe,
+    FormatMediumDatePipe,
     Filter,
     NgbPagination,
     ItemCount,
   ],
 })
 export class BlogPost {
-  private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['title', 'slug', 'content', 'excerpt', 'thumbnail', 'status', 'authorName'];
+  // Sửa tay: trên Elasticsearch, id là keyword (sắp theo chữ) nên cũng bỏ
+  private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = [
+    'id',
+    'title',
+    'slug',
+    'content',
+    'excerpt',
+    'thumbnail',
+    'status',
+    'authorName',
+  ];
 
   readonly blogPosts = signal<IBlogPost[]>([]);
+
+  /** Sửa tay: lọc theo trạng thái, danh mục (gồm danh mục con), thẻ; lưu trên URL (status, categoryId, tagId). */
+  readonly statusFilter = signal<string | null>(null);
+  readonly categoryFilter = signal<number | null>(null);
+  readonly tagFilter = signal<number | null>(null);
+  readonly statuses = BLOG_POST_STATUSES;
+  /** Số bài theo trạng thái cho các tab (null = đang đếm). */
+  readonly statusCounts = signal<Record<string, number | null>>({});
+  readonly categoryOptions = signal<CategoryOption[]>([]);
+  readonly tagOptions = signal<{ id: number; name: string }[]>([]);
+  readonly hasFilters = computed(() => this.statusFilter() !== null || this.categoryFilter() !== null || this.tagFilter() !== null);
+  /** Đang tìm trên Elasticsearch (có từ khóa hoặc bộ lọc): chỉ sắp xếp được theo ngày đăng, lượt xem. */
+  readonly searching = computed(() => !!this.currentSearch() || this.hasFilters());
 
   sortState = sortStateSignal({});
   readonly currentSearch = signal('');
@@ -69,8 +96,14 @@ export class BlogPost {
   protected readonly filterOptions = toSignal(this.filters.filterChanges);
   protected dataUtils = inject(DataUtils);
   protected modalService = inject(NgbModal);
+  protected blogCategoryService = inject(BlogCategoryService);
+  protected tagService = inject(TagService);
+  protected readonly plainExcerpt = plainExcerpt;
+  protected readonly decode = decodeEntities;
+  protected readonly blogStatusLabelKey = blogStatusLabelKey;
 
   constructor() {
+    this.loadFilterOptions();
     effect(() => {
       const headers = this.blogPostService.blogPostsResource.headers();
       if (headers) {
@@ -108,6 +141,33 @@ export class BlogPost {
     // Sửa tay: có từ khóa thì bỏ sắp xếp để Elasticsearch xếp theo độ liên quan (bấm tiêu đề cột vẫn sắp xếp được);
     // xóa từ khóa thì quay về sắp xếp mặc định
     this.navigateToWithComponentValues(query ? {} : this.getDefaultSortState());
+  }
+
+  setStatus(status: string | null): void {
+    this.statusFilter.set(status);
+    this.applyFilters();
+  }
+
+  setCategory(id: number | null): void {
+    this.categoryFilter.set(id);
+    this.applyFilters();
+  }
+
+  setTag(id: number | null): void {
+    this.tagFilter.set(id);
+    this.applyFilters();
+  }
+
+  clearFilters(): void {
+    this.statusFilter.set(null);
+    this.categoryFilter.set(null);
+    this.tagFilter.set(null);
+    this.search('');
+  }
+
+  /** Sắp xếp được cột này không (trên Elasticsearch chỉ ngày đăng, lượt xem). */
+  sortable(field: string): boolean {
+    return !this.searching() || !BlogPost.NOT_SORTABLE_FIELDS_AFTER_SEARCH.includes(field);
   }
 
   getDefaultSortState(): SortState {
@@ -153,8 +213,12 @@ export class BlogPost {
     // Sửa tay: đang tìm mà URL không có sort thì giữ trống (theo độ liên quan), không dùng sort mặc định id,asc
     this.sortState.set(this.sortService.parseSortParam(params.get(SORT) ?? (searching ? undefined : data[DEFAULT_SORT_DATA])));
     this.filters.initializeFromParams(params);
-    if (searching) {
-      this.currentSearch.set(params.get('search') as string);
+    const numberParam = (name: string): number | null => Number(params.get(name)) || null;
+    this.statusFilter.set(params.get('status'));
+    this.categoryFilter.set(numberParam('categoryId'));
+    this.tagFilter.set(numberParam('tagId'));
+    if (searching || this.hasFilters()) {
+      this.currentSearch.set(params.get('search') ?? '');
       const { predicate } = this.sortState();
       if (predicate && BlogPost.NOT_SORTABLE_FIELDS_AFTER_SEARCH.includes(predicate)) {
         this.sortState.set({});
@@ -179,6 +243,15 @@ export class BlogPost {
       query: this.currentSearch(),
       sort: this.sortService.buildSortParam(this.sortState()),
     };
+    if (this.statusFilter()) {
+      queryObject.status = this.statusFilter();
+    }
+    if (this.categoryFilter() !== null) {
+      queryObject.categoryId = this.categoryFilter();
+    }
+    if (this.tagFilter() !== null) {
+      queryObject.tagId = this.tagFilter();
+    }
     for (const filterOption of this.filters.filterOptions) {
       queryObject[filterOption.name] = filterOption.values;
     }
@@ -191,6 +264,9 @@ export class BlogPost {
       page,
       size: this.itemsPerPage(),
       sort: this.sortService.buildSortParam(sortState),
+      status: this.statusFilter() ?? undefined,
+      categoryId: this.categoryFilter() ?? undefined,
+      tagId: this.tagFilter() ?? undefined,
     };
 
     if (filterOptions) {
@@ -203,5 +279,32 @@ export class BlogPost {
       relativeTo: this.activatedRoute,
       queryParams: queryParamsObj,
     });
+  }
+
+  /** Đổi bộ lọc: về trang 1; sắp xếp theo cột không dùng được trên Elasticsearch thì bỏ. */
+  protected applyFilters(): void {
+    this.page.set(1);
+    const { predicate } = this.sortState();
+    const sort = this.searching() && predicate && BlogPost.NOT_SORTABLE_FIELDS_AFTER_SEARCH.includes(predicate) ? {} : this.sortState();
+    this.handleNavigation(1, sort, this.filters.filterOptions, this.currentSearch());
+  }
+
+  /** Danh mục (theo cây), thẻ, số bài theo trạng thái: đọc một lần khi mở trang. */
+  protected loadFilterOptions(): void {
+    this.blogCategoryService.query({ size: 500 }).subscribe({
+      next: response => this.categoryOptions.set(categoryTreeOptions(response.body ?? [])),
+      error: () => this.categoryOptions.set([]),
+    });
+    this.tagService.query({ size: 500, sort: ['name,asc'] }).subscribe({
+      next: response => this.tagOptions.set((response.body ?? []).map(tag => ({ id: tag.id, name: decodeEntities(tag.name) }))),
+      error: () => this.tagOptions.set([]),
+    });
+    for (const status of [null, ...BLOG_POST_STATUSES]) {
+      const key = status ?? 'all';
+      this.blogPostService.count(status ? { 'status.equals': status } : {}).subscribe({
+        next: count => this.statusCounts.update(counts => ({ ...counts, [key]: count })),
+        error: () => this.statusCounts.update(counts => ({ ...counts, [key]: null })),
+      });
+    }
   }
 }

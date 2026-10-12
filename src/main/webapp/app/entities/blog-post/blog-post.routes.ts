@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { ASC } from 'app/config';
+import { DESC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
 
 import BlogPostResolve from './route/blog-post-routing-resolve.service';
@@ -10,7 +10,8 @@ const blogPostRoute: Routes = [
     path: '',
     loadComponent: () => import('./list/blog-post').then(m => m.BlogPost),
     data: {
-      defaultSort: `id,${ASC}`,
+      // Sửa tay: bài mới đăng lên đầu
+      defaultSort: `publishedAt,${DESC}`,
     },
     canActivate: [userRouteAccessService],
   },

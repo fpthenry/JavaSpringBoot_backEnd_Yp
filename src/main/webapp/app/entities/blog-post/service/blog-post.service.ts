@@ -32,7 +32,9 @@ export class BlogPostsService {
     if (!params) {
       return undefined;
     }
-    return { url: params.query ? this.resourceSearchUrl : this.resourceUrl, params };
+    // Sửa tay: có từ khóa hoặc lọc danh mục/thẻ/trạng thái thì tìm trên Elasticsearch (/_search nhận categoryId, tagId, status)
+    const searching = [params.query, params.categoryId, params.tagId, params.status].some(Boolean);
+    return { url: searching ? this.resourceSearchUrl : this.resourceUrl, params };
   });
   /**
    * This signal holds the list of blogPost that have been fetched. It is updated when the blogPostsResource emits a new value.
@@ -88,6 +90,11 @@ export class BlogPostService extends BlogPostsService {
     return this.http
       .get<RestBlogPost[]>(this.resourceUrl, { params: options, observe: 'response' })
       .pipe(map(res => res.clone({ body: this.convertResponseArrayFromServer(res.body!) })));
+  }
+
+  /** Sửa tay: đếm bài theo cùng bộ lọc với danh sách (/api/blog-posts/count), dùng cho số trên tab trạng thái. */
+  count(req?: any): Observable<number> {
+    return this.http.get<number>(`${this.resourceUrl}/count`, { params: createRequestOption(req) });
   }
 
   delete(id: number): Observable<undefined> {

@@ -73,6 +73,8 @@ import {
   faColumns,
   faFilter,
   faCopy,
+  faFileLines,
+  faEllipsis,
   // jhipster-needle-add-icon-import
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -151,5 +153,7 @@ export const fontAwesomeIcons = [
   faColumns,
   faFilter,
   faCopy,
+  faFileLines,
+  faEllipsis,
   // jhipster-needle-add-icon-import
 ];

@@ -1,85 +1,274 @@
-<div class="d-flex justify-content-center">
-  <div class="col-8">
-    @if (category(); as categoryRef) {
-      <div>
-        <h2 data-cy="categoryDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.category.detail.title">Category</span></h2>
+<!-- Sửa tay: trang xem ngành nghề, bố cục gọn (đầu trang ngắn, ngành con dạng danh sách, thông tin gom một khối). Sinh lại Category sẽ mất. -->
+@if (category(); as categoryRef) {
+  <div class="category-detail">
+    <jhi-alert-error />
 
-        <hr />
+    <jhi-alert />
 
-        <jhi-alert-error />
-
-        <jhi-alert />
-
-        <dl class="row-md jh-entity-details">
-          <dt><span jhiTranslate="global.field.id">ID</span></dt>
-          <dd>
-            <span>{{ categoryRef.id }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.category.help.wpTermId' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.category.wpTermId"
-              >Wp Term Id</span
+    <!-- Đầu trang -->
+    <div class="page-header align-items-start">
+      <div class="min-w-0">
+        <nav aria-label="breadcrumb" data-cy="treePath">
+          <ol class="breadcrumb mb-1 small">
+            <li class="breadcrumb-item">
+              <a routerLink="/category" jhiTranslate="javaSpringBootBackEndApp.category.home.title">Ngành nghề</a>
+            </li>
+            @for (node of ancestors(); track node.id) {
+              <li class="breadcrumb-item">
+                <a class="crumb-truncate" [routerLink]="['/category', node.id, 'view']" [title]="decode(node.name)">{{
+                  decode(node.name)
+                }}</a>
+              </li>
+            }
+          </ol>
+        </nav>
+        <h2 class="page-title" data-cy="categoryDetailsHeading">{{ name() }}</h2>
+        <div class="page-meta">
+          <span>{{ 'javaSpringBootBackEndApp.category.help.level' | translate: { level: level() } }}</span>
+          <span>{{
+            'javaSpringBootBackEndApp.category.index.listings'
+              | translate: { count: (categoryRef.listingCount ?? 0).toLocaleString('vi-VN') }
+          }}</span>
+          @if (childCount() !== null) {
+            <span>
+              @if (childCount() === 0) {
+                <span jhiTranslate="javaSpringBootBackEndApp.category.detail.leaf">Ngành cuối</span>
+              } @else {
+                {{ 'javaSpringBootBackEndApp.category.detail.childCount' | translate: { count: childCount() } }}
+              }
+            </span>
+          }
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a
+          class="btn btn-outline-primary"
+          [routerLink]="['/listing']"
+          [queryParams]="listingQueryParams(categoryRef.id)"
+          data-cy="quickListings"
+        >
+          <fa-icon icon="building" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.category.detail.viewListings"
+            >Xem doanh nghiệp</span
+          >
+        </a>
+        <a
+          [routerLink]="['/category', categoryRef.id, 'edit']"
+          class="btn btn-primary px-4"
+          data-cy="entityEditButton"
+          [title]="'javaSpringBootBackEndApp.category.detail.editShortcut' | translate"
+        >
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Sửa</span>
+        </a>
+        <div ngbDropdown placement="bottom-end" class="d-inline-block">
+          <button
+            type="button"
+            class="btn btn-light btn-icon"
+            ngbDropdownToggle
+            data-cy="moreActions"
+            [title]="'entity.action.moreActions' | translate"
+          >
+            <fa-icon icon="ellipsis" />
+          </button>
+          <div ngbDropdownMenu class="shadow-sm">
+            <a ngbDropdownItem [routerLink]="['/category/new']" [queryParams]="newChildQueryParams(categoryRef.id)" data-cy="quickNewChild">
+              <fa-icon icon="plus" [fixedWidth]="true" class="me-2" /><span jhiTranslate="javaSpringBootBackEndApp.category.detail.addChild"
+                >Thêm ngành con</span
+              >
+            </a>
+            <a ngbDropdownItem routerLink="/category/index" [queryParams]="indexQueryParams()" data-cy="quickIndex">
+              <fa-icon icon="arrow-down-a-z" [fixedWidth]="true" class="me-2" /><span jhiTranslate="global.menu.entities.categoryIndex"
+                >Mục lục A–Z</span
+              >
+            </a>
+            <a ngbDropdownItem routerLink="/category/tree" data-cy="quickTree">
+              <fa-icon icon="sitemap" [fixedWidth]="true" class="me-2" /><span
+                jhiTranslate="javaSpringBootBackEndApp.category.index.treeView"
+                >Dạng cây</span
+              >
+            </a>
+            <button ngbDropdownItem type="button" (click)="previousState()" data-cy="entityDetailsBackButton">
+              <fa-icon icon="arrow-left" [fixedWidth]="true" class="me-2" /><span jhiTranslate="entity.action.back">Quay lại</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button
+              ngbDropdownItem
+              type="button"
+              class="text-danger"
+              data-cy="entityDeleteButton"
+              [disabled]="childCount() === null || (childCount() ?? 0) > 0"
+              (click)="delete(categoryRef)"
             >
-          </dt>
-          <dd>
-            <span>{{ categoryRef.wpTermId }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.name">Name</span></dt>
-          <dd>
-            <span>{{ categoryRef.name }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.slug">Slug</span></dt>
-          <dd>
-            <span>{{ categoryRef.slug }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.description">Description</span></dt>
-          <dd>
-            <span>{{ categoryRef.description }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.icon">Icon</span></dt>
-          <dd>
-            <span>{{ categoryRef.icon }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.listingCount">Listing Count</span></dt>
-          <dd>
-            <span>{{ categoryRef.listingCount }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.createdAt">Created At</span></dt>
-          <dd>
-            <span>{{ categoryRef.createdAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.updatedAt">Updated At</span></dt>
-          <dd>
-            <span>{{ categoryRef.updatedAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.parent">Parent</span></dt>
-          <dd>
-            @if (category()!.parent) {
-              <div>
-                <a [routerLink]="['/category', category()!.parent?.id, 'view']">{{ categoryRef.parent?.name }}</a>
+              <fa-icon icon="trash-alt" [fixedWidth]="true" class="me-2" /><span jhiTranslate="entity.action.delete">Xóa</span>
+            </button>
+            @if ((childCount() ?? 0) > 0) {
+              <div class="px-3 pb-2 small text-muted dropdown-hint">
+                {{ 'javaSpringBootBackEndApp.category.detail.cannotDelete' | translate: { count: childCount() } }}
               </div>
             }
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.category.listing">Listing</span></dt>
-          <dd>
-            @for (listing of categoryRef.listings; track $index; let last = $last) {
-              <span>
-                <a [routerLink]="['/listing', listing.id, 'view']">{{ listing?.id }}</a
-                >{{ last ? '' : ', ' }}
-              </span>
-            }
-          </dd>
-        </dl>
-
-        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
-          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
-        </button>
-
-        <button type="button" [routerLink]="['/category', categoryRef.id, 'edit']" class="btn btn-primary">
-          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
-        </button>
+          </div>
+        </div>
       </div>
-    }
+    </div>
+
+    <div class="row g-4">
+      <!-- Cột chính -->
+      <div class="col-lg-8">
+        <section class="form-card">
+          <h3 class="form-card-title" jhiTranslate="javaSpringBootBackEndApp.category.description">Mô tả</h3>
+          @if (description()) {
+            <div class="detail-text">{{ description() }}</div>
+          } @else {
+            <div class="empty-hint">
+              <span jhiTranslate="javaSpringBootBackEndApp.category.detail.noDescriptionHint"
+                >Chưa có mô tả. Thêm mô tả giúp trang ngành dễ tìm qua Google.</span
+              >
+              <a
+                [routerLink]="['/category', categoryRef.id, 'edit']"
+                [queryParams]="editQueryParams('description')"
+                jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                >Bổ sung</a
+              >
+            </div>
+          }
+        </section>
+
+        <section class="form-card" data-cy="children">
+          <h3 class="form-card-title">
+            <span jhiTranslate="javaSpringBootBackEndApp.category.detail.children">Ngành con</span>
+            @if ((childCount() ?? 0) > 0) {
+              <span class="text-muted fw-normal">({{ childCount() }})</span>
+            }
+            <a class="ms-auto small fw-normal" [routerLink]="['/category/new']" [queryParams]="newChildQueryParams(categoryRef.id)">
+              <fa-icon icon="plus" /> <span jhiTranslate="javaSpringBootBackEndApp.category.detail.addChild">Thêm ngành con</span>
+            </a>
+          </h3>
+          @if (children(); as list) {
+            @if (list.length > 0) {
+              <ul class="simple-list two-columns">
+                @for (child of visibleChildren(); track child.id) {
+                  <li>
+                    <a [routerLink]="['/category', child.id, 'view']">{{ decode(child.name) }}</a>
+                    <span class="simple-list-count">{{ (child.listingCount ?? 0).toLocaleString('vi-VN') }}</span>
+                  </li>
+                }
+              </ul>
+              @if (list.length > childLimit) {
+                <button
+                  type="button"
+                  class="btn btn-link btn-sm px-0 mt-2"
+                  (click)="showAllChildren.set(!showAllChildren())"
+                  data-cy="toggleChildren"
+                >
+                  @if (showAllChildren()) {
+                    <span jhiTranslate="javaSpringBootBackEndApp.category.detail.showLess">Thu gọn</span>
+                  } @else {
+                    {{ 'javaSpringBootBackEndApp.category.detail.showMore' | translate: { count: list.length - childLimit } }}
+                  }
+                </button>
+              }
+            } @else {
+              <p class="text-muted mb-0" jhiTranslate="javaSpringBootBackEndApp.category.detail.noChildren">
+                Đây là ngành cuối, chưa có ngành con.
+              </p>
+            }
+          } @else {
+            <fa-icon icon="spinner" animation="spin" class="text-muted" />
+          }
+        </section>
+
+        <section class="form-card" data-cy="recentListings">
+          <h3 class="form-card-title">
+            <span jhiTranslate="javaSpringBootBackEndApp.category.detail.recentListings">Doanh nghiệp mới cập nhật</span>
+            @if ((recentTotal() ?? 0) > 0) {
+              <a class="ms-auto small fw-normal" [routerLink]="['/listing']" [queryParams]="listingQueryParams(categoryRef.id)">{{
+                'javaSpringBootBackEndApp.category.detail.viewAllListings'
+                  | translate: { count: (recentTotal() ?? 0).toLocaleString('vi-VN') }
+              }}</a>
+            }
+          </h3>
+          @if (recentListings(); as list) {
+            @if (list.length > 0) {
+              <ul class="simple-list">
+                @for (listing of list; track listing.id) {
+                  <li class="d-block">
+                    <a [routerLink]="['/listing', listing.id, 'view']">{{ listing.name }}</a>
+                    <div class="small text-muted">{{ listing.addressNew || listing.address }}</div>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="text-muted mb-0" jhiTranslate="javaSpringBootBackEndApp.category.detail.noListings">
+                Chưa có doanh nghiệp nào trong ngành này.
+              </p>
+            }
+          } @else {
+            <fa-icon icon="spinner" animation="spin" class="text-muted" />
+          }
+        </section>
+      </div>
+
+      <!-- Cột phải -->
+      <div class="col-lg-4">
+        <section class="form-card">
+          <h3 class="form-card-title" jhiTranslate="javaSpringBootBackEndApp.category.detail.info">Thông tin</h3>
+          <dl class="meta-list">
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.category.parent">Ngành cha</dt>
+              <dd>
+                @if (categoryRef.parent; as parent) {
+                  <a [routerLink]="['/category', parent.id, 'view']">{{ decode(parent.name) }}</a>
+                } @else {
+                  <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.category.detail.root">Ngành gốc</span>
+                }
+              </dd>
+            </div>
+            <div class="meta-block">
+              <dt jhiTranslate="javaSpringBootBackEndApp.category.slug">Đường dẫn (slug)</dt>
+              <dd>
+                @if (categoryRef.slug) {
+                  <span class="font-monospace small">{{ categoryRef.slug }}</span>
+                  <jhi-copy-button [text]="categoryRef.slug" />
+                } @else {
+                  <a
+                    [routerLink]="['/category', categoryRef.id, 'edit']"
+                    [queryParams]="editQueryParams('slug')"
+                    jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                    >Bổ sung</a
+                  >
+                }
+              </dd>
+            </div>
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.category.updatedAt">Ngày cập nhật</dt>
+              <dd>{{ (categoryRef.updatedAt | formatMediumDate) || '—' }}</dd>
+            </div>
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.category.createdAt">Ngày tạo</dt>
+              <dd>{{ (categoryRef.createdAt | formatMediumDate) || '—' }}</dd>
+            </div>
+            <div>
+              <dt jhiTranslate="global.field.id">ID</dt>
+              <dd class="font-monospace">{{ categoryRef.id }}</dd>
+            </div>
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.category.wpTermId">Mã WordPress</dt>
+              <dd class="font-monospace">{{ categoryRef.wpTermId ?? '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    </div>
+
+    <!-- Điện thoại: thanh thao tác dính đáy -->
+    <div class="detail-mobile-bar d-md-none">
+      <a class="btn btn-outline-primary" [routerLink]="['/listing']" [queryParams]="listingQueryParams(categoryRef.id)"
+        ><fa-icon icon="building" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.category.detail.viewListingsShort"
+          >Doanh nghiệp</span
+        ></a
+      >
+      <a class="btn btn-primary flex-grow-1" [routerLink]="['/category', categoryRef.id, 'edit']"
+        ><fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Sửa</span></a
+      >
+    </div>
   </div>
-</div>
+}

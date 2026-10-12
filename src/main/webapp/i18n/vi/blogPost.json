@@ -2,16 +2,17 @@
   "javaSpringBootBackEndApp": {
     "blogPost": {
       "home": {
-        "title": "Blog Posts",
-        "refreshListLabel": "Refresh list",
-        "createLabel": "Thêm mới một Blog Post",
-        "createOrEditLabel": "Thêm mới hoặc cập nhật Blog Post",
-        "search": "Tìm Blog Post",
-        "notFound": "No Blog Posts found"
+        "title": "Bài viết",
+        "refreshListLabel": "Tải lại",
+        "createLabel": "Viết bài mới",
+        "createOrEditLabel": "Viết hoặc sửa bài viết",
+        "search": "Tìm theo tiêu đề, nội dung, danh mục, thẻ (không dấu được)…",
+        "notFound": "Không có bài viết nào",
+        "postColumn": "Bài viết"
       },
-      "created": "Một Blog Post mới được tạo với định danh {{ param }}",
-      "updated": "Một Blog Post cập nhật với định danh {{ param }}",
-      "deleted": "Một Blog Post đã xóa với định danh {{ param }}",
+      "created": "Đã thêm bài viết (ID {{ param }})",
+      "updated": "Đã lưu bài viết (ID {{ param }})",
+      "deleted": "Đã xóa bài viết (ID {{ param }})",
       "delete": {
         "question": "Bạn có chắc là muốn xóa Blog Post {{ id }}?"
       },
@@ -19,20 +20,20 @@
         "title": "Blog Post"
       },
       "id": "ID",
-      "wpId": "Wp Id",
-      "title": "Title",
-      "slug": "Slug",
-      "content": "Content",
-      "excerpt": "Excerpt",
-      "thumbnail": "Thumbnail",
-      "status": "Status",
-      "viewCount": "View Count",
-      "publishedAt": "Published At",
-      "createdAt": "Created At",
-      "updatedAt": "Updated At",
-      "authorName": "Author Name",
-      "category": "Category",
-      "tag": "Tag",
+      "wpId": "Mã WordPress",
+      "title": "Tiêu đề",
+      "slug": "Đường dẫn (slug)",
+      "content": "Nội dung",
+      "excerpt": "Tóm tắt",
+      "thumbnail": "Ảnh đại diện",
+      "status": "Trạng thái",
+      "viewCount": "Lượt xem",
+      "publishedAt": "Ngày đăng",
+      "createdAt": "Ngày tạo",
+      "updatedAt": "Ngày cập nhật",
+      "authorName": "Tác giả",
+      "category": "Danh mục",
+      "tag": "Thẻ",
       "help": {
         "wpId": "wp_posts.ID",
         "thumbnail": "URL ảnh đại diện (featured image)",
@@ -61,6 +62,18 @@
         "thumbnail": "Ảnh đại diện",
         "thumbnailUrl": "Dán link ảnh (https://...)",
         "pickFromContent": "Chọn ảnh trong bài"
+      },
+      "statusValue": {
+        "publish": "Đã xuất bản",
+        "draft": "Bản nháp"
+      },
+      "filter": {
+        "all": "Tất cả",
+        "allCategories": "Mọi danh mục",
+        "allTags": "Mọi thẻ",
+        "found": "Tìm thấy {{ count }} bài",
+        "clear": "Bỏ lọc",
+        "byCategory": "Lọc theo danh mục này"
       }
     }
   }
