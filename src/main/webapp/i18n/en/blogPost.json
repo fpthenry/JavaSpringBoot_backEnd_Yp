@@ -17,7 +17,29 @@
         "question": "Are you sure you want to delete Blog Post {{ id }}?"
       },
       "detail": {
-        "title": "Blog Post"
+        "title": "Post",
+        "breadcrumb": "Details",
+        "views": "{{ count }} views",
+        "readingTime": "{{ minutes }} min read",
+        "wordCount": "{{ count }} words",
+        "viewOnSite": "View on website",
+        "website": "Website",
+        "editShortcut": "Edit (E key)",
+        "noContent": "This post has no content yet.",
+        "imageBlocked": "Image (from the old website, not shown in admin yet)",
+        "sameCategory": "Posts in this category",
+        "sameTag": "Posts with this tag",
+        "noCategory": "No category",
+        "noTag": "No tags",
+        "suggestions": "Suggestions",
+        "suggest": {
+          "excerpt": "Add an excerpt (shown in lists and when shared)",
+          "thumbnail": "Add a featured image",
+          "category": "Pick a category",
+          "tag": "Add tags so the post is easier to find",
+          "titleLength": "Title is {{ length }} characters; keep it under {{ max }} so Google does not cut it"
+        },
+        "info": "Information"
       },
       "id": "ID",
       "wpId": "WordPress ID",

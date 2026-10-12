@@ -44,7 +44,9 @@ public class SecurityConfiguration {
                 headers
                     .contentSecurityPolicy(csp -> csp.policyDirectives(jHipsterProperties.getSecurity().getContentSecurityPolicy()))
                     .frameOptions(FrameOptionsConfig::sameOrigin)
-                    .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                    // Sửa tay: không gửi Referer — nhiều website chặn ảnh bị nhúng từ trang khác khi có Referer (dantri trả 403),
+                    // ảnh trong bài viết copy từ các trang đó mới hiện được; đồng thời không lộ địa chỉ trang quản trị ra ngoài.
+                    .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                     .permissionsPolicyHeader(permissions ->
                         permissions.policy(
                             "camera=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), sync-xhr=()"

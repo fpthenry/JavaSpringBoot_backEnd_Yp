@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { blogStatusLabelKey, categoryTreeOptions, plainExcerpt } from './blog-post-display';
+import {
+  blogStatusLabelKey,
+  categoryTreeOptions,
+  cleanArticleHtml,
+  excerptWithoutLink,
+  httpsUrl,
+  plainExcerpt,
+  publicUrlFromExcerpt,
+  readingStats,
+} from './blog-post-display';
 
 describe('blog-post-display', () => {
   it('plainExcerpt strips HTML, WordPress shortcodes and entities, cuts at a word', () => {
@@ -30,5 +39,30 @@ describe('blog-post-display', () => {
   it('status labels', () => {
     expect(blogStatusLabelKey('draft')).toBe('javaSpringBootBackEndApp.blogPost.statusValue.draft');
     expect(blogStatusLabelKey('pending')).toBe('pending');
+  });
+  it('reads the public link from the WordPress excerpt and removes it from the text', () => {
+    const excerpt = '<p>Tóm tắt&#8230; <a class="view-article" href="https://yp.com.vn/bai-a/">Xem bài viết</a></p>';
+    expect(publicUrlFromExcerpt(excerpt)).toBe('https://yp.com.vn/bai-a/');
+    expect(publicUrlFromExcerpt('<p>không có link</p>')).toBeNull();
+    expect(excerptWithoutLink(excerpt)).toBe('<p>Tóm tắt&#8230; </p>');
+    expect(plainExcerpt(excerpt)).toBe('Tóm tắt…');
+  });
+
+  it('cleanArticleHtml drops shortcodes and data-* attributes; readingStats counts words', () => {
+    expect(cleanArticleHtml('[vc_row][vc_column_text]<p data-index-in-node="3">A <b>B</b></p>[/vc_column_text][/vc_row]')).toBe(
+      '<p>A <b>B</b></p>',
+    );
+    expect(readingStats('<p>' + 'từ '.repeat(450) + '</p>')).toEqual({ words: 450, minutes: 2 });
+    expect(readingStats(null)).toEqual({ words: 0, minutes: 1 });
+  });
+
+  it('upgrades http:// and //host images to https:// (CSP allows https images only); https stays', () => {
+    expect(cleanArticleHtml(`<img src="http://a.vn/x.jpg"><img src='//b.vn/y.png'><img src="https://c.vn/z.jpg">`)).toBe(
+      `<img src="https://a.vn/x.jpg"><img src='https://b.vn/y.png'><img src="https://c.vn/z.jpg">`,
+    );
+    expect(cleanArticleHtml('<a href="http://a.vn">link</a>')).toBe('<a href="http://a.vn">link</a>');
+    expect(httpsUrl('http://yp.vn/a.jpg')).toBe('https://yp.vn/a.jpg');
+    expect(httpsUrl('//yp.vn/a.jpg')).toBe('https://yp.vn/a.jpg');
+    expect(httpsUrl(' ')).toBeNull();
   });
 });

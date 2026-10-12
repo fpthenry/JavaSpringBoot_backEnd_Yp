@@ -21,7 +21,7 @@ import { SortByDirective, SortDirective, SortService, type SortState, sortStateS
 import { BlogCategoryService } from 'app/entities/blog-category/service/blog-category.service';
 import { TagService } from 'app/entities/tag/service/tag.service';
 import { decodeEntities } from 'app/shared/form';
-import { BLOG_POST_STATUSES, CategoryOption, blogStatusLabelKey, categoryTreeOptions, plainExcerpt } from '../blog-post-display';
+import { BLOG_POST_STATUSES, CategoryOption, blogStatusLabelKey, categoryTreeOptions, httpsUrl, plainExcerpt } from '../blog-post-display';
 import { IBlogPost } from '../blog-post.model';
 import { BlogPostDeleteDialog } from '../delete/blog-post-delete-dialog';
 import { BlogPostService } from '../service/blog-post.service';
@@ -101,6 +101,7 @@ export class BlogPost {
   protected readonly plainExcerpt = plainExcerpt;
   protected readonly decode = decodeEntities;
   protected readonly blogStatusLabelKey = blogStatusLabelKey;
+  protected readonly httpsUrl = httpsUrl;
 
   constructor() {
     this.loadFilterOptions();

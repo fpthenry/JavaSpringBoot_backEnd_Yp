@@ -17,7 +17,29 @@
         "question": "Bạn có chắc là muốn xóa Blog Post {{ id }}?"
       },
       "detail": {
-        "title": "Blog Post"
+        "title": "Bài viết",
+        "breadcrumb": "Chi tiết",
+        "views": "{{ count }} lượt xem",
+        "readingTime": "{{ minutes }} phút đọc",
+        "wordCount": "{{ count }} từ",
+        "viewOnSite": "Xem trên website",
+        "website": "Website",
+        "editShortcut": "Sửa (phím E)",
+        "noContent": "Bài chưa có nội dung.",
+        "imageBlocked": "Ảnh (từ website cũ, chưa hiện được trong trang quản trị)",
+        "sameCategory": "Xem các bài cùng danh mục",
+        "sameTag": "Xem các bài cùng thẻ",
+        "noCategory": "Chưa có danh mục",
+        "noTag": "Chưa có thẻ",
+        "suggestions": "Gợi ý hoàn thiện",
+        "suggest": {
+          "excerpt": "Thêm tóm tắt (hiện ở danh sách bài và khi chia sẻ)",
+          "thumbnail": "Thêm ảnh đại diện",
+          "category": "Chọn danh mục",
+          "tag": "Gắn thẻ để bài dễ tìm",
+          "titleLength": "Tiêu đề {{ length }} ký tự, nên dưới {{ max }} để Google không cắt"
+        },
+        "info": "Thông tin"
       },
       "id": "ID",
       "wpId": "Mã WordPress",

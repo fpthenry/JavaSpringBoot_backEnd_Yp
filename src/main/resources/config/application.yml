@@ -216,7 +216,9 @@ jhipster:
     license: unlicensed
     license-url:
   security:
-    content-security-policy: "default-src 'self'; frame-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:"
+    # Sửa tay: img-src thêm https: — ảnh trong bài viết WordPress nằm trên ~600 website khác (bài copy từ trang khác rồi dán vào),
+    # không liệt kê tên miền được. Chỉ nới cho ảnh; script, frame, style vẫn chỉ 'self'.
+    content-security-policy: "default-src 'self'; frame-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:"
 
 
 # jhipster-needle-add-application-yaml-document

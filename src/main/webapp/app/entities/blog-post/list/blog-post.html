@@ -168,7 +168,7 @@
                 <a class="post-thumb" [routerLink]="['/blog-post', blogPost.id, 'view']" tabindex="-1" aria-hidden="true">
                   <fa-icon icon="newspaper" />
                   @if (blogPost.thumbnail) {
-                    <img [src]="blogPost.thumbnail" alt="" loading="lazy" (error)="$any($event.target).remove()" />
+                    <img [src]="httpsUrl(blogPost.thumbnail)" alt="" loading="lazy" (error)="$any($event.target).remove()" />
                   }
                 </a>
               </td>

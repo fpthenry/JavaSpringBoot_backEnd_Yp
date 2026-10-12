@@ -1,114 +1,217 @@
-<div class="d-flex justify-content-center">
-  <div class="col-8">
-    @if (blogPost(); as blogPostRef) {
-      <div>
-        <h2 data-cy="blogPostDetailsHeading"><span jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.title">Blog Post</span></h2>
+<!-- Sửa tay: trang xem bài viết gọn (đầu trang một dòng thông tin, bài đọc như trên web, cột phải danh mục/thẻ/xuất bản). Sinh lại BlogPost sẽ mất. -->
+@if (blogPost(); as post) {
+  <div class="blog-post-detail">
+    <jhi-alert-error />
 
-        <hr />
+    <jhi-alert />
 
-        <jhi-alert-error />
-
-        <jhi-alert />
-
-        <dl class="row-md jh-entity-details">
-          <dt><span jhiTranslate="global.field.id">ID</span></dt>
-          <dd>
-            <span>{{ blogPostRef.id }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.wpId' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.blogPost.wpId"
-              >Wp Id</span
-            >
-          </dt>
-          <dd>
-            <span>{{ blogPostRef.wpId }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.title">Title</span></dt>
-          <dd>
-            <span>{{ blogPostRef.title }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.slug">Slug</span></dt>
-          <dd>
-            <span>{{ blogPostRef.slug }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.content">Content</span></dt>
-          <dd>
-            <span>{{ blogPostRef.content }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.excerpt">Excerpt</span></dt>
-          <dd>
-            <span>{{ blogPostRef.excerpt }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.thumbnail' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.blogPost.thumbnail"
-              >Thumbnail</span
-            >
-          </dt>
-          <dd>
-            <span>{{ blogPostRef.thumbnail }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.status">Status</span></dt>
-          <dd>
-            <span>{{ blogPostRef.status }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.viewCount">View Count</span></dt>
-          <dd>
-            <span>{{ blogPostRef.viewCount }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.publishedAt">Published At</span></dt>
-          <dd>
-            <span>{{ blogPostRef.publishedAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.createdAt">Created At</span></dt>
-          <dd>
-            <span>{{ blogPostRef.createdAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.updatedAt">Updated At</span></dt>
-          <dd>
-            <span>{{ blogPostRef.updatedAt | formatMediumDatetime }}</span>
-          </dd>
-          <dt>
-            <span
-              [ngbTooltip]="'javaSpringBootBackEndApp.blogPost.help.authorName' | translate"
-              jhiTranslate="javaSpringBootBackEndApp.blogPost.authorName"
-              >Author Name</span
-            >
-          </dt>
-          <dd>
-            <span>{{ blogPostRef.authorName }}</span>
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.category">Category</span></dt>
-          <dd>
-            @for (category of blogPostRef.categories; track $index; let last = $last) {
-              <span>
-                <a [routerLink]="['/blog-category', category.id, 'view']">{{ category?.name }}</a
-                >{{ last ? '' : ', ' }}
-              </span>
-            }
-          </dd>
-          <dt><span jhiTranslate="javaSpringBootBackEndApp.blogPost.tag">Tag</span></dt>
-          <dd>
-            @for (tag of blogPostRef.tags; track $index; let last = $last) {
-              <span>
-                <a [routerLink]="['/tag', tag.id, 'view']">{{ tag?.name }}</a
-                >{{ last ? '' : ', ' }}
-              </span>
-            }
-          </dd>
-        </dl>
-
-        <button type="submit" (click)="previousState()" class="btn btn-info" data-cy="entityDetailsBackButton">
-          <fa-icon icon="arrow-left" />&nbsp;<span jhiTranslate="entity.action.back">Back</span>
-        </button>
-
-        <button type="button" [routerLink]="['/blog-post', blogPostRef.id, 'edit']" class="btn btn-primary">
-          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Edit</span>
-        </button>
+    <!-- Đầu trang -->
+    <div class="page-header align-items-start">
+      <div class="min-w-0">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-1 small">
+            <li class="breadcrumb-item">
+              <a routerLink="/blog-post" jhiTranslate="javaSpringBootBackEndApp.blogPost.home.title">Bài viết</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page" jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.breadcrumb">
+              Chi tiết
+            </li>
+          </ol>
+        </nav>
+        <h2 class="page-title" data-cy="blogPostDetailsHeading">{{ title() }}</h2>
+        <div class="page-meta" data-cy="postMeta">
+          @if (post.status) {
+            <span>
+              <span
+                class="badge rounded-pill fw-medium"
+                [class.bg-success-subtle]="post.status === 'publish'"
+                [class.text-success-emphasis]="post.status === 'publish'"
+                [class.bg-secondary-subtle]="post.status !== 'publish'"
+                [class.text-secondary-emphasis]="post.status !== 'publish'"
+                >{{ blogStatusLabelKey(post.status) | translate }}</span
+              >
+            </span>
+          }
+          @if (post.publishedAt) {
+            <span>{{ post.publishedAt | formatMediumDate }}</span>
+          }
+          @if (post.authorName) {
+            <span>{{ post.authorName }}</span>
+          }
+          <span>{{
+            'javaSpringBootBackEndApp.blogPost.detail.views' | translate: { count: (post.viewCount ?? 0).toLocaleString('vi-VN') }
+          }}</span>
+          <span>{{ 'javaSpringBootBackEndApp.blogPost.detail.readingTime' | translate: { minutes: stats().minutes } }}</span>
+        </div>
       </div>
-    }
+      <div class="d-flex flex-wrap gap-2">
+        @if (publicUrl(); as url) {
+          <a class="btn btn-outline-primary" [href]="url" target="_blank" rel="noopener noreferrer" data-cy="viewOnSite">
+            <fa-icon icon="arrow-up-right-from-square" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.viewOnSite"
+              >Xem trên website</span
+            >
+          </a>
+        }
+        <a
+          [routerLink]="['/blog-post', post.id, 'edit']"
+          class="btn btn-primary px-4"
+          data-cy="entityEditButton"
+          [title]="'javaSpringBootBackEndApp.blogPost.detail.editShortcut' | translate"
+        >
+          <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Sửa</span>
+        </a>
+        <div ngbDropdown placement="bottom-end" class="d-inline-block">
+          <button
+            type="button"
+            class="btn btn-light btn-icon"
+            ngbDropdownToggle
+            data-cy="moreActions"
+            [title]="'entity.action.moreActions' | translate"
+          >
+            <fa-icon icon="ellipsis" />
+          </button>
+          <div ngbDropdownMenu class="shadow-sm">
+            <a ngbDropdownItem routerLink="/blog-post/new" data-cy="newPost">
+              <fa-icon icon="plus" [fixedWidth]="true" class="me-2" /><span
+                jhiTranslate="javaSpringBootBackEndApp.blogPost.home.createLabel"
+                >Viết bài mới</span
+              >
+            </a>
+            <button ngbDropdownItem type="button" (click)="previousState()" data-cy="entityDetailsBackButton">
+              <fa-icon icon="arrow-left" [fixedWidth]="true" class="me-2" /><span jhiTranslate="entity.action.back">Quay lại</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button ngbDropdownItem type="button" class="text-danger" data-cy="entityDeleteButton" (click)="delete(post)">
+              <fa-icon icon="trash-alt" [fixedWidth]="true" class="me-2" /><span jhiTranslate="entity.action.delete">Xóa</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Bài viết -->
+      <div class="col-lg-8">
+        <article class="form-card article-card">
+          @if (post.thumbnail && !coverFailed()) {
+            <div class="article-cover" data-cy="cover">
+              <fa-icon icon="image" />
+              <img [src]="httpsUrl(post.thumbnail)" alt="" (error)="coverFailed.set(true)" />
+            </div>
+          }
+          @if (showLead()) {
+            <p class="article-lead" data-cy="lead">{{ lead() }}</p>
+          }
+          @if (articleHtml()) {
+            <div #article class="detail-html article-body" data-cy="articleBody" [innerHTML]="articleHtml()"></div>
+          } @else {
+            <div class="empty-hint">
+              <span jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.noContent">Bài chưa có nội dung.</span>
+              <a [routerLink]="['/blog-post', post.id, 'edit']" jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill">Bổ sung</a>
+            </div>
+          }
+          <div class="article-foot">
+            {{ 'javaSpringBootBackEndApp.blogPost.detail.wordCount' | translate: { count: stats().words.toLocaleString('vi-VN') } }}
+          </div>
+        </article>
+      </div>
+
+      <!-- Cột phải -->
+      <div class="col-lg-4">
+        <section class="form-card">
+          <h3 class="form-card-title" jhiTranslate="javaSpringBootBackEndApp.blogPost.category">Danh mục</h3>
+          <div class="d-flex flex-wrap gap-2" data-cy="categories">
+            @for (category of post.categories ?? []; track category.id) {
+              <a
+                class="detail-chip"
+                [routerLink]="['/blog-post']"
+                [queryParams]="categoryQueryParams(category.id)"
+                [title]="'javaSpringBootBackEndApp.blogPost.detail.sameCategory' | translate"
+                >{{ decode(category.name) }}</a
+              >
+            } @empty {
+              <span class="text-muted small" jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.noCategory">Chưa có danh mục</span>
+            }
+          </div>
+          <h3 class="form-card-title mt-4" jhiTranslate="javaSpringBootBackEndApp.blogPost.tag">Thẻ</h3>
+          <div class="d-flex flex-wrap gap-2" data-cy="tags">
+            @for (tag of post.tags ?? []; track tag.id) {
+              <a
+                class="detail-chip"
+                [routerLink]="['/blog-post']"
+                [queryParams]="tagQueryParams(tag.id)"
+                [title]="'javaSpringBootBackEndApp.blogPost.detail.sameTag' | translate"
+                >#{{ decode(tag.name) }}</a
+              >
+            } @empty {
+              <span class="text-muted small" jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.noTag">Chưa có thẻ</span>
+            }
+          </div>
+        </section>
+
+        @if (suggestions().length > 0) {
+          <section class="form-card" data-cy="suggestions">
+            <h3 class="form-card-title" jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.suggestions">Gợi ý hoàn thiện</h3>
+            <ul class="missing-list mt-0">
+              @for (item of suggestions(); track item.key) {
+                <li>
+                  <span>{{
+                    'javaSpringBootBackEndApp.blogPost.detail.suggest.' + item.key | translate: { max: titleMax, length: title().length }
+                  }}</span>
+                  <a [routerLink]="['/blog-post', post.id, 'edit']" jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill">Bổ sung</a>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <section class="form-card">
+          <h3 class="form-card-title" jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.info">Thông tin</h3>
+          <dl class="meta-list">
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.blogPost.publishedAt">Ngày đăng</dt>
+              <dd>{{ (post.publishedAt | formatMediumDatetime) || '—' }}</dd>
+            </div>
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.blogPost.updatedAt">Ngày cập nhật</dt>
+              <dd>{{ (post.updatedAt | formatMediumDatetime) || '—' }}</dd>
+            </div>
+            <div class="meta-block">
+              <dt jhiTranslate="javaSpringBootBackEndApp.blogPost.slug">Đường dẫn (slug)</dt>
+              <dd>
+                @if (post.slug) {
+                  <span class="font-monospace small">{{ post.slug }}</span>
+                  <jhi-copy-button [text]="post.slug" />
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+            <div>
+              <dt jhiTranslate="global.field.id">ID</dt>
+              <dd class="font-monospace">{{ post.id }}</dd>
+            </div>
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.blogPost.wpId">Mã WordPress</dt>
+              <dd class="font-monospace">{{ post.wpId ?? '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    </div>
+
+    <!-- Điện thoại: thanh thao tác dính đáy -->
+    <div class="detail-mobile-bar d-md-none">
+      @if (publicUrl(); as url) {
+        <a class="btn btn-outline-primary" [href]="url" target="_blank" rel="noopener noreferrer"
+          ><fa-icon icon="arrow-up-right-from-square" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.blogPost.detail.website"
+            >Website</span
+          ></a
+        >
+      }
+      <a class="btn btn-primary flex-grow-1" [routerLink]="['/blog-post', post.id, 'edit']"
+        ><fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Sửa</span></a
+      >
+    </div>
   </div>
-</div>
+}

@@ -4,6 +4,9 @@ import { decodeEntities } from 'app/shared/form';
  * Sửa tay: hàm hiển thị bài viết dùng ở trang danh sách (đoạn trích chữ thường, nhãn trạng thái). Hàm thuần.
  */
 
+/** Liên kết "Xem bài viết" WordPress để sẵn trong đoạn tóm tắt: <a class="view-article" href="https://yp.com.vn/slug/">. */
+const VIEW_ARTICLE_LINK = /<a\b[^>]*class="[^"]*view-article[^"]*"[^>]*>[\s\S]*?<\/a>/gi;
+
 /** Trạng thái hay dùng; giá trị khác hiện nguyên văn. */
 export const BLOG_POST_STATUSES = ['publish', 'draft'];
 
@@ -18,6 +21,7 @@ export function blogStatusLabelKey(status: string): string {
 export function plainExcerpt(html: string | null | undefined, maxLength = 180): string {
   const text = decodeEntities(
     (html ?? '')
+      .replace(VIEW_ARTICLE_LINK, ' ')
       .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
       .replace(/<[^>]*>/g, ' ')
       .replace(/\[\/?[a-z_][\w-]*(?:\s[^\]]*)?\]/gi, ' '),
@@ -62,4 +66,49 @@ export function categoryTreeOptions(categories: { id: number; name?: string | nu
   };
   walk(null, 0);
   return result;
+}
+
+/** Địa chỉ bài trên website, lấy từ liên kết "Xem bài viết" trong tóm tắt (không đoán tên miền). */
+export function publicUrlFromExcerpt(excerpt: string | null | undefined): string | null {
+  const link = (excerpt ?? '').match(VIEW_ARTICLE_LINK)?.[0];
+  const href = link?.match(/href="(https?:\/\/[^"]+)"/i)?.[1];
+  return href ?? null;
+}
+
+/** Tóm tắt bỏ liên kết "Xem bài viết" (đã có nút riêng). */
+export function excerptWithoutLink(excerpt: string | null | undefined): string {
+  return (excerpt ?? '').replace(VIEW_ARTICLE_LINK, '');
+}
+
+/**
+ * Nội dung bài để xem trong trang quản trị: bỏ shortcode WPBakery/WordPress ([vc_row], [/vc_column_text]…) nhưng giữ
+ * phần chữ, ảnh bên trong; bỏ thuộc tính data-* thừa. Angular vẫn lọc mã nguy hiểm khi gán [innerHTML].
+ */
+export function cleanArticleHtml(html: string | null | undefined): string {
+  return (
+    (html ?? '')
+      .replace(/\[\/?[a-z_][\w-]*(?:\s[^\]]*)?\]/gi, '')
+      .replace(/\sdata-[\w-]+="[^"]*"/gi, '')
+      // Ảnh http:// hoặc //host: đổi sang https:// (CSP chỉ cho ảnh https, trang chạy https cũng chặn ảnh http)
+      .replace(/(\s(?:src|srcset)=["'])(?:http:)?\/\//gi, '$1https://')
+      .trim()
+  );
+}
+
+/** Địa chỉ ảnh http:// hoặc //host đổi sang https:// để hiện được (ảnh đại diện bài viết). */
+export function httpsUrl(url: string | null | undefined): string | null {
+  const value = url?.trim();
+  if (!value) {
+    return null;
+  }
+  return value.replace(/^(?:http:)?\/\//i, 'https://');
+}
+
+/** Số từ và phút đọc (200 từ/phút, ít nhất 1 phút) của nội dung HTML. */
+export function readingStats(html: string | null | undefined): { words: number; minutes: number } {
+  const words = plainExcerpt(html, Number.MAX_SAFE_INTEGER)
+    .split(/\s+/)
+    // Chỉ tính chữ, số: dấu câu đứng riêng sau khi bỏ thẻ HTML ("<b>trọng</b>.") không phải là từ
+    .filter(word => /[\p{L}\p{N}]/u.test(word)).length;
+  return { words, minutes: Math.max(1, Math.round(words / 200)) };
 }
