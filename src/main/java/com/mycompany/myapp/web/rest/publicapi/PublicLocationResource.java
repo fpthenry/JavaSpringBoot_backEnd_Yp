@@ -3,6 +3,7 @@ package com.mycompany.myapp.web.rest.publicapi;
 import com.mycompany.myapp.service.PublicLocationService;
 import com.mycompany.myapp.service.dto.publicapi.PublicLocationDTO;
 import com.mycompany.myapp.service.dto.publicapi.PublicPageDTO;
+import com.mycompany.myapp.service.dto.publicapi.PublicTermDetailDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,12 +13,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * API công khai tỉnh thành cho FE (Next.js): mục lục theo chữ cái. Cần header {@code X-API-Key}.
+ * API công khai tỉnh thành cho FE (Next.js): mục lục theo chữ cái, chi tiết một đơn vị. Cần header {@code X-API-Key}.
  */
 @RestController
 @RequestMapping("/api/public/v1/locations")
@@ -80,5 +82,19 @@ public class PublicLocationResource {
         return ResponseEntity.ok()
             .cacheControl(JSON_CACHE)
             .body(locationService.locations(letter, q, generation, level, hideEmpty, pageable));
+    }
+
+    @GetMapping("/{slugOrId}")
+    @Operation(
+        summary = "Một đơn vị hành chính theo slug hoặc id, kèm breadcrumb và đơn vị con",
+        description = "Cho trang /tinh-thanh/{slug}: tên, cấp (type), isNew, số doanh nghiệp (tính cả đơn vị con), ancestors " +
+            "(từ tỉnh xuống cha trực tiếp), children (con trực tiếp, sắp theo tên). Nhận cả slug cũ của website WordPress " +
+            "đã đổi khi chuẩn hóa địa giới 2025: khi đó slug trả về khác slug hỏi, FE chuyển hướng 301. 404 nếu không có."
+    )
+    public ResponseEntity<PublicTermDetailDTO> getLocation(@PathVariable("slugOrId") String slugOrId) {
+        return locationService
+            .location(slugOrId)
+            .map(location -> ResponseEntity.ok().cacheControl(JSON_CACHE).body(location))
+            .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

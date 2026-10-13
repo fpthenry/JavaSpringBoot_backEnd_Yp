@@ -13,6 +13,12 @@
         "tokenizer": "standard",
         "char_filter": ["dot_split"],
         "filter": ["lowercase"]
+      },
+      "vi_folding": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "char_filter": ["dot_split"],
+        "filter": ["lowercase", "asciifolding"]
       }
     }
   }

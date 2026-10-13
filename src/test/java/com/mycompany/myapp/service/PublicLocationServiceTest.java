@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.mycompany.myapp.service.PublicLocationService.Row;
 import com.mycompany.myapp.service.dto.publicapi.PublicLocationDTO;
 import com.mycompany.myapp.service.dto.publicapi.PublicPageDTO;
+import com.mycompany.myapp.service.dto.publicapi.PublicTermDetailDTO;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -173,5 +174,34 @@ class PublicLocationServiceTest {
         assertThatThrownBy(() -> PublicLocationService.filter(moi, null, null, PageRequest.of(0, 20, Sort.by("slug")))).isInstanceOf(
             ResponseStatusException.class
         );
+    }
+
+    @Test
+    void chiTietCoBreadcrumbVaDonViCon() {
+        PublicTermDetailDTO ward = PublicLocationService.detail(ALL, byId(800));
+        assertThat(ward.ancestors()).extracting(PublicTermDetailDTO.Ref::name).containsExactly("Thành phố Hà Nội", "Quận Hai Bà Trưng");
+        assertThat(ward.type()).isEqualTo("ward");
+        assertThat(ward.isNew()).isFalse();
+        PublicTermDetailDTO hanoi = PublicLocationService.detail(ALL, byId(11960));
+        assertThat(hanoi.ancestors()).isEmpty();
+        assertThat(hanoi.listingCount()).isEqualTo(271_041L);
+        // Giữ thứ tự theo tên riêng: Đ đứng sau D, trước V nên Đông Anh trước Vĩnh Tuy
+        assertThat(hanoi.children()).extracting(PublicTermDetailDTO.Ref::id).containsExactly(12001L, 12000L);
+    }
+
+    @Test
+    void timTheoSlugHoacId() {
+        assertThat(PublicLocationService.find(ALL, "xa-chau-thoi-29002-2025")).map(PublicLocationDTO::id).contains(14001L);
+        assertThat(PublicLocationService.find(ALL, "13001")).map(PublicLocationDTO::slug).contains("xa-chau-thoi-29001-2025");
+        assertThat(PublicLocationService.find(ALL, "khong-co")).isEmpty();
+    }
+
+    @Test
+    void docBangSlugCu() {
+        assertThat(
+            PublicLocationService.parseSlugAliases(
+                List.of("# chú thích", "old_slug,wp_term_id", "phuong-cua-nam-00073-2025,80064", "", "hong,abc", " xa-a-1-2025 , 7 ")
+            )
+        ).containsOnly(Map.entry("phuong-cua-nam-00073-2025", 80064L), Map.entry("xa-a-1-2025", 7L));
     }
 }

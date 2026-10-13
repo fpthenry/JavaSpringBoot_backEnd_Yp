@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.mycompany.myapp.service.dto.publicapi.PublicCategoryDTO;
 import com.mycompany.myapp.service.dto.publicapi.PublicPageDTO;
+import com.mycompany.myapp.service.dto.publicapi.PublicTermDetailDTO;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -99,5 +100,50 @@ class PublicCategoryServiceTest {
         assertThatThrownBy(() -> PublicCategoryService.filter(ALL, null, null, false, PageRequest.of(0, 20, Sort.by("slug"))))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("slug");
+    }
+
+    @Test
+    void timTheoSlugHoacId() {
+        assertThat(PublicCategoryService.find(ALL, "slug-3")).map(PublicCategoryDTO::id).contains(3L);
+        assertThat(PublicCategoryService.find(ALL, " 5 ")).map(PublicCategoryDTO::name).contains("Điện tử");
+        assertThat(PublicCategoryService.find(ALL, "khong-co")).isEmpty();
+        assertThat(PublicCategoryService.find(ALL, "99999999999999999999")).isEmpty();
+        assertThat(PublicCategoryService.find(ALL, " ")).isEmpty();
+    }
+
+    @Test
+    void chiTietCoBreadcrumbVaNganhCon() {
+        List<PublicCategoryDTO> tree = List.of(
+            row(10, "Xây dựng", null, null, 100L),
+            row(11, "Lắp đặt", 10L, "Xây dựng", 60L),
+            row(12, "Lắp đặt hệ thống điện", 11L, "Lắp đặt", 40L),
+            row(13, "Lắp đặt cấp thoát nước", 11L, "Lắp đặt", 20L)
+        );
+        PublicTermDetailDTO detail = PublicCategoryService.detail(tree, tree.get(1), "  Mô tả  ");
+        assertThat(detail.description()).isEqualTo("Mô tả");
+        assertThat(detail.ancestors()).extracting(PublicTermDetailDTO.Ref::id).containsExactly(10L);
+        assertThat(detail.children())
+            .extracting(PublicTermDetailDTO.Ref::name)
+            .containsExactly("Lắp đặt cấp thoát nước", "Lắp đặt hệ thống điện");
+        assertThat(PublicCategoryService.detail(tree, tree.get(2), null).ancestors())
+            .extracting(PublicTermDetailDTO.Ref::id)
+            .containsExactly(10L, 11L);
+        assertThat(PublicCategoryService.detail(tree, tree.get(2), " ").description()).isNull();
+    }
+
+    @Test
+    void locNganhGocNganhConVaSoDoanhNghiep() {
+        PageRequest page = PageRequest.of(0, 20);
+        assertThat(PublicCategoryService.filter(ALL, null, null, 0, PublicCategoryService.parentFilter(ALL, "root"), page).items())
+            .extracting(PublicCategoryDTO::id)
+            .doesNotContain(1L, 3L)
+            .contains(2L, 5L);
+        assertThat(
+            PublicCategoryService.filter(ALL, null, null, 0, PublicCategoryService.parentFilter(ALL, "slug-2"), page).items()
+        ).isEmpty();
+        assertThat(PublicCategoryService.filter(ALL, null, null, 51, PublicCategoryService.parentFilter(ALL, null), page).items())
+            .extracting(PublicCategoryDTO::id)
+            .containsExactlyInAnyOrder(1L, 2L, 3L);
+        assertThatThrownBy(() -> PublicCategoryService.parentFilter(ALL, "khong-co")).isInstanceOf(ResponseStatusException.class);
     }
 }

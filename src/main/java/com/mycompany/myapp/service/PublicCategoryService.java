@@ -4,12 +4,19 @@ import com.mycompany.myapp.repository.CategoryPublicRepository;
 import com.mycompany.myapp.repository.search.VietnameseText;
 import com.mycompany.myapp.service.dto.publicapi.PublicCategoryDTO;
 import com.mycompany.myapp.service.dto.publicapi.PublicPageDTO;
+import com.mycompany.myapp.service.dto.publicapi.PublicTermDetailDTO;
 import java.text.Collator;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -31,6 +38,7 @@ import org.springframework.web.util.HtmlUtils;
 public class PublicCategoryService {
 
     static final String OTHER_LETTER = "#";
+    static final String ROOT = "root";
     static final int MAX_PAGE_SIZE = 500;
     static final Map<String, Comparator<PublicCategoryDTO>> SORTS;
 
@@ -86,7 +94,26 @@ public class PublicCategoryService {
      * @param pageable  sort nhận name (mặc định, A–Z tiếng Việt) và listingCount; size tối đa {@value #MAX_PAGE_SIZE}.
      */
     public PublicPageDTO<PublicCategoryDTO> categories(String letter, String query, boolean hideEmpty, Pageable pageable) {
-        return filter(loadAll(), letter, query, hideEmpty, pageable);
+        return categories(letter, query, hideEmpty, null, null, pageable);
+    }
+
+    /**
+     * Như {@link #categories(String, String, boolean, Pageable)}, thêm:
+     *
+     * @param minCount chỉ lấy ngành có ít nhất chừng này doanh nghiệp (FE cũ dùng &gt; 20 cho trang ngành nghề).
+     * @param parent   "root": chỉ ngành gốc; slug hoặc id: chỉ ngành con trực tiếp của ngành đó (404 nếu không có).
+     */
+    public PublicPageDTO<PublicCategoryDTO> categories(
+        String letter,
+        String query,
+        boolean hideEmpty,
+        Long minCount,
+        String parent,
+        Pageable pageable
+    ) {
+        List<PublicCategoryDTO> all = loadAll();
+        long min = Math.max(hideEmpty ? 1 : 0, minCount == null ? 0 : minCount);
+        return filter(all, letter, query, min, parentFilter(all, parent), pageable);
     }
 
     static PublicPageDTO<PublicCategoryDTO> filter(
@@ -96,12 +123,24 @@ public class PublicCategoryService {
         boolean hideEmpty,
         Pageable pageable
     ) {
+        return filter(all, letter, query, hideEmpty ? 1 : 0, c -> true, pageable);
+    }
+
+    static PublicPageDTO<PublicCategoryDTO> filter(
+        List<PublicCategoryDTO> all,
+        String letter,
+        String query,
+        long minCount,
+        Predicate<PublicCategoryDTO> parentFilter,
+        Pageable pageable
+    ) {
         String wantedLetter = StringUtils.hasText(letter) ? checkedLetter(letter) : null;
         List<String> words = VietnameseText.words(StringUtils.hasText(query) ? fold(query) : "");
         Comparator<PublicCategoryDTO> order = comparator(pageable.getSort());
         List<PublicCategoryDTO> matched = all
             .stream()
-            .filter(c -> !hideEmpty || c.listingCount() > 0)
+            .filter(c -> c.listingCount() >= minCount)
+            .filter(parentFilter)
             .filter(c -> wantedLetter == null || wantedLetter.equals(c.letter()))
             .filter(c -> words.isEmpty() || containsAll(fold(c.name()), words))
             .sorted(order)
@@ -112,6 +151,81 @@ public class PublicCategoryService {
         int to = Math.min(from + size, matched.size());
         int totalPages = (matched.size() + size - 1) / size;
         return new PublicPageDTO<>(matched.subList(from, to), page, size, matched.size(), totalPages);
+    }
+
+    /** "root" → ngành gốc; slug/id → con trực tiếp của ngành đó (không có thì 404); trống → mọi ngành. */
+    static Predicate<PublicCategoryDTO> parentFilter(List<PublicCategoryDTO> all, String parent) {
+        if (!StringUtils.hasText(parent)) {
+            return c -> true;
+        }
+        if (ROOT.equalsIgnoreCase(parent.trim())) {
+            return c -> c.parentId() == null;
+        }
+        Long parentId = find(all, parent)
+            .map(PublicCategoryDTO::id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không có ngành nghề " + parent));
+        return c -> parentId.equals(c.parentId());
+    }
+
+    /**
+     * Chi tiết một ngành theo slug hoặc id: mô tả, breadcrumb các ngành cha, ngành con trực tiếp (sắp theo tên).
+     */
+    public Optional<PublicTermDetailDTO> category(String slugOrId) {
+        List<PublicCategoryDTO> all = loadAll();
+        return find(all, slugOrId).map(c -> detail(all, c, categoryPublicRepository.findDescription(c.id())));
+    }
+
+    static PublicTermDetailDTO detail(List<PublicCategoryDTO> all, PublicCategoryDTO category, String description) {
+        Map<Long, PublicCategoryDTO> byId = all.stream().collect(Collectors.toMap(PublicCategoryDTO::id, Function.identity()));
+        List<PublicTermDetailDTO.Ref> ancestors = new ArrayList<>();
+        Set<Long> seen = new HashSet<>(Set.of(category.id()));
+        PublicCategoryDTO parent = category.parentId() == null ? null : byId.get(category.parentId());
+        // Cây lỗi có vòng lặp cũng không treo
+        while (parent != null && seen.add(parent.id())) {
+            ancestors.addFirst(ref(parent));
+            parent = parent.parentId() == null ? null : byId.get(parent.parentId());
+        }
+        List<PublicTermDetailDTO.Ref> children = all
+            .stream()
+            .filter(c -> category.id().equals(c.parentId()))
+            .sorted(BY_NAME)
+            .map(PublicCategoryService::ref)
+            .toList();
+        return new PublicTermDetailDTO(
+            category.id(),
+            category.name(),
+            category.slug(),
+            StringUtils.hasText(description) ? description.trim() : null,
+            null,
+            null,
+            category.listingCount(),
+            List.copyOf(ancestors),
+            children
+        );
+    }
+
+    /** Tìm theo slug trước (đúng nguyên văn), không có thì theo id. */
+    static Optional<PublicCategoryDTO> find(List<PublicCategoryDTO> all, String slugOrId) {
+        if (!StringUtils.hasText(slugOrId)) {
+            return Optional.empty();
+        }
+        String key = slugOrId.trim();
+        Optional<PublicCategoryDTO> bySlug = all
+            .stream()
+            .filter(c -> key.equals(c.slug()))
+            .findFirst();
+        if (bySlug.isPresent() || !key.chars().allMatch(Character::isDigit) || key.length() > 18) {
+            return bySlug;
+        }
+        long id = Long.parseLong(key);
+        return all
+            .stream()
+            .filter(c -> c.id() == id)
+            .findFirst();
+    }
+
+    private static PublicTermDetailDTO.Ref ref(PublicCategoryDTO c) {
+        return new PublicTermDetailDTO.Ref(c.id(), c.name(), c.slug(), c.listingCount());
     }
 
     /** "l", "L", "Đ" → chữ in hoa bỏ dấu; "#" giữ nguyên; còn lại 400. */

@@ -1375,11 +1375,11 @@ export async function getGallery(code: string) {
 | Nhóm | API dự kiến | Dữ liệu | Trạng thái |
 |---|---|---|---|
 | Banner, gallery | `/galleries` | Quản trị viên nhập | ✅ Xong |
-| Chi tiết doanh nghiệp theo slug hoặc id WordPress | `/listings/{slug}`, `/listings/wp/{wpId}` | ✅ | Chưa làm |
-| Danh sách doanh nghiệp theo ngành, khu vực, nổi bật; tìm theo tên, mã số thuế, địa chỉ | `/listings?category=&location=&q=&featured=` | ✅ (tìm kiếm cần Elasticsearch giai đoạn 2–3) | Chưa làm |
-| Doanh nghiệp liên quan; số doanh nghiệp theo tỉnh trong một ngành | `/listings/{slug}/related`, `/listings/facets` | ✅ | Chưa làm |
-| Ngành nghề (slug, id, chữ cái đầu, con) | `/categories/letters`, `/categories?letter=&q=` | ✅ (số doanh nghiệp tự tính, [mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) | ✅ Mục lục chữ cái xong 2026-10-08; chi tiết theo slug, ngành con: chưa làm |
-| Địa phương (cấp 1, con, slug) | `/locations/letters`, `/locations?letter=&q=&generation=&level=` | ✅ (số doanh nghiệp đếm trên ES, [mục 10.7](#107-tỉnh-thành-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) | ✅ Mục lục chữ cái xong 2026-10-09; chi tiết theo slug, đơn vị con: chưa làm |
+| Chi tiết doanh nghiệp theo slug hoặc id WordPress | `/listings/{slug}`, `/listings/wp/{wpId}` | ✅ (ảnh: chờ đồng bộ URL, [mục 10.9](#109-doanh-nghiệp-chi-tiết-ngành-nghề-và-địa-phương-chuyển-fe-khỏi-wordpress-bước-1)) | ✅ Xong 2026-10-13 |
+| Danh sách doanh nghiệp theo ngành, khu vực, nổi bật; tìm theo tên, mã số thuế, địa chỉ; gợi ý | `/listings?category=&location=&q=&featured=`, `/listings/suggest` | ✅ (tìm không dấu cần reindex listing) | ✅ Xong 2026-10-13 |
+| Doanh nghiệp liên quan; số doanh nghiệp theo tỉnh trong một ngành | `/listings/{slug}/related`, `/listings/facets` | ✅ | ✅ `related` xong 2026-10-13; `facets` chưa làm (FE hiện không dùng) |
+| Ngành nghề (slug, id, chữ cái đầu, con) | `/categories/letters`, `/categories?letter=&q=` | ✅ (số doanh nghiệp tự tính, [mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) | ✅ Mục lục chữ cái xong 2026-10-08; chi tiết theo slug, ngành con, `parent`, `minCount`: xong 2026-10-13 |
+| Địa phương (cấp 1, con, slug) | `/locations/letters`, `/locations?letter=&q=&generation=&level=` | ✅ (số doanh nghiệp đếm trên ES, [mục 10.7](#107-tỉnh-thành-mục-lục-theo-chữ-cái-số-doanh-nghiệp)) | ✅ Mục lục chữ cái xong 2026-10-09; chi tiết theo slug (cả slug cũ WordPress), đơn vị con: xong 2026-10-13 |
 | Tin tức, sự kiện; cây danh mục bài viết | `/blog-posts`, `/blog-posts/{slug}`, `/blog-categories/tree`, `/blog-categories/{slug}` | ✅ Đã đồng bộ 2.433 bài, 52 danh mục, 54 thẻ ([mục 11](#11-bài-viết-blog-đồng-bộ-wordpress-và-trang-soạn-bài)) | ✅ Xong 2026-10-08 ([mục 10.5](#105-bài-viết-và-cây-danh-mục-bài-viết)) |
 | Mã ngành (`industry_code`) của ngành nghề | | ⚠️ Không có trong `jhipster_vnyp` | Chờ dữ liệu |
 
@@ -1591,6 +1591,63 @@ node docs/postman/test-crud.mjs             # chạy thử 8 bộ Tạo → Sử
 `generate-collection.mjs` khai báo request theo từng thư mục; API mới phải thêm vào đây (script so với `/v3/api-docs` và báo "Thiếu: …"). `test-crud.mjs` đọc đúng request trong file, chạy Tạo rồi Sửa, Xóa bản ghi vừa tạo (luôn xóa kể cả khi bước giữa lỗi). Lần chạy 2026-10-09: 32/32 bước đúng mã trạng thái, 8 bản ghi thử đã xóa (GET sau xóa → 404). Nhóm người dùng, quyền, tài khoản không chạy thử (gửi email, đổi mật khẩu admin).
 
 Cùng lúc sửa mô tả Swagger cũ trong [`OpenApiDocsConfiguration`](../src/main/java/com/mycompany/myapp/config/OpenApiDocsConfiguration.java): `GET /api/listings/_search` nay ghi "lọc theo cây địa phương, ngành nghề" (trước ghi "không áp dụng bộ lọc"); mô tả `locationTreeId`, `categoryTreeId` ghi rõ chỉ bộ lọc cây thì chạy Elasticsearch.
+
+### 10.9 Doanh nghiệp, chi tiết ngành nghề và địa phương (chuyển FE khỏi WordPress, bước 1)
+
+> Làm ngày 2026-10-13. Mục tiêu: FE Next.js (`d:\nextyp-v2`) bỏ hẳn Elasticsearch của WordPress, lấy mọi dữ liệu từ backend này mà **giữ nguyên URL** để không mất thứ hạng SEO. Bước 1 là backend (mục này); bước 2 sửa `lib/api` của FE; bước 3 SEO (sitemap, metadata phía server, 404 thật, chuyển hướng 301).
+
+#### Đối chiếu dữ liệu WordPress với backend (2026-10-13, chỉ đọc)
+
+| Dữ liệu | Kết quả | Ảnh hưởng SEO |
+|---|---|---|
+| Slug doanh nghiệp | 300/300 mẫu ngẫu nhiên trùng; 7 doanh nghiệp không có slug | URL `/listing/{slug}` giữ nguyên |
+| Slug ngành nghề | 2.394/2.394 trùng (so theo `wp_term_id`) | URL `/nganh-nghe/{slug}` giữ nguyên |
+| Slug địa phương | 15.313 đơn vị đủ; **166 slug đổi** khi chuẩn hóa địa giới 2025 (ví dụ `phuong-cua-nam-00073-2025` → `phuong-cua-nam-00082-2025`), không slug cũ nào bị đơn vị khác dùng lại | Slug cũ phải **chuyển hướng 301** sang slug mới |
+| Ảnh doanh nghiệp | Backend chỉ có **id ảnh WordPress** (`thumbnail` 6.292, `images` 1.607 doanh nghiệp); ES WordPress có URL (`featured_image`, `gallery`) | Bước 1b: đồng bộ URL ảnh từ ES WordPress |
+| Tọa độ | `jhipster_vnyp` (và backend) chỉ có tọa độ tâm tỉnh cho nhiều doanh nghiệp (27.949 doanh nghiệp cùng `21.0001:105.698`); ES WordPress có tọa độ thật (`coordinate` dạng `20.960791,105.801630`) | Cân nhắc đồng bộ cùng bước 1b, giữ nguyên văn |
+
+Bảng slug cũ → mới: [`src/main/resources/config/location-slug-aliases.csv`](../src/main/resources/config/location-slug-aliases.csv) (`old_slug,wp_term_id`; tra theo `wp_term_id` nên slug mới đổi tiếp vẫn đúng). Sinh bằng script so ES WordPress (qua proxy FE `/api/terms`) với bảng `location`.
+
+#### API mới (`/api/public/v1`, header `X-API-Key`)
+
+| API | Dùng cho trang FE | Ghi chú |
+|---|---|---|
+| `GET /listings?q=&category=&location=&featured=&page=&size=&sort=` | `/listing`, `/nganh-nghe/{slug}`, `/tinh-thanh/{slug}`, trang chủ (nổi bật) | Chỉ doanh nghiệp `publish`. `category`, `location`: slug hoặc id, **lấy cả cấp con**; `location` nhận cả slug cũ WordPress; không có → 404. Không `sort`: có `q` thì theo độ liên quan, không thì mới đăng trước. `sort` nhận `publishedAt`, `modifiedAt`, `viewCount`, `name`, `id`. `size` ≤ 50. Danh sách không có `description`, `images` |
+| `GET /listings/suggest?q=&size=` | Ô tìm kiếm (gợi ý khi gõ) | Chỉ đọc ES, trả `id`, `name`, `slug`; chữ cuối khớp đầu từ. `size` ≤ 20 |
+| `GET /listings/{slug}` | `/listing/{slug}` | Đủ thông tin: giới thiệu, liên hệ, địa chỉ cũ + mới, `coordinate` (nguyên văn), `thumbnail`, `images`, `categories`, `locations` (tỉnh trước). 404 nếu không có hoặc là nháp |
+| `GET /listings/wp/{wpId}` | Link cũ theo `post_id` (`?p=`), component Gallery | FE đọc `slug` rồi 301 |
+| `GET /listings/{slug}/related?size=` | Khối "doanh nghiệp liên quan" | Cùng ngành gắn trực tiếp; cùng tỉnh, nổi bật, mới đăng lên trước. `size` ≤ 30 |
+| `GET /categories/{slugOrId}` | Đầu trang `/nganh-nghe/{slug}` | `name`, `description`, `listingCount` (cả ngành con), `ancestors` (breadcrumb), `children` |
+| `GET /categories?parent=root&minCount=21` | Trang `/nganh-nghe` | Thêm tham số: `parent` (`root` hoặc slug/id ngành cha), `minCount` (FE cũ chỉ hiện ngành > 20 doanh nghiệp) |
+| `GET /locations/{slugOrId}` | Đầu trang `/tinh-thanh/{slug}` | `type`, `isNew`, `listingCount`, `ancestors`, `children`. **Slug cũ**: trả đơn vị với slug mới — FE thấy `slug` khác slug hỏi thì 301 |
+
+`thumbnail`, `images` chỉ trả **URL http(s)**: dữ liệu hiện tại là id ảnh WordPress nên đang `null`/rỗng cho tới khi đồng bộ ảnh (bước 1b).
+
+#### Tìm kiếm không dấu (cần reindex listing)
+
+Index `listing` cũ chỉ có analyzer `lowercase`, **không bỏ dấu**: "cong ty" không ra "Công ty", gợi ý "cong ty bia ph" rỗng. ES WordPress cũ bỏ dấu, nên phải làm để FE không kém đi:
+
+- [`listing-settings.json`](../src/main/resources/config/elasticsearch/listing-settings.json): thêm analyzer `vi_folding` (`lowercase` + `asciifolding`, Đ → D). Analyzer `default` giữ nguyên nên **tìm kiếm trang quản trị không đổi**.
+- [`Listing.java`](../src/main/java/com/mycompany/myapp/domain/Listing.java): field phụ `.folded` cho `name`, `nameEn`, `nameAlias`, `description`, `address`, `addressNew`, `representative`.
+- [`PublicListingService`](../src/main/java/com/mycompany/myapp/service/PublicListingService.java): mỗi chữ phải có ở ít nhất một field (gốc hoặc `.folded`); khớp đúng dấu được cộng điểm ở field gốc nên lên trước; cả cụm liền nhau trong tên được cộng thêm.
+
+> ⚠️ **Phải reindex listing** (`POST /api/admin/elasticsearch/reindex?entities=listing`, ~11–15 phút, [mục 8.4](#84-job-reindex-giai-đoạn-1)) thì `.folded` mới có. Trước khi reindex API vẫn chạy, chỉ là chữ không dấu chỉ khớp dữ liệu không dấu.
+
+#### File
+
+| File | Việc |
+|---|---|
+| [`PublicListingResource`](../src/main/java/com/mycompany/myapp/web/rest/publicapi/PublicListingResource.java), [`PublicListingService`](../src/main/java/com/mycompany/myapp/service/PublicListingService.java), [`PublicListingDTO`](../src/main/java/com/mycompany/myapp/service/dto/publicapi/PublicListingDTO.java) | API doanh nghiệp. Tìm/lọc/sắp xếp trên ES (chỉ lấy id), đọc lại MySQL kèm ngành, địa phương; slug → id tra trên ES (MySQL không có chỉ mục `slug`), `wpId` tra MySQL (có unique index) |
+| [`PublicTermDetailDTO`](../src/main/java/com/mycompany/myapp/service/dto/publicapi/PublicTermDetailDTO.java) | Chi tiết ngành nghề / địa phương (dùng chung) |
+| `PublicCategoryService`, `PublicCategoryResource`, `CategoryPublicRepository.findDescription` | `parent`, `minCount`, `/categories/{slugOrId}` |
+| `PublicLocationService`, `PublicLocationResource` | `/locations/{slugOrId}`, đọc bảng slug cũ lúc khởi động |
+
+#### Kiểm thử (2026-10-13)
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `PublicListingServiceTest` (tọa độ nguyên văn, URL ảnh, ảnh dạng gallery WordPress, sắp xếp mặc định), thêm test `PublicCategoryServiceTest` (tìm slug/id, breadcrumb, ngành gốc/con, `minCount`), `PublicLocationServiceTest` (breadcrumb, đơn vị con, đọc bảng slug cũ) | 21/21 ✅ |
+| Gọi thật trên dev: danh sách 1.855.611 doanh nghiệp (0,2–0,5 s); `bia phan` 101 kết quả; ngành `bom-chan-khong-779` + Hà Nội mới 28; nổi bật 246; chi tiết theo slug và `wp/913645` ~50 ms; liên quan; slug không có → 404; ngành không có → 404; `sort=foo` → 400; `/locations/phuong-cua-nam-00073-2025` → slug `phuong-cua-nam-00082-2025` | ✅ |
 
 ---
 
@@ -1876,7 +1933,7 @@ Lưu ý:
 | 1 | ~~Reindex Elasticsearch cho 1,86 triệu listing~~ | ✅ Xong 2026-10-02 ([mục 8.4](#84-job-reindex-giai-đoạn-1)) |
 | 2 | **Changelog Liquibase viết tay**: index thường, `ON DELETE CASCADE`, `DEFAULT` | Index cần cho hiệu năng: `listing(slug)`, `listing(status)`, `listing(tax_code)`, `listing(api_id)`, `listing(is_featured)`, `location(type)`, `category(slug)` |
 | 3 | **Xác định múi giờ** của datetime nguồn | Mở một listing trên giao diện, so với website cũ. Nếu lệch 7 giờ thì `UPDATE` trừ 7 giờ. |
-| 4 | **URL ảnh** doanh nghiệp | Cần `wp_posts.guid` từ WordPress để đổi ID attachment thành URL |
+| 4 | **URL ảnh** doanh nghiệp (và tọa độ thật) | Lấy từ ES WordPress (`featured_image`, `gallery`, `coordinate`): bước 1b của [mục 10.9](#109-doanh-nghiệp-chi-tiết-ngành-nghề-và-địa-phương-chuyển-fe-khỏi-wordpress-bước-1) |
 | 5 | **User từ WordPress** (`jhi_user` của nguồn: 4 user, có `wp_user_id`) | Chưa chuyển |
 | 6 | **Bảo mật khi lên production** | Danh sách đầy đủ ở [mục 9.3](#93-còn-thiếu-và-cần-làm-trước-production): khóa JWT riêng qua biến môi trường, đổi tài khoản mặc định, chống dò mật khẩu, thu hồi token, HTTPS, quyết định API công khai. MySQL dev dùng `root` không mật khẩu; ES dev tắt `xpack.security`. |
 | 7 | Cố định cấu hình InnoDB | Nếu đồng bộ thường xuyên, ghi `innodb_buffer_pool_size` vào [`src/main/docker/config/mysql/my.cnf`](../src/main/docker/config/mysql/my.cnf) |
@@ -1884,7 +1941,7 @@ Lưu ý:
 | 9 | Tên ngành có `&amp;` | Dữ liệu gốc của WordPress. API công khai đã giải mã khi trả ra ([mục 10.6](#106-ngành-nghề-mục-lục-theo-chữ-cái-số-doanh-nghiệp)); trang quản trị vẫn hiện `&amp;`. Có thể viết script SQL đổi thành `&` |
 | 10 | Integration test backend cho `locationTreeId`, `categoryTreeId` | Hiện chỉ kiểm tra thủ công bằng API |
 | 11 | ~~Kết hợp tìm kiếm (Elasticsearch) với lọc theo cây~~ | ✅ Xong 2026-10-09 ([mục 8.7](#87-lọc-listing-theo-cây-trên-elasticsearch-giai-đoạn-3)) |
-| 12 | **Các API công khai còn lại cho FE Next.js** (doanh nghiệp, ngành nghề, địa phương, tin tức) | Xem [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
+| 12 | **Chuyển FE Next.js khỏi WordPress**: bước 1 backend xong 2026-10-13 ([mục 10.9](#109-doanh-nghiệp-chi-tiết-ngành-nghề-và-địa-phương-chuyển-fe-khỏi-wordpress-bước-1)); còn: reindex listing (tìm không dấu), đồng bộ ảnh, sửa `lib/api` FE, SEO (sitemap, metadata phía server, 404 thật, 301 slug cũ) | Xem [mục 10.4](#104-kế-hoạch-các-api-còn-lại) |
 | 13 | Chuyên mục bài viết, mã ngành của ngành nghề | Cần dữ liệu WordPress (`wp_term_relationships` của bài viết, `termmeta industry_code`) |
 | 14 | Quản trị viên nhập banner thật | Theo các vị trí trên WordPress: footer banner, quảng cáo listing, right banner 1, left center banner, right-banner-2 ([mục 10.3](#103-banner-quảng-cáo-gallery)) |
 | 15 | Chuyển ảnh bài viết (`yp.com.vn/wp-content/uploads`) về server mới | Hiện vẫn phụ thuộc site WordPress cũ ([mục 11.2](#112-đồng-bộ-từ-wordpress)) |

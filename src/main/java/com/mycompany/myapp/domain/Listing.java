@@ -65,6 +65,12 @@ public class Listing implements Serializable {
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text
         ),
         otherFields = {
+            // Sửa tay: .folded bỏ dấu ("cong ty" khớp "Công ty"), cho tìm kiếm trên website (API công khai)
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "folded",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_folding"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
@@ -81,6 +87,12 @@ public class Listing implements Serializable {
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text
         ),
         otherFields = {
+            // Sửa tay: .folded bỏ dấu ("cong ty" khớp "Công ty"), cho tìm kiếm trên website (API công khai)
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "folded",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_folding"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
@@ -97,6 +109,12 @@ public class Listing implements Serializable {
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text
         ),
         otherFields = {
+            // Sửa tay: .folded bỏ dấu ("cong ty" khớp "Công ty"), cho tìm kiếm trên website (API công khai)
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "folded",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_folding"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
@@ -132,6 +150,12 @@ public class Listing implements Serializable {
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text
         ),
         otherFields = {
+            // Sửa tay: .folded bỏ dấu ("cong ty" khớp "Công ty"), cho tìm kiếm trên website (API công khai)
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "folded",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_folding"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
@@ -212,6 +236,12 @@ public class Listing implements Serializable {
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text
         ),
         otherFields = {
+            // Sửa tay: .folded bỏ dấu ("cong ty" khớp "Công ty"), cho tìm kiếm trên website (API công khai)
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "folded",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_folding"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
@@ -232,6 +262,12 @@ public class Listing implements Serializable {
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text
         ),
         otherFields = {
+            // Sửa tay: .folded bỏ dấu ("cong ty" khớp "Công ty"), cho tìm kiếm trên website (API công khai)
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "folded",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_folding"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
@@ -283,6 +319,12 @@ public class Listing implements Serializable {
             type = org.springframework.data.elasticsearch.annotations.FieldType.Text
         ),
         otherFields = {
+            // Sửa tay: .folded bỏ dấu ("cong ty" khớp "Công ty"), cho tìm kiếm trên website (API công khai)
+            @org.springframework.data.elasticsearch.annotations.InnerField(
+                suffix = "folded",
+                type = org.springframework.data.elasticsearch.annotations.FieldType.Text,
+                analyzer = "vi_folding"
+            ),
             @org.springframework.data.elasticsearch.annotations.InnerField(
                 suffix = "keyword",
                 type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,

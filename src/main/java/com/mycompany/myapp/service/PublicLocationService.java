@@ -5,8 +5,10 @@ import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
 import com.mycompany.myapp.repository.search.VietnameseText;
 import com.mycompany.myapp.service.dto.publicapi.PublicLocationDTO;
 import com.mycompany.myapp.service.dto.publicapi.PublicPageDTO;
+import com.mycompany.myapp.service.dto.publicapi.PublicTermDetailDTO;
 import com.mycompany.myapp.service.dvhc.AdministrativeUnits;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.CollationKey;
 import java.text.Collator;
 import java.time.Duration;
@@ -20,6 +22,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -27,6 +30,7 @@ import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -53,6 +57,7 @@ public class PublicLocationService {
     private static final Logger LOG = LoggerFactory.getLogger(PublicLocationService.class);
 
     static final String PUBLISHED = "publish";
+    static final String SLUG_ALIASES_FILE = "config/location-slug-aliases.csv";
     static final Duration CACHE_TTL = Duration.ofMinutes(10);
     static final int MAX_PAGE_SIZE = 500;
     static final String OTHER_LETTER = "#";
@@ -78,11 +83,14 @@ public class PublicLocationService {
 
     private final JdbcTemplate jdbcTemplate;
     private final ElasticsearchClient elasticsearchClient;
+    /** Slug cũ trên website WordPress → wp_term_id (đơn vị đã đổi slug khi chuẩn hóa địa giới 2025). */
+    private final Map<String, Long> slugAliases;
     private volatile Snapshot snapshot;
 
     public PublicLocationService(DataSource dataSource, ElasticsearchClient elasticsearchClient) {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.elasticsearchClient = elasticsearchClient;
+        this.slugAliases = loadSlugAliases();
     }
 
     public List<PublicLocationDTO.Letter> letters(String generation, String level, boolean hideEmpty) {
@@ -100,7 +108,101 @@ public class PublicLocationService {
         return filter(scope(loadAll(), checkedGeneration(generation), checkedLevel(level), hideEmpty), letter, query, pageable);
     }
 
+    /**
+     * Chi tiết một đơn vị theo slug hoặc id, kèm các cấp cha (breadcrumb) và cấp con trực tiếp (đã sắp theo tên).
+     * Slug cũ của website WordPress (166 đơn vị đổi slug năm 2025) cũng tìm được: kết quả mang slug mới, FE chuyển hướng 301.
+     */
+    public Optional<PublicTermDetailDTO> location(String slugOrId) {
+        List<PublicLocationDTO> all = loadAll();
+        Optional<PublicLocationDTO> found = find(all, slugOrId);
+        if (found.isEmpty() && StringUtils.hasText(slugOrId)) {
+            Long wpTermId = slugAliases.get(slugOrId.trim());
+            if (wpTermId != null) {
+                found = jdbcTemplate
+                    .queryForList("select id from location where wp_term_id = ?", Long.class, wpTermId)
+                    .stream()
+                    .findFirst()
+                    .flatMap(id -> find(all, String.valueOf(id)));
+            }
+        }
+        return found.map(l -> detail(all, l));
+    }
+
     // ---------- Hàm thuần (kiểm thử được) ----------
+
+    /** Tìm theo slug trước (đúng nguyên văn), không có thì theo id. */
+    static Optional<PublicLocationDTO> find(List<PublicLocationDTO> all, String slugOrId) {
+        if (!StringUtils.hasText(slugOrId)) {
+            return Optional.empty();
+        }
+        String key = slugOrId.trim();
+        Optional<PublicLocationDTO> bySlug = all
+            .stream()
+            .filter(l -> key.equals(l.slug()))
+            .findFirst();
+        if (bySlug.isPresent() || !key.chars().allMatch(Character::isDigit) || key.length() > 18) {
+            return bySlug;
+        }
+        long id = Long.parseLong(key);
+        return all
+            .stream()
+            .filter(l -> l.id() == id)
+            .findFirst();
+    }
+
+    /** Danh sách vào đã sắp theo tên nên cấp con giữ thứ tự đó. */
+    static PublicTermDetailDTO detail(List<PublicLocationDTO> all, PublicLocationDTO location) {
+        Map<Long, PublicLocationDTO> byId = new HashMap<>();
+        all.forEach(l -> byId.put(l.id(), l));
+        List<PublicTermDetailDTO.Ref> ancestors = new ArrayList<>();
+        Set<Long> seen = new HashSet<>(Set.of(location.id()));
+        PublicLocationDTO parent = location.parentId() == null ? null : byId.get(location.parentId());
+        while (parent != null && seen.add(parent.id())) {
+            ancestors.addFirst(ref(parent));
+            parent = parent.parentId() == null ? null : byId.get(parent.parentId());
+        }
+        List<PublicTermDetailDTO.Ref> children = all
+            .stream()
+            .filter(l -> location.id().equals(l.parentId()))
+            .map(PublicLocationService::ref)
+            .toList();
+        return new PublicTermDetailDTO(
+            location.id(),
+            location.name(),
+            location.slug(),
+            null,
+            location.type(),
+            location.isNew(),
+            location.listingCount(),
+            List.copyOf(ancestors),
+            children
+        );
+    }
+
+    private static PublicTermDetailDTO.Ref ref(PublicLocationDTO l) {
+        return new PublicTermDetailDTO.Ref(l.id(), l.name(), l.slug(), l.listingCount());
+    }
+
+    /** Dòng "old_slug,wp_term_id"; bỏ dòng trống, dòng chú thích (#) và dòng tiêu đề. */
+    static Map<String, Long> parseSlugAliases(List<String> lines) {
+        Map<String, Long> result = new HashMap<>();
+        for (String line : lines) {
+            String[] parts = line.trim().split(",");
+            if (parts.length == 2 && !parts[0].startsWith("#") && parts[1].trim().chars().allMatch(Character::isDigit)) {
+                result.put(parts[0].trim(), Long.valueOf(parts[1].trim()));
+            }
+        }
+        return Map.copyOf(result);
+    }
+
+    private static Map<String, Long> loadSlugAliases() {
+        try (var in = new ClassPathResource(SLUG_ALIASES_FILE).getInputStream()) {
+            return parseSlugAliases(new String(in.readAllBytes(), StandardCharsets.UTF_8).lines().toList());
+        } catch (IOException e) {
+            LOG.warn("Không đọc được {}: slug cũ của địa phương sẽ không chuyển hướng được ({})", SLUG_ALIASES_FILE, e.getMessage());
+            return Map.of();
+        }
+    }
 
     static List<PublicLocationDTO> scope(List<PublicLocationDTO> all, String generation, String level, boolean hideEmpty) {
         return all
