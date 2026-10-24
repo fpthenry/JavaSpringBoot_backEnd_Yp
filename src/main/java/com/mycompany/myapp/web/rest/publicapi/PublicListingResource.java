@@ -42,7 +42,7 @@ public class PublicListingResource {
             "người đại diện hoặc giới thiệu; tên được ưu tiên. category: slug hoặc id ngành (lấy cả ngành con). location: " +
             "slug (nhận cả slug cũ của website WordPress) hoặc id địa phương (lấy cả đơn vị con). Ngành/địa phương không có → 404. " +
             "featured=true: chỉ doanh nghiệp nổi bật. Không có sort: có q thì theo độ liên quan, không thì mới đăng trước; " +
-            "sort nhận publishedAt, modifiedAt, viewCount, name, id. size tối đa 50. Danh sách không có description, images " +
+            "sort nhận publishedAt, modifiedAt, viewCount, name, id. size tối đa 50. Danh sách chỉ có đoạn đầu description (≤ 300 ký tự), không có images " +
             "(lấy ở API chi tiết)."
     )
     public ResponseEntity<PublicPageDTO<PublicListingDTO>> getListings(

@@ -8,7 +8,8 @@ import java.util.List;
  * Doanh nghiệp trả cho FE qua API công khai (chỉ doanh nghiệp đã xuất bản).
  *
  * @param wpId        id bài WordPress cũ, để FE chuyển hướng URL cũ dạng {@code ?p=}.
- * @param description giới thiệu (chữ thuần, có xuống dòng); chỉ có ở API chi tiết, danh sách trả null.
+ * @param description giới thiệu (chữ thuần, có xuống dòng): đủ ở API chi tiết; danh sách chỉ trả đoạn đầu (≤ 300 ký tự,
+ *                    cắt theo từ, thêm "…") để hiện trên thẻ doanh nghiệp.
  * @param coordinate  tọa độ nguyên văn như trong dữ liệu ("vĩ độ:kinh độ"), không làm tròn; null nếu không có.
  * @param thumbnail   URL logo/ảnh đại diện; null nếu chưa có URL (dữ liệu cũ chỉ có id ảnh WordPress).
  * @param images      URL ảnh thư viện (chỉ ở API chi tiết, danh sách trả rỗng).

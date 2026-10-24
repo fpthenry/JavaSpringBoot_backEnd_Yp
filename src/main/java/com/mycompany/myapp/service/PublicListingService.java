@@ -44,6 +44,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.HtmlUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -68,6 +69,7 @@ public class PublicListingService {
     static final int MAX_PAGE_SIZE = 50;
     static final int MAX_SUGGESTIONS = 20;
     static final int MAX_RELATED = 30;
+    static final int EXCERPT_LENGTH = 300;
     /** sort nhận được → field trên ES. */
     static final Map<String, String> SORT_FIELDS = Map.of(
         "publishedAt",
@@ -84,10 +86,13 @@ public class PublicListingService {
     /**
      * Field tìm từ khóa và độ ưu tiên. Field gốc giữ dấu, {@code .folded} bỏ dấu: chữ có dấu hay không đều khớp
      * ("cong ty" ra "Công ty"), nhưng khớp đúng dấu được cộng điểm ở field gốc nên lên trước.
+     * {@code slug} là tên viết không dấu ("cong-ty-tnhh-thang-long-…"): như tìm kiếm trang quản trị, chữ không dấu khớp tên
+     * có dấu ngay cả khi index chưa có {@code .folded} (chưa reindex).
      */
     static final List<String> SEARCH_FIELDS = List.of(
         "name^10",
         "name.folded^6",
+        "slug^4",
         "nameAlias^5",
         "nameAlias.folded^3",
         "nameEn^3",
@@ -107,6 +112,7 @@ public class PublicListingService {
         "description.folded^0.5"
     );
 
+    private static final Pattern HTML_TAG = Pattern.compile("<[^>]*>");
     private static final Pattern COORDINATE = Pattern.compile("\"coordinate\"\\s*:\\s*\"([^\"]*)\"");
     private static final Comparator<String> VIETNAMESE = Comparator.nullsLast(Collator.getInstance(Locale.forLanguageTag("vi")));
 
@@ -155,7 +161,11 @@ public class PublicListingService {
                     b.must(m -> m.multiMatch(mm -> mm.query(word).fields(SEARCH_FIELDS).type(TextQueryType.BestFields).tieBreaker(0.3)));
                 }
                 if (words.size() > 1) {
-                    b.should(s -> s.matchPhrase(mp -> mp.field("name.folded").query(String.join(" ", words)).boost(5f)));
+                    String phrase = String.join(" ", words);
+                    b.should(s -> s.matchPhrase(mp -> mp.field("name.folded").query(phrase).boost(5f)));
+                    // slug không dấu: "cong ty thang long" khớp "cong-ty-tnhh-thang-long" (cho xen 1 từ như "tnhh";
+                    // 2 thì "cong-ty-tnhh-thang-may-long-khang" cũng khớp)
+                    b.should(s -> s.matchPhrase(mp -> mp.field("slug").query(VietnameseText.fold(phrase)).slop(1).boost(8f)));
                 }
                 if (categoryId != null) {
                     b.filter(f -> f.term(t -> t.field("categoryIds").value(categoryId)));
@@ -275,7 +285,7 @@ public class PublicListingService {
                     m.multiMatch(mm ->
                         mm
                             .query(VietnameseText.normalize(query.trim()))
-                            .fields("name^3", "name.folded^2", "nameAlias", "nameAlias.folded", "nameEn", "nameEn.folded")
+                            .fields("name^3", "name.folded^2", "slug", "nameAlias", "nameAlias.folded", "nameEn", "nameEn.folded")
                             .type(TextQueryType.BoolPrefix)
                             .operator(Operator.And)
                     )
@@ -385,7 +395,7 @@ public class PublicListingService {
             l.getNameEn(),
             l.getNameAlias(),
             l.getSlug(),
-            detail ? l.getDescription() : null,
+            detail ? l.getDescription() : excerpt(l.getDescription()),
             l.getPhone(),
             l.getMobile(),
             l.getEmail(),
@@ -410,6 +420,25 @@ public class PublicListingService {
             categoryTerms(l.getCategories()),
             locationTerms(l.getLocations())
         );
+    }
+
+    /**
+     * Đoạn đầu giới thiệu cho danh sách (thẻ doanh nghiệp): chữ thuần (bỏ thẻ HTML, giải mã {@code &amp;}..., gộp khoảng
+     * trắng) để không cắt ngang một thẻ; tối đa {@value #EXCERPT_LENGTH} ký tự, cắt ở khoảng trắng, thêm "…".
+     */
+    static String excerpt(String description) {
+        if (!StringUtils.hasText(description)) {
+            return null;
+        }
+        String text = HtmlUtils.htmlUnescape(HTML_TAG.matcher(description).replaceAll(" ")).replaceAll("\\s+", " ").strip();
+        if (text.isEmpty()) {
+            return null;
+        }
+        if (text.length() <= EXCERPT_LENGTH) {
+            return text;
+        }
+        int cut = text.lastIndexOf(' ', EXCERPT_LENGTH);
+        return text.substring(0, cut > EXCERPT_LENGTH / 2 ? cut : EXCERPT_LENGTH).strip() + "…";
     }
 
     /** Tọa độ nguyên văn trong location_json ("21.0001:105.698"), không đổi định dạng, không làm tròn. */
