@@ -18,6 +18,7 @@ import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -70,6 +71,8 @@ public class PublicListingService {
     static final int MAX_SUGGESTIONS = 20;
     static final int MAX_RELATED = 30;
     static final int EXCERPT_LENGTH = 300;
+    /** Số URL tối đa của một file sitemap (giới hạn của giao thức sitemap). */
+    static final int SITEMAP_PAGE_SIZE = 50_000;
     /** sort nhận được → field trên ES. */
     static final Map<String, String> SORT_FIELDS = Map.of(
         "publishedAt",
@@ -216,6 +219,56 @@ public class PublicListingService {
             .findFirst()
             .flatMap(this::loadPublished)
             .map(l -> toDto(l, true));
+    }
+
+    /**
+     * Mục lục sitemap doanh nghiệp. Chia theo khoảng id cố định (id gần như liền nhau 1…1.855.619): mỗi file là một truy vấn
+     * theo khoảng khóa chính, không OFFSET, không quét cả bảng (gom nhóm cả bảng để lấy ngày sửa từng file mất ~27 s nên
+     * mục lục không có ngày sửa). Không đi qua Elasticsearch vì ES chỉ cho lấy 10.000 kết quả đầu.
+     */
+    public PublicListingDTO.SitemapIndex sitemapIndex() {
+        Long maxId = jdbcTemplate.queryForObject("select max(id) from listing", Long.class);
+        long max = maxId == null ? 0 : maxId;
+        return new PublicListingDTO.SitemapIndex(SITEMAP_PAGE_SIZE, sitemapPages(max), max);
+    }
+
+    /**
+     * File sitemap thứ {@code page} (từ 0): slug + ngày sửa (theo {@code modified_at} — ngày sửa thật từ WordPress; cột
+     * {@code updated_at} là ngày nhập dữ liệu, giống nhau ở mọi dòng). Bỏ slug trùng trong file (dữ liệu có ~33 slug nhập
+     * 2 lần). Trang ngoài phạm vi → empty (404). ~1 s cho 50.000 dòng khi chưa có cache.
+     */
+    public Optional<List<PublicListingDTO.SitemapEntry>> sitemapPage(int page) {
+        if (page < 0 || page >= sitemapIndex().pages()) {
+            return Optional.empty();
+        }
+        long[] range = sitemapIdRange(page);
+        Set<String> seen = new HashSet<>();
+        List<PublicListingDTO.SitemapEntry> entries = new ArrayList<>(SITEMAP_PAGE_SIZE);
+        jdbcTemplate.query(
+            "select slug, date_format(coalesce(modified_at, published_at), '%Y-%m-%d') as lm from listing " +
+                "where status = ? and id > ? and id <= ? and slug is not null and slug <> '' order by id",
+            rs -> {
+                String slug = rs.getString("slug");
+                if (seen.add(slug)) {
+                    entries.add(new PublicListingDTO.SitemapEntry(slug, rs.getString("lm")));
+                }
+            },
+            PUBLISHED,
+            range[0],
+            range[1]
+        );
+        return Optional.of(entries);
+    }
+
+    /** Số file sitemap cho id lớn nhất {@code maxId}. */
+    static int sitemapPages(long maxId) {
+        return maxId <= 0 ? 0 : (int) ((maxId + SITEMAP_PAGE_SIZE - 1) / SITEMAP_PAGE_SIZE);
+    }
+
+    /** Khoảng id (đầu không lấy, cuối lấy) của file sitemap {@code page}. */
+    static long[] sitemapIdRange(int page) {
+        long from = (long) page * SITEMAP_PAGE_SIZE;
+        return new long[] { from, from + SITEMAP_PAGE_SIZE };
     }
 
     /**

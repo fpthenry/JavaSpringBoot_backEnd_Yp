@@ -28,6 +28,9 @@ public class PublicListingResource {
 
     /** Danh sách, chi tiết: FE cache 1 phút (sửa doanh nghiệp trong trang quản trị tối đa chừng ấy mới hiện). */
     private static final CacheControl JSON_CACHE = CacheControl.maxAge(Duration.ofMinutes(1)).cachePublic();
+    /** Sitemap: Google đọc vài ngày một lần, doanh nghiệp mới chậm vài giờ mới vào sitemap là đủ. */
+    private static final CacheControl SITEMAP_INDEX_CACHE = CacheControl.maxAge(Duration.ofHours(1)).cachePublic();
+    private static final CacheControl SITEMAP_PAGE_CACHE = CacheControl.maxAge(Duration.ofHours(6)).cachePublic();
 
     private final PublicListingService listingService;
 
@@ -73,6 +76,29 @@ public class PublicListingResource {
         @Parameter(description = "Số gợi ý") @RequestParam(name = "size", defaultValue = "10") int size
     ) {
         return ResponseEntity.ok().cacheControl(JSON_CACHE).body(listingService.suggest(q, size));
+    }
+
+    @GetMapping("/sitemap")
+    @Operation(
+        summary = "Mục lục sitemap doanh nghiệp",
+        description = "Cho FE tạo sitemap index: pages file, mỗi file tối đa pageSize (50.000) doanh nghiệp, chia theo khoảng id. " +
+            "Đọc MySQL (không qua Elasticsearch — ES chỉ cho lấy 10.000 kết quả đầu). Cache 1 giờ."
+    )
+    public ResponseEntity<PublicListingDTO.SitemapIndex> getSitemapIndex() {
+        return ResponseEntity.ok().cacheControl(SITEMAP_INDEX_CACHE).body(listingService.sitemapIndex());
+    }
+
+    @GetMapping("/sitemap/{page}")
+    @Operation(
+        summary = "Một file sitemap doanh nghiệp",
+        description = "page từ 0 tới pages - 1 (xem /sitemap): slug + lastModified (yyyy-MM-dd) của doanh nghiệp đã xuất bản, " +
+            "theo thứ tự id, bỏ slug trùng. Ngoài phạm vi → 404. ~1 s cho 50.000 dòng khi chưa có cache; cache 6 giờ."
+    )
+    public ResponseEntity<List<PublicListingDTO.SitemapEntry>> getSitemapPage(@PathVariable("page") int page) {
+        return listingService
+            .sitemapPage(page)
+            .map(entries -> ResponseEntity.ok().cacheControl(SITEMAP_PAGE_CACHE).body(entries))
+            .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/wp/{wpId}")

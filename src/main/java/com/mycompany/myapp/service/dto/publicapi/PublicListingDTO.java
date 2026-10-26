@@ -57,4 +57,13 @@ public record PublicListingDTO(
 
     /** Một gợi ý khi gõ ô tìm kiếm. */
     public record Suggestion(Long id, String name, String slug) implements Serializable {}
+
+    /**
+     * Mục lục sitemap: {@code pages} file, file {@code n} gồm doanh nghiệp id ({@code n × pageSize}, {@code (n + 1) × pageSize}]
+     * (có thể ít hơn {@code pageSize} vì bỏ bản nháp, id đã xóa).
+     */
+    public record SitemapIndex(int pageSize, int pages, long maxId) implements Serializable {}
+
+    /** Một dòng sitemap: slug (FE ghép thành /listing/{slug}) và ngày sửa yyyy-MM-dd. */
+    public record SitemapEntry(String slug, String lastModified) implements Serializable {}
 }

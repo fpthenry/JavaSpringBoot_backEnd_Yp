@@ -47,6 +47,19 @@ class PublicListingServiceTest {
     }
 
     @Test
+    void sitemapChiaTheoKhoangId() {
+        assertThat(PublicListingService.sitemapPages(0)).isZero();
+        assertThat(PublicListingService.sitemapPages(1)).isEqualTo(1);
+        assertThat(PublicListingService.sitemapPages(50_000)).isEqualTo(1);
+        assertThat(PublicListingService.sitemapPages(50_001)).isEqualTo(2);
+        // Dữ liệu hiện tại: id lớn nhất 1.855.619 → 38 file
+        assertThat(PublicListingService.sitemapPages(1_855_619)).isEqualTo(38);
+        // Khoảng (đầu, cuối]: file 0 = id 1…50.000, file 37 = id 1.850.001…1.900.000
+        assertThat(PublicListingService.sitemapIdRange(0)).containsExactly(0L, 50_000L);
+        assertThat(PublicListingService.sitemapIdRange(37)).containsExactly(1_850_000L, 1_900_000L);
+    }
+
+    @Test
     void thuVienAnhNhieuDang() {
         assertThat(PublicListingService.imageUrls("6229172", MAPPER)).isEmpty();
         assertThat(PublicListingService.imageUrls("6229172,https://yp.vn/b.jpg", MAPPER)).containsExactly("https://yp.vn/b.jpg");
