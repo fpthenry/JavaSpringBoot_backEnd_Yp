@@ -12,6 +12,11 @@ import java.util.Map;
  *
  * @param categories ngành nghề: mã VSIC (4690), slug hoặc tên, cách nhau bởi ; | , hoặc xuống dòng
  * @param province   tỉnh/thành: tên ("Hà Nội", "TP Hồ Chí Minh"), mã (01, 79) hoặc slug
+ * @param district   quận/huyện (địa giới cũ, không bắt buộc): giúp phân biệt xã cũ trùng tên trong cùng tỉnh
+ * @param ward       phường/xã: tên ("Phường Ba Đình", "Ba Đình") hoặc mã (00004); tìm trong tỉnh của dòng
+ * @param coordinate tọa độ "vĩ độ,kinh độ" hoặc "vĩ độ:kinh độ" — giữ nguyên chữ số; hoặc dùng latitude + longitude
+ * @param logo       URL logo (http/https) → listing.thumbnail
+ * @param images     URL ảnh cách nhau bởi ; | xuống dòng, hoặc mảng JSON → listing.images
  */
 public record ImportRecord(
     String sourceRef,
@@ -24,6 +29,13 @@ public record ImportRecord(
     String email,
     String website,
     String address,
+    String addressNew,
+    String province,
+    String district,
+    String ward,
+    String coordinate,
+    String latitude,
+    String longitude,
     String representative,
     String capital,
     String foundedYear,
@@ -31,10 +43,12 @@ public record ImportRecord(
     String businessStatus,
     String industryCode,
     String categories,
-    String province,
-    String description
+    String managedBy,
+    String description,
+    String logo,
+    String images
 ) {
-    /** Tên cột chuẩn theo thứ tự của file mẫu. */
+    /** Tên cột chuẩn theo thứ tự của file mẫu (tọa độ: dùng coordinate HOẶC latitude + longitude). */
     public static final String[] FIELDS = {
         "sourceRef",
         "name",
@@ -46,6 +60,13 @@ public record ImportRecord(
         "email",
         "website",
         "address",
+        "addressNew",
+        "province",
+        "district",
+        "ward",
+        "coordinate",
+        "latitude",
+        "longitude",
         "representative",
         "capital",
         "foundedYear",
@@ -53,8 +74,10 @@ public record ImportRecord(
         "businessStatus",
         "industryCode",
         "categories",
-        "province",
+        "managedBy",
         "description",
+        "logo",
+        "images",
     };
 
     /** Tên cột (đã bỏ dấu, viết thường, bỏ ký tự ngoài chữ/số) → field. */
@@ -70,7 +93,14 @@ public record ImportRecord(
         alias("mobile", "mobile", "didong", "sodidong", "hotline", "mobilephone");
         alias("email", "email", "mail", "thudientu");
         alias("website", "website", "web", "trangweb", "url");
-        alias("address", "address", "diachi", "diachitrusochinh", "trusochinh", "diachitruso");
+        alias("address", "address", "diachi", "diachitrusochinh", "trusochinh", "diachitruso", "diachicu");
+        alias("addressNew", "addressnew", "newaddress", "diachimoi", "diachisausapnhap", "diachimoisausapnhap", "diachitheodiagioimoi");
+        alias("province", "province", "tinhthanh", "tinh", "thanhpho", "tinhthanhpho", "city");
+        alias("district", "district", "quanhuyen", "quan", "huyen", "thixa");
+        alias("ward", "ward", "phuongxa", "xaphuong", "phuong", "xa", "thitran", "commune");
+        alias("coordinate", "coordinate", "coordinates", "toado", "vitri", "location", "latlng", "latlong", "gps");
+        alias("latitude", "latitude", "lat", "vido");
+        alias("longitude", "longitude", "lng", "lon", "long", "kinhdo");
         alias("representative", "representative", "nguoidaidien", "daidien", "nguoidaidienphapluat", "giamdoc", "director");
         alias("capital", "capital", "vondieule", "von");
         alias("foundedYear", "foundedyear", "ngaythanhlap", "namthanhlap", "ngaycap", "ngayhoatdong", "founded", "founddate");
@@ -78,8 +108,10 @@ public record ImportRecord(
         alias("businessStatus", "businessstatus", "tinhtrang", "trangthai", "tinhtranghoatdong", "status");
         alias("industryCode", "industrycode", "manganh", "manganhchinh", "nganhnghechinh", "nganhchinh", "vsic");
         alias("categories", "categories", "category", "nganhnghe", "nganh", "nganhnghekinhdoanh", "linhvuc");
-        alias("province", "province", "tinhthanh", "tinh", "thanhpho", "tinhthanhpho", "city");
+        alias("managedBy", "managedby", "coquanthue", "coquanthuequanly", "coquanquanly", "noiquanly", "quanlyboi", "quanlythue");
         alias("description", "description", "mota", "gioithieu", "noidung");
+        alias("logo", "logo", "logourl", "anhdaidien", "hinhdaidien", "thumbnail", "avatar");
+        alias("images", "images", "image", "hinhanh", "anh", "thuvienanh", "gallery", "photos", "imageurls");
     }
 
     private static void alias(String field, String... names) {
@@ -110,6 +142,13 @@ public record ImportRecord(
             v.get("email"),
             v.get("website"),
             v.get("address"),
+            v.get("addressNew"),
+            v.get("province"),
+            v.get("district"),
+            v.get("ward"),
+            v.get("coordinate"),
+            v.get("latitude"),
+            v.get("longitude"),
             v.get("representative"),
             v.get("capital"),
             v.get("foundedYear"),
@@ -117,8 +156,10 @@ public record ImportRecord(
             v.get("businessStatus"),
             v.get("industryCode"),
             v.get("categories"),
-            v.get("province"),
-            v.get("description")
+            v.get("managedBy"),
+            v.get("description"),
+            v.get("logo"),
+            v.get("images")
         );
     }
 
@@ -135,6 +176,13 @@ public record ImportRecord(
         put(m, "email", email);
         put(m, "website", website);
         put(m, "address", address);
+        put(m, "addressNew", addressNew);
+        put(m, "province", province);
+        put(m, "district", district);
+        put(m, "ward", ward);
+        put(m, "coordinate", coordinate);
+        put(m, "latitude", latitude);
+        put(m, "longitude", longitude);
         put(m, "representative", representative);
         put(m, "capital", capital);
         put(m, "foundedYear", foundedYear);
@@ -142,8 +190,10 @@ public record ImportRecord(
         put(m, "businessStatus", businessStatus);
         put(m, "industryCode", industryCode);
         put(m, "categories", categories);
-        put(m, "province", province);
+        put(m, "managedBy", managedBy);
         put(m, "description", description);
+        put(m, "logo", logo);
+        put(m, "images", images);
         return m;
     }
 

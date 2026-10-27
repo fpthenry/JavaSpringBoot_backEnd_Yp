@@ -111,4 +111,51 @@ class ListingImportNormalizerTest {
         assertThat(ListingImportNormalizer.accentedNameWords("  ")).isEmpty();
         assertThat(ListingImportNormalizer.accentedNameWords(null)).isEmpty();
     }
+
+    @Test
+    void coordinateKeepsDigitsExactly() {
+        // Giữ nguyên chữ số (không làm tròn), chỉ đổi dấu phân cách thành ":" như location_json
+        assertThat(ListingImportNormalizer.coordinate("21.0245123,105.8562", null, null).value()).isEqualTo("21.0245123:105.8562");
+        assertThat(ListingImportNormalizer.coordinate(" 21.0001000 : 105.698 ", null, null).value()).isEqualTo("21.0001000:105.698");
+        assertThat(ListingImportNormalizer.coordinate("(10.7705 106.682)", null, null).value()).isEqualTo("10.7705:106.682");
+        assertThat(ListingImportNormalizer.coordinate(null, "16.0544", "108.2022").value()).isEqualTo("16.0544:108.2022");
+        assertThat(ListingImportNormalizer.coordinate(null, null, null)).isEqualTo(new ListingImportNormalizer.Coordinate(null, null));
+    }
+
+    @Test
+    void coordinateRejectsOutsideVietnamAndGarbage() {
+        // Đảo vĩ độ/kinh độ → ngoài Việt Nam → bỏ, có ghi chú
+        ListingImportNormalizer.Coordinate swapped = ListingImportNormalizer.coordinate("105.8562,21.0245", null, null);
+        assertThat(swapped.value()).isNull();
+        assertThat(swapped.problem()).contains("ngoài Việt Nam");
+        assertThat(ListingImportNormalizer.coordinate("21,0245", null, null).value()).isNull(); // dấu phẩy thập phân: không đoán
+        assertThat(ListingImportNormalizer.coordinate("abc", null, null).problem()).isNotNull();
+        assertThat(ListingImportNormalizer.coordinate(null, "21.02", null).problem()).contains("Thiếu");
+    }
+
+    @Test
+    void logoMustBeHttpUrl() {
+        assertThat(ListingImportNormalizer.httpUrl(" https://vidu.vn/logo.png ")).isEqualTo("https://vidu.vn/logo.png");
+        assertThat(ListingImportNormalizer.httpUrl("logo.png")).isNull();
+        assertThat(ListingImportNormalizer.httpUrl("javascript:alert(1)")).isNull();
+    }
+
+    @Test
+    void imageUrlsFromListOrJson() {
+        assertThat(
+            ListingImportNormalizer.imageUrls("https://a.vn/1.jpg; https://a.vn/2.jpg | https://a.vn/1.jpg\nhttps://a.vn/3.jpg")
+        ).containsExactly("https://a.vn/1.jpg", "https://a.vn/2.jpg", "https://a.vn/3.jpg");
+        assertThat(
+            ListingImportNormalizer.imageUrls("[{\"image_url\":\"https:\\/\\/a.vn\\/4.jpg\"},\"https://a.vn/5.jpg\"]")
+        ).containsExactly("https://a.vn/4.jpg", "https://a.vn/5.jpg");
+        assertThat(ListingImportNormalizer.imageUrls("anh-khong-phai-url.jpg")).isEmpty();
+        assertThat(ListingImportNormalizer.imageUrls(null)).isEmpty();
+        String many = String.join(
+            ";",
+            java.util.stream.IntStream.range(0, 40)
+                .mapToObj(i -> "https://a.vn/" + i + ".jpg")
+                .toList()
+        );
+        assertThat(ListingImportNormalizer.imageUrls(many)).hasSize(ListingImportNormalizer.MAX_IMAGES);
+    }
 }

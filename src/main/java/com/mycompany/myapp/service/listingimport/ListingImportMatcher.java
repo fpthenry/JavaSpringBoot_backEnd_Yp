@@ -75,7 +75,7 @@ public class ListingImportMatcher {
                 ListingImportNormalizer.phone(r.phone()),
                 ListingImportNormalizer.phone(r.mobile()),
                 ListingImportNormalizer.nameTokens(r.name()),
-                ListingImportNormalizer.addressTokens(r.address())
+                ListingImportNormalizer.addressTokens(r.address() != null ? r.address() : r.addressNew())
             );
         }
 

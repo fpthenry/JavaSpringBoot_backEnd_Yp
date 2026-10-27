@@ -1,10 +1,13 @@
 package com.mycompany.myapp.service.listingimport;
 
 import com.mycompany.myapp.repository.search.VietnameseText;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -250,5 +253,82 @@ public final class ListingImportNormalizer {
     public static String cut(String s, int max) {
         String c = clean(s);
         return c == null || c.length() <= max ? c : c.substring(0, max);
+    }
+
+    // ---------------------------------------------------------------- tọa độ, URL ảnh
+
+    /** Một số tọa độ: dấu trừ tùy chọn, phần nguyên, phần thập phân bằng dấu chấm. */
+    private static final Pattern COORD_NUMBER = Pattern.compile("-?\\d{1,3}(\\.\\d+)?");
+    private static final Pattern URL_IN_TEXT = Pattern.compile("https?://[^\\s\"'<>;|,\\]]+", Pattern.CASE_INSENSITIVE);
+
+    /** Số ảnh tối đa mỗi doanh nghiệp. */
+    public static final int MAX_IMAGES = 30;
+
+    /** Kết quả đọc tọa độ: {@code value} dạng "vĩ độ:kinh độ" (như location_json đang lưu) hoặc null; {@code problem} để ghi chú. */
+    public record Coordinate(String value, String problem) {}
+
+    /**
+     * Tọa độ từ ô "vĩ độ,kinh độ" / "vĩ độ:kinh độ" / "vĩ độ kinh độ", hoặc hai ô vĩ độ + kinh độ.
+     * <b>Giữ nguyên chữ số</b> (không làm tròn, không đổi số chữ số thập phân) — chỉ đổi dấu phân cách thành {@code :}.
+     * Ngoài vùng Việt Nam (vĩ độ 8–24, kinh độ 102–110, thường do nhập đảo hai số) → bỏ qua, có ghi chú.
+     */
+    public static Coordinate coordinate(String combined, String latitude, String longitude) {
+        String lat;
+        String lng;
+        String c = clean(combined);
+        if (c != null) {
+            String[] parts = c.replaceAll("[()\\[\\]]", "").trim().split("\\s*[,:;]\\s*|\\s+");
+            if (parts.length != 2) {
+                return new Coordinate(null, "Tọa độ không đọc được: " + c);
+            }
+            lat = parts[0];
+            lng = parts[1];
+        } else {
+            lat = clean(latitude);
+            lng = clean(longitude);
+            if (lat == null && lng == null) {
+                return new Coordinate(null, null);
+            }
+            if (lat == null || lng == null) {
+                return new Coordinate(null, "Thiếu vĩ độ hoặc kinh độ");
+            }
+        }
+        if (!COORD_NUMBER.matcher(lat).matches() || !COORD_NUMBER.matcher(lng).matches()) {
+            return new Coordinate(null, "Tọa độ không đọc được: " + lat + ", " + lng);
+        }
+        double la = Double.parseDouble(lat);
+        double lo = Double.parseDouble(lng);
+        if (la < 8 || la > 24 || lo < 102 || lo > 110) {
+            return new Coordinate(null, "Tọa độ ngoài Việt Nam (có thể đảo vĩ độ/kinh độ), bỏ qua: " + lat + ", " + lng);
+        }
+        return new Coordinate(lat + ":" + lng, null);
+    }
+
+    /** URL http(s) hợp lệ (logo, ảnh); khác → null. */
+    public static String httpUrl(String value) {
+        String v = clean(value);
+        if (v == null || !v.matches("(?i)https?://\\S+")) {
+            return null;
+        }
+        return v;
+    }
+
+    /**
+     * Danh sách URL ảnh: cách nhau bởi ; | , xuống dòng, hoặc mảng JSON (chuỗi hoặc đối tượng {"image_url": …}).
+     * Chỉ http(s), bỏ trùng, tối đa {@link #MAX_IMAGES}.
+     */
+    public static List<String> imageUrls(String value) {
+        List<String> out = new ArrayList<>();
+        String v = clean(value);
+        if (v == null) {
+            return out;
+        }
+        Matcher m = URL_IN_TEXT.matcher(v.replace("\\/", "/"));
+        Set<String> seen = new LinkedHashSet<>();
+        while (m.find() && seen.size() < MAX_IMAGES) {
+            seen.add(m.group());
+        }
+        out.addAll(seen);
+        return out;
     }
 }

@@ -116,9 +116,12 @@ public class ListingImportResource {
     public ResponseEntity<byte[]> template() {
         String header = String.join(",", ImportRecord.FIELDS);
         String example =
+            // thứ tự theo ImportRecord.FIELDS; tọa độ dùng cột coordinate (để trống latitude, longitude) hoặc ngược lại
             "DN-001,Công ty TNHH Ví Dụ,Example Co. Ltd,VIDU,0101234567,(024) 3846 0171,0912345678,info@vidu.vn,vidu.vn," +
-            "\"Số 1 Tràng Tiền, Phường Hoàn Kiếm, Thành phố Hà Nội\",Nguyễn Văn A,5.000.000.000,01/01/2015," +
-            "Công ty TNHH 2 thành viên,Đang hoạt động,4690,\"4690; 4610\",Hà Nội,Giới thiệu ngắn";
+            "\"Số 1 Tràng Tiền, Phường Tràng Tiền, Quận Hoàn Kiếm, Thành phố Hà Nội\"," +
+            "\"Số 1 Tràng Tiền, Phường Hoàn Kiếm, Thành phố Hà Nội\",Hà Nội,Quận Hoàn Kiếm,Phường Hoàn Kiếm,\"21.0245,105.8562\",,," +
+            "Nguyễn Văn A,5.000.000.000,01/01/2015,Công ty TNHH 2 thành viên,Đang hoạt động,4690,\"4690; 4610\"," +
+            "Thuế cơ sở 1 thành phố Hà Nội,Giới thiệu ngắn,https://vidu.vn/logo.png,\"https://vidu.vn/anh-1.jpg; https://vidu.vn/anh-2.jpg\"";
         byte[] bom = { (byte) 0xEF, (byte) 0xBB, (byte) 0xBF }; // Excel mở đúng tiếng Việt
         byte[] body = (header + "\r\n" + example + "\r\n").getBytes(StandardCharsets.UTF_8);
         byte[] out = new byte[bom.length + body.length];

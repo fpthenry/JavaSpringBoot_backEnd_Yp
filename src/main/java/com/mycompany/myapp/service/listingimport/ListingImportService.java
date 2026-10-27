@@ -454,7 +454,10 @@ public class ListingImportService {
         return batchRepository.findById(id);
     }
 
-    /** Dòng của đợt (lọc theo trạng thái), kèm dữ liệu gốc và doanh nghiệp đã có bị khớp / nghi trùng. */
+    /**
+     * Dòng của đợt (lọc theo trạng thái), kèm dữ liệu gốc và doanh nghiệp đã có bị khớp / nghi trùng — đủ các trường để
+     * màn hình duyệt so cạnh nhau (tên, MST, SĐT, email, website, địa chỉ cũ/mới, người đại diện).
+     */
     public Page<RowView> rows(long batchId, Status status, Pageable pageable) {
         Page<ListingImportRow> page =
             status == null
@@ -468,7 +471,8 @@ public class ListingImportService {
         Map<Long, Map<String, Object>> matched = new HashMap<>();
         if (!ids.isEmpty()) {
             jdbc.query(
-                "select id, wp_id, name, slug, tax_code, phone, mobile, address, status, source from listing where id in (:ids)",
+                "select id, wp_id, name, slug, tax_code, phone, mobile, email, website, address, address_new, representative, status, source " +
+                    "from listing where id in (:ids)",
                 new MapSqlParameterSource("ids", ids),
                 rs -> {
                     Map<String, Object> m = new LinkedHashMap<>();
@@ -479,7 +483,11 @@ public class ListingImportService {
                     m.put("taxCode", rs.getString("tax_code"));
                     m.put("phone", rs.getString("phone"));
                     m.put("mobile", rs.getString("mobile"));
+                    m.put("email", rs.getString("email"));
+                    m.put("website", rs.getString("website"));
                     m.put("address", rs.getString("address"));
+                    m.put("addressNew", rs.getString("address_new"));
+                    m.put("representative", rs.getString("representative"));
                     m.put("status", rs.getString("status"));
                     m.put("source", rs.getString("source"));
                     matched.put(rs.getLong("id"), m);

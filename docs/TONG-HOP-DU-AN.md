@@ -2157,6 +2157,7 @@ Lưu ý:
 | 22 | **Đơn vị hành chính 2025, bước 4** (bước 1–3 xong 2026-10-08): API tra cứu cũ → mới. Sau đó tìm kiếm listing trên ES: tìm không dấu, xếp địa chỉ mới lên trước, kết hợp với lọc ngành và địa phương | [Mục 7.10](#710-đơn-vị-hành-chính-sau-sáp-nhập-0172025) |
 | 23 | **Giao diện quản trị bước 2–4** (bước 1 xong 2026-10-12): áp dụng form chia nhóm, ô tự xuống dòng, chọn bằng gõ tìm, nhãn tiếng Việt cho các entity còn lại; trang chi tiết; quản trị người dùng | [Mục 16.3](#163-các-bước-tiếp-theo). Lưu ý các entity còn lại cũng dùng `<select>` 20 dòng đầu để chọn cha |
 | 21 | ~~Bộ lọc danh mục, thẻ trên trang danh sách bài viết (quản trị)~~ ✅ Xong 2026-10-12 | Tab trạng thái, lọc danh mục/thẻ trên Elasticsearch ([mục 16.2](#162-bước-1-xong-2026-10-12)) |
+| 24 | **Nhập doanh nghiệp: tìm trùng theo số điện thoại** (mục A, hoãn theo yêu cầu 2026-10-27: làm **sau khi đã nhập dữ liệu thật** rồi xem kết quả trùng thực tế) | Xem [mục 17.6](#176-việc-hoãn-tìm-trùng-theo-số-điện-thoại-mục-a) |
 
 ---
 
@@ -2389,7 +2390,7 @@ Quy trình nên dùng: **chạy thử** (`dryRun=true`: làm y hệt rồi rollb
 
 **Kiểm thử**: `ListingImportNormalizerTest` (11), `ListingImportMatcherTest` (9), `ImportFileReaderTest` (5).
 
-**Chưa làm**: giao diện quản trị cho nhập / duyệt (hiện dùng Swagger hoặc Postman); file `.xls` cũ (lưu lại thành `.xlsx`).
+**Chưa làm**: ~~giao diện quản trị cho nhập / duyệt~~ ✅ 2026-10-27 ([mục 17.7](#177-giao-diện-quản-trị-nhập-doanh-nghiệp-mục-c-2026-10-27)); file `.xls` cũ (lưu lại thành `.xlsx`).
 
 ### 17.4 Sửa lỗi nghi trùng không hoạt động (2026-10-27)
 
@@ -2397,4 +2398,53 @@ Chạy thử đầu tiên (đợt #1, `dryRun`, 4 dòng: trùng MST, cùng công
 
 Sửa (`ListingImportMatcher.candidateQuery`): tìm trên **cả** `name.folded` (không dấu, sau reindex) **và** `name` (còn dấu, index nào cũng có) — từ phân biệt giữ dấu lấy bằng `ListingImportNormalizer.accentedNameWords` ("Công ty TNHH Tân Minh Technology" → "tân minh technology"); ứng viên mỗi dòng 5 → 10 (tên phổ biến có hàng chục doanh nghiệp). Test `accentedNameWordsKeepDiacriticsDropLegalForms`. Chạy lại: dòng đó → `SUSPECT` (chờ duyệt), các dòng khác như cũ.
 
-**Còn yếu:** ứng viên chỉ tìm theo tên. Dòng trên được đề xuất "MINH TÂN TECHNOLOGY" (#533428, tên gần nhất) chứ không phải Tân Minh #413261 (cùng SĐT) vì #413261 không lọt top 10 theo tên. Cần tìm ứng viên thêm theo **SĐT** (đề xuất: cột sinh tự động 8 số cuối SĐT/di động + index, xem 17.5 khi làm).
+**Còn yếu:** ứng viên chỉ tìm theo tên. Dòng trên được đề xuất "MINH TÂN TECHNOLOGY" (#533428, tên gần nhất) chứ không phải Tân Minh #413261 (cùng SĐT) vì #413261 không lọt top 10 theo tên. Cần tìm ứng viên thêm theo **SĐT** (đề xuất: cột sinh tự động 8 số cuối SĐT/di động + index — mục A, chưa làm).
+
+### 17.5 Đủ trường: địa chỉ mới, phường/xã, tọa độ, logo, ảnh, cơ quan thuế (2026-10-27)
+
+Từ 19 lên **28 cột** (`ImportRecord.FIELDS`, file mẫu `GET /template.csv` cập nhật theo). Không đổi cấu trúc DB — mọi cột đích đã có.
+
+| Cột chuẩn | Tên cột nhận thêm (có/không dấu) | Ghi vào | Kiểm tra |
+|---|---|---|---|
+| `addressNew` | Địa chỉ mới, Địa chỉ sau sáp nhập | `listing.address_new` | ≤ 500 ký tự |
+| `district` | Quận/huyện, Quận, Huyện, Thị xã | — (chỉ để phân biệt xã cũ trùng tên) | |
+| `ward` | Phường/xã, Phường, Xã, Thị trấn | liên kết `rel_listing__location` + `location_json` (ward, ward_type, ward_code) | Xem dưới |
+| `coordinate` / `latitude` + `longitude` | Tọa độ, Vị trí, GPS / Vĩ độ, Kinh độ, lat, lng | `location_json.coordinate` "vĩ độ:kinh độ" | **Giữ nguyên chữ số** (không làm tròn), chỉ đổi dấu phân cách; ngoài Việt Nam (vĩ 8–24, kinh 102–110 — thường do đảo hai số) → bỏ, ghi chú; dấu phẩy thập phân → không đoán |
+| `logo` | Logo, Ảnh đại diện, thumbnail | `listing.thumbnail` | Chỉ URL http(s) |
+| `images` | Hình ảnh, Ảnh, Thư viện ảnh, gallery | `listing.images` `[{"image_url","caption"}]` (như ảnh đồng bộ WordPress) | URL cách nhau `; | ,` xuống dòng hoặc mảng JSON; chỉ http(s), bỏ trùng, ≤ 30 |
+| `managedBy` | Cơ quan thuế, Nơi quản lý, Quản lý bởi | `listing.managed_by` | ≤ 255 |
+
+**Quy tắc (người dùng chốt phương án đề xuất):** doanh nghiệp đã có → chỉ điền ô trống, **không ghi đè, không nối thêm ảnh**; tọa độ ngoài Việt Nam → bỏ + ghi chú; xã cũ về đúng một xã mới → **gắn cả xã cũ lẫn xã mới** (như dữ liệu đang có). Phường/xã chỉ gắn khi doanh nghiệp chưa có phường/xã.
+
+**Tìm phường/xã** (`ImportTermResolver.ward`, nạp một lần mỗi đợt: ~15.300 địa phương + 10.571 dòng `location_conversion`): chỉ tìm trong tỉnh của dòng (cột tỉnh, hoặc cuối địa chỉ, hoặc tỉnh doanh nghiệp đang có) **và tỉnh cũ/mới tương ứng** — 14.501 phường/xã chỉ có 8.661 tên. Thứ tự: tên đầy đủ ("Phường Ba Đình") → tên bỏ tiền tố ("Ba Đình") hoặc mã ("00004"); nhiều kết quả → lọc theo quận/huyện (xã cũ) → ưu tiên xã mới → vẫn nhiều thì không gắn, ghi chú "Có N phường/xã tên … (thêm cột quận/huyện)". Xã cũ → xã mới qua mã: chỉ khi bảng chuyển đổi cho ra đúng một xã mới (vd Trúc Bạch 00004 → Phường Ba Đình mới; Cống Vị 00007 tách 2 xã → chỉ gắn xã cũ).
+
+**location_json** (`ListingImportWriter.mergeLocationJson`): cùng cấu trúc dữ liệu đang có `{province, ward, street, ward_type, province_code, ward_code, coordinate}`, ghi **gọn một dòng** (ObjectMapper của profile dev bật INDENT_OUTPUT → dùng writer bỏ thụt lề); doanh nghiệp đã có chỉ điền khóa đang null/rỗng; JSON cũ hỏng thì không đụng. Bộ so trùng dùng `addressNew` khi không có `address`.
+
+**Kiểm tra (2026-10-27):** chạy thử 7 dòng tiêu đề tiếng Việt + chạy thật 6 doanh nghiệp thử (đọc lại DB theo `import_batch_id`, rồi xóa bằng `DELETE /api/listings/{id}`; xóa luôn nhật ký đợt thử 1–5 theo id): đủ trường ghi đúng; tọa độ `21.0245123:105.8562` giữ 7 số lẻ; Trúc Bạch → gắn Trúc Bạch cũ + Ba Đình mới; "Phường 1" TP HCM → 7 phường trùng tên, không gắn, có ghi chú; tọa độ đảo, logo không phải URL → bỏ, có ghi chú; doanh nghiệp đã có (Tân Minh) → chỉ bổ sung `addressNew`, `images`, giữ logo/tọa độ cũ. Test `ListingImportNormalizerTest`: `coordinateKeepsDigitsExactly`, `coordinateRejectsOutsideVietnamAndGarbage`, `logoMustBeHttpUrl`, `imageUrlsFromListOrJson`.
+
+### 17.6 Việc hoãn: tìm trùng theo số điện thoại (mục A)
+
+> Người dùng quyết định 2026-10-27: **chưa làm**; nhập (clone) dữ liệu thật vào hệ thống trước, xem kết quả các đợt (số `CREATED` / `SUSPECT`, các cặp nghi trùng) rồi mới quyết.
+
+**Vấn đề:** bước gần đúng chỉ lấy ứng viên **theo tên** (10 ứng viên/dòng trên Elasticsearch). Dòng không có MST mà tên viết khác hẳn (viết tắt, tên tiếng Anh, thêm/bớt ngành) nhưng **cùng SĐT** với doanh nghiệp đã có thì doanh nghiệp đó có thể không lọt top 10 → đề xuất sai ứng viên hoặc tạo mới (ví dụ thử: "Công ty Tân Minh Technology" cùng SĐT với #413261 nhưng được đề xuất "MINH TÂN TECHNOLOGY" #533428). Quy mô: **375.551 / 1.855.619 doanh nghiệp không có MST**; 1.540.042 có SĐT, 56.584 có di động.
+
+**Hướng làm đã đề xuất:**
+
+1. Thêm vào `listing` 2 cột **sinh tự động** (MySQL `STORED GENERATED`, không phải sửa code ghi; trang quản trị, đồng bộ, nhập đều tự cập nhật): 8 số cuối của số điện thoại đầu tiên trong `phone`, trong `mobile` (vd `RIGHT(REGEXP_REPLACE(REGEXP_SUBSTR(phone, '[+0-9][0-9 .()-]{6,}[0-9]'), '[^0-9]', ''), 8)`), kèm index. Cùng cách so 8 số cuối của `ListingImportNormalizer.phone` (mã vùng cũ `04` → `024` vẫn khớp).
+2. `ListingImportMatcher`: thêm một truy vấn theo lô `WHERE phone_key IN (:keys) OR mobile_key IN (:keys)` (như truy vấn MST), gộp vào danh sách ứng viên trước khi chấm điểm; cùng SĐT + tên giống ≥ 0,4 (hoặc tên nằm trọn trong tên kia) → `SUSPECT` căn cứ `PHONE`.
+3. Changelog Liquibase viết tay (không qua JDL/generator; cột không cần map vào entity).
+
+**Lưu ý khi làm:** thêm cột STORED trên 1,86 triệu dòng phải **dựng lại bảng** (`ALGORITHM=COPY`) — **khóa ghi bảng `listing` vài phút**: chọn lúc không ai sửa dữ liệu, tắt đồng bộ/nhập đang chạy. Kiểm tra lại số SĐT dùng chung (tổng đài, số của đơn vị chủ quản) để không biến mọi doanh nghiệp cùng tổng đài thành nghi trùng — nên đếm `phone_key` xuất hiện > N lần và bỏ qua các khóa đó.
+
+**Cần xem sau khi nhập thật:** tỉ lệ `SUSPECT` bị bỏ qua/gộp khi duyệt; số doanh nghiệp mới bị phát hiện trùng muộn (cùng SĐT với doanh nghiệp cũ) — có thể đếm bằng SQL sau khi có cột ở bước 1.
+
+### 17.7 Giao diện quản trị nhập doanh nghiệp (mục C, 2026-10-27)
+
+Menu **Thực thể → Doanh nghiệp → Nhập doanh nghiệp** (`/listing-import`, chỉ ROLE_ADMIN — mục menu ẩn với tài khoản khác). Code: [`entities/listing-import/`](../src/main/webapp/app/entities/listing-import/) (không qua JDL), nhãn `i18n/{vi,en}/listingImport.json`, style khối `.listing-import` trong `global.scss`, 11 icon thêm vào `config/font-awesome-icons.ts`.
+
+| Trang | Làm được |
+|---|---|
+| `/listing-import` | **Tải file mẫu** (28 cột; tải bằng HttpClient vì API cần token); **Nhập mới**: tab **File Excel/CSV** (kéo thả hoặc chọn; chặn `.xls`, > 100 MB) và tab **Từ API** (mã nguồn, URL, đường dẫn mảng, header "Tên: giá trị" mỗi dòng; nâng cao: tham số trang, trang đầu, số trang, nghỉ giữa trang, ánh xạ trường "tên chuẩn = đường dẫn"); ô **Chạy thử** bật sẵn, bỏ chọn thì hiện cảnh báo nhập thật. Lỗi backend (vd 409 đang có đợt khác) hiện nguyên văn. Thanh **đợt đang chạy** (tự hỏi mỗi 2 s). Bảng các đợt: số đợt + nhãn Chạy thử/Nhập thật, nguồn (file/API + mã), kết quả gọn (nghi trùng, tạo mới, bổ sung, lỗi), thời gian + thời lượng, người chạy; phân trang. |
+| `/listing-import/:id` | Đầu trang: nguồn, thời gian, nút **Xuất bản N doanh nghiệp nháp** (đợt thật đã xong, bấm 2 bước). Thông báo: đang chạy (tự cập nhật, xong thì tải lại bảng), lỗi đợt, chạy thử ("kết quả là điều SẼ xảy ra"), **N dòng nghi trùng chờ duyệt → Duyệt ngay**. **Bộ đếm = bộ lọc** (Tất cả, Nghi trùng, Tạo mới/Sẽ tạo mới, Bổ sung/Sẽ bổ sung, Đã có, Trùng trong file, Lỗi, Đã bỏ qua — rê chuột xem giải thích). Bảng: dòng, doanh nghiệp trong file (tên, MST, SĐT, mã nguồn), kết quả + căn cứ + điểm, doanh nghiệp đang có (mở tab mới), **trường đã bổ sung** + **ghi chú** (không nhận ra tỉnh, tọa độ sai…; trên điện thoại hiện dưới tên). **Dòng nghi trùng**: bảng **so cạnh nhau** tên/MST/SĐT/di động/email/website/địa chỉ cũ, mới/người đại diện — giống (bỏ dấu, khoảng trắng, ký tự) tô xanh, khác tô vàng, "sẽ bổ sung" khi doanh nghiệp đang có còn trống; nút **Cùng doanh nghiệp — gộp**, **Khác doanh nghiệp — tạo mới**, **Bỏ qua**, ô **gộp vào doanh nghiệp khác (ID)**. Đợt chạy thử không có nút duyệt (giải thích vì sao). |
+
+Backend kèm theo: `rows` trả thêm email, website, địa chỉ mới, người đại diện của doanh nghiệp bị khớp (để so). **Kiểm thử:** `listing-import-display.spec.ts` 7, `listing-import-list.spec.ts` 6, `listing-import-detail.spec.ts` 5 — 18/18; navbar 13/13. Chrome (đăng nhập admin): menu có mục mới; chạy thử 7 dòng qua giao diện → bộ lọc "Sẽ tạo mới 6 · Sẽ bổ sung 1", không nút duyệt; nhập thật 1 dòng nghi trùng → khối so sánh (tên, SĐT khác tô vàng) → **Bỏ qua** → dòng "Đã bỏ qua", có thông báo; 390 px không cuộn ngang; không lỗi console. Không tạo/sửa doanh nghiệp nào; đã xóa nhật ký các đợt thử theo id.
