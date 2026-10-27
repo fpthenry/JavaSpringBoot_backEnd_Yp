@@ -1,5 +1,5 @@
 # MySQL + Elasticsearch cho PRODUCTION (máy chủ chạy yellowbe.yp.vn).
-# Hướng dẫn đầy đủ: docs/TONG-HOP-DU-AN.md mục 9.5.
+# Hướng dẫn đầy đủ: docs/TONG-HOP-DU-AN.md mục 18.
 #
 # Trên server: chép thư mục ops/ vào /opt/yp/ops, tạo file .env cạnh file này (mẫu: .env.example), rồi:
 #   docker compose up -d

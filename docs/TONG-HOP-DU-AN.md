@@ -21,6 +21,7 @@
 15. [Lệnh hay dùng](#15-lệnh-hay-dùng)
 16. [Giao diện quản trị (bàn giao khách hàng)](#16-giao-diện-quản-trị-bàn-giao-khách-hàng)
 17. [Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)](#17-nhập-doanh-nghiệp-từ-nguồn-ngoài-clone-dữ-liệu)
+18. [Triển khai lên website (FE + BE)](#18-triển-khai-lên-website-fe--be)
 
 ---
 
@@ -1269,179 +1270,9 @@ Rà soát cả backend, FE và yp.vn đang chạy (kiểm chứng bằng thao t�
 
 **Sau lần chạy đầu tiên:** đổi mật khẩu `admin` ngay (Tài khoản → Mật khẩu); tạo tài khoản quản trị riêng; MySQL dùng user riêng (không root, có mật khẩu); bật xác thực Elasticsearch; cổng 3306/9200 chỉ mở trong máy; không bật profile `secret-samples`; Cloudflare SSL "Full (strict)".
 
-### 9.5 Đưa toàn bộ dự án lên một máy chủ (từng bước)
+### 9.5 Đưa toàn bộ dự án lên một máy chủ
 
-Mô hình: **một máy chủ Ubuntu 24.04** chạy tất cả. Internet chỉ vào được cổng 80/443 (nginx), mọi thứ khác chỉ nghe trong máy:
-
-```text
-Internet ──443──► nginx ──► yellowbe.yp.vn → Spring Boot 127.0.0.1:8080 (API + trang quản trị) ──► MySQL 127.0.0.1:3306 (Docker)
-                       └──► yellowfe.yp.vn → Next.js     127.0.0.1:3000 ──(API key)──► backend      └► Elasticsearch 127.0.0.1:9200 (Docker)
-```
-
-File cấu hình mẫu nằm trong thư mục [`ops/`](../ops) của repo backend (thư mục `deploy/` bị JHipster đưa vào `.gitignore` nên dùng tên `ops/`):
-
-| File | Đặt trên server | Dùng cho |
-|---|---|---|
-| `ops/docker-compose.yml`, `ops/.env.example` | `/opt/yp/ops/` | MySQL 26.7 + Elasticsearch 9.4.5, có mật khẩu, dữ liệu ở named volume |
-| `ops/nginx/yellowbe.yp.vn.conf`, `yellowfe.yp.vn.conf` | `/etc/nginx/sites-available/` | Reverse proxy; upload tới 50 MB; **giới hạn 10 lần đăng nhập/phút/IP** (`/api/authenticate`) |
-| `ops/systemd/yp-backend.service`, `yp-fe.service` | `/etc/systemd/system/` | Tự chạy khi khởi động máy, tự chạy lại khi lỗi |
-| `ops/backup-mysql.sh` | `/opt/yp/ops/` | Sao lưu CSDL hằng ngày, giữ 7 bản |
-
-**Cấu hình máy chủ:** khuyên dùng 8 vCPU, 16 GB RAM, 100 GB SSD. Tối thiểu 4 vCPU, 8 GB RAM. CSDL khoảng 4,2 GB; index ES khoảng 1–2 GB; `next build` cần khoảng 2–3 GB RAM lúc build.
-
-#### Bước 1: DNS
-
-Tạo bản ghi A `yellowbe` và `yellowfe` trỏ về IP máy chủ. Nếu tên miền dùng Cloudflare, **lúc đầu để "DNS only" (đám mây xám)** để certbot cấp chứng chỉ ở bước 8. Sau đó mới bật proxy.
-
-#### Bước 2: Cài phần mềm (trên server, quyền root)
-
-```bash
-apt update && apt -y upgrade
-apt -y install openjdk-21-jre-headless nginx certbot python3-certbot-nginx git jq unzip
-curl -fsSL https://get.docker.com | sh
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt -y install nodejs
-useradd -r -m -d /opt/yp -s /bin/bash yp && mkdir -p /opt/yp/{backend,backups}
-echo 'vm.max_map_count=262144' > /etc/sysctl.d/99-elasticsearch.conf && sysctl --system   # Elasticsearch cần
-ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw enable                                  # chỉ mở 22, 80, 443
-```
-
-#### Bước 3: MySQL và Elasticsearch
-
-Trên máy dev (Git Bash, ở thư mục backend):
-
-```bash
-scp -r ops root@IP_SERVER:/opt/yp/
-```
-
-Trên server:
-
-```bash
-cd /opt/yp/ops && cp .env.example .env && nano .env    # điền MYSQL_ROOT_PASSWORD, DB_PASSWORD, ELASTIC_PASSWORD, bộ nhớ
-chmod 600 .env && chmod +x backup-mysql.sh
-docker compose up -d && docker compose ps               # chờ cả hai "healthy"
-```
-
-#### Bước 4: Chuyển dữ liệu từ máy dev
-
-Trên máy dev, **dùng Git Bash, không dùng PowerShell** (PowerShell 5.1 đổi mã hóa khi `>` ra file, hỏng file nén):
-
-```bash
-docker exec javaspringbootbackend-mysql-1 mysqldump -uroot --single-transaction --quick --no-tablespaces --set-gtid-purged=OFF javaspringbootbackend | gzip > yp_db.sql.gz
-scp yp_db.sql.gz root@IP_SERVER:/opt/yp/backups/
-```
-
-Trên server, chạy trong `tmux` vì mất khoảng 30–90 phút, chủ yếu do 25 triệu dòng `rel_listing__category`:
-
-```bash
-gunzip -c /opt/yp/backups/yp_db.sql.gz | docker exec -i yp-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" javaspringbootbackend'
-docker exec yp-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N javaspringbootbackend -e "select count(*) from listing"'   # 1855619
-```
-
-Dữ liệu dev là dữ liệu thật: dữ liệu giả của faker đã bị xóa khi đồng bộ từ `jhipster_vnyp`; banner, gallery, danh mục blog là dữ liệu nhập tay. Bảng `DATABASECHANGELOG` đi kèm nên Liquibase chỉ chạy các changeset mới, trong đó có changeset khóa tài khoản `user` (context `prod`).
-
-#### Bước 5: Backend
-
-Trên máy dev (Git Bash). **Đóng VS Code trước khi build** để tránh VS Code và Maven cùng ghi `target/classes`:
-
-```bash
-./mvnw -Pprod clean package -DskipTests
-unzip -l target/java-spring-boot-back-end-*.jar | grep -c "static/"     # phải > 0 (có trang quản trị trong jar)
-scp target/java-spring-boot-back-end-*.jar root@IP_SERVER:/opt/yp/backend/app.jar
-scp .env.example root@IP_SERVER:/opt/yp/backend/
-```
-
-Trên server:
-
-```bash
-cd /opt/yp/backend && cp .env.example .env && nano .env
-#   APP_BASE_URL=https://yellowbe.yp.vn
-#   DB_USERNAME=yp_app, DB_PASSWORD = DB_PASSWORD trong /opt/yp/ops/.env
-#   ELASTICSEARCH_USERNAME=elastic, ELASTICSEARCH_PASSWORD = ELASTIC_PASSWORD trong /opt/yp/ops/.env
-#   JWT_BASE64_SECRET = kết quả của:  openssl rand -base64 64 | tr -d '\n'
-#   PUBLIC_API_KEYS   = kết quả của:  openssl rand -hex 32
-chown -R yp:yp /opt/yp && chmod 600 /opt/yp/backend/.env
-cp /opt/yp/ops/systemd/yp-backend.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now yp-backend
-journalctl -u yp-backend -f                               # chờ dòng "Application 'javaSpringBootBackEnd' is running!"
-curl -s http://127.0.0.1:8080/management/health           # {"status":"UP"}
-```
-
-#### Bước 6: Đổi mật khẩu admin và reindex Elasticsearch
-
-Làm trước khi mở ra Internet. Elasticsearch trên server mới trống nên phải reindex từ MySQL: khoảng vài phút đến 20 phút. Trong lúc đó, tìm kiếm chỉ ra một phần kết quả. Trong mật khẩu, tránh ký tự `'` và `"`.
-
-```bash
-TOKEN=$(curl -s -X POST http://127.0.0.1:8080/api/authenticate -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"admin"}' | jq -r .id_token)
-curl -s -X POST http://127.0.0.1:8080/api/account/change-password -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' -d '{"currentPassword":"admin","newPassword":"MAT_KHAU_MOI_DAI"}'
-curl -s -X POST http://127.0.0.1:8080/api/admin/elasticsearch/reindex -H "Authorization: Bearer $TOKEN"
-curl -s http://127.0.0.1:8080/api/admin/elasticsearch/reindex -H "Authorization: Bearer $TOKEN" | jq   # xem tiến độ
-```
-
-#### Bước 7: FE (Next.js)
-
-Trên máy dev, đẩy code FE lên GitHub: `cd /d/nextyp-v2 && git push`. Code FE đang ở nhánh `edit_seo`; `main` mới có commit đầu tiên.
-
-Trên server: repo riêng tư nên cần Personal Access Token hoặc deploy key của GitHub. Build **sau khi backend đã chạy**, vì lúc build Next gọi API.
-
-```bash
-sudo -u yp git clone -b edit_seo https://github.com/fpthenry/nextyp-v2.git /opt/yp/fe
-cd /opt/yp/fe && sudo -u yp cp .env.example .env.production && sudo -u yp nano .env.production
-#   NEXT_PUBLIC_SITE_URL=https://yellowfe.yp.vn
-#   YP_API_BASE_URL=http://127.0.0.1:8080/api/public/v1      (cùng máy: gọi nội bộ)
-#   YP_API_KEY = một khóa trong PUBLIC_API_KEYS của backend
-chmod 600 .env.production
-sudo -u yp npm ci && sudo -u yp npm run build
-cp /opt/yp/ops/systemd/yp-fe.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now yp-fe
-curl -sI http://127.0.0.1:3000 | head -1                  # HTTP/1.1 200 OK
-```
-
-#### Bước 8: nginx và HTTPS
-
-```bash
-cp /opt/yp/ops/nginx/*.conf /etc/nginx/sites-available/
-ln -s /etc/nginx/sites-available/yellowbe.yp.vn.conf /etc/nginx/sites-enabled/
-ln -s /etc/nginx/sites-available/yellowfe.yp.vn.conf /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl reload nginx
-certbot --nginx -d yellowbe.yp.vn -d yellowfe.yp.vn --redirect --agree-tos -m EMAIL_CUA_BAN   # tự gia hạn
-```
-
-**Nếu dùng Cloudflare.** Sau khi certbot chạy xong:
-
-1. Bật proxy (đám mây cam).
-2. Đặt SSL/TLS là **Full (strict)**.
-3. Cho nginx thấy IP thật của người dùng. Thiếu bước này, giới hạn đăng nhập sẽ chặn chung mọi người vì ai cũng mang IP Cloudflare:
-
-   ```bash
-   { for ip in $(curl -s https://www.cloudflare.com/ips-v4) $(curl -s https://www.cloudflare.com/ips-v6); do echo "set_real_ip_from $ip;"; done; \
-     echo "real_ip_header CF-Connecting-IP;"; } > /etc/nginx/conf.d/cloudflare-realip.conf && nginx -t && systemctl reload nginx
-   ```
-
-Nếu sau này certbot gia hạn lỗi khi đang bật proxy, chuyển sang **Cloudflare Origin Certificate**, loại có hạn 15 năm.
-
-#### Bước 9: Kiểm tra và sao lưu
-
-- `https://yellowbe.yp.vn`: trang quản trị. Đăng nhập bằng mật khẩu mới; trang Đăng ký trả 403.
-- `https://yellowfe.yp.vn`: trang chủ, ngành nghề, tỉnh thành, chi tiết doanh nghiệp, blog.
-- `https://yellowfe.yp.vn/robots.txt` phải là `Disallow: /`, vì tên miền chạy thử bị chặn lập chỉ mục.
-- `curl -sI https://yellowfe.yp.vn` phải có `strict-transport-security` và `x-robots-tag: noindex, nofollow`.
-- Đặt lịch sao lưu: `crontab -e` → `30 2 * * * /opt/yp/ops/backup-mysql.sh >> /var/log/yp-backup.log 2>&1`. Nên chép định kỳ thư mục `/opt/yp/backups` ra máy khác.
-
-#### Cập nhật phiên bản mới
-
-| Phần | Làm gì |
-|---|---|
-| Backend | Build jar như bước 5 → `scp … /opt/yp/backend/app.jar.new` → trên server: `mv app.jar.new app.jar && systemctl restart yp-backend`. Liquibase tự áp thay đổi CSDL. Đổi mapping ES (thêm trường tìm kiếm…) thì reindex entity đó. |
-| FE | `cd /opt/yp/fe && sudo -u yp git pull && sudo -u yp npm ci && sudo -u yp npm run build && systemctl restart yp-fe` |
-| Cấu hình | Sửa `.env` backend → `systemctl restart yp-backend`. Sửa `NEXT_PUBLIC_*` của FE → **phải build lại**. |
-
-**Chuyển website sang yp.vn khi đã ổn định:**
-
-1. Trỏ DNS `yp.vn` và `www` về máy chủ.
-2. Trong `yellowfe.yp.vn.conf`, đổi `server_name` thành `yp.vn www.yp.vn`, rồi `certbot --nginx -d yp.vn -d www.yp.vn`.
-3. Trong `.env.production` đặt `NEXT_PUBLIC_SITE_URL=https://yp.vn`, build lại FE. Site tự mở lập chỉ mục; canonical, sitemap, Open Graph tự đổi theo.
-4. Gửi `https://yp.vn/sitemap.xml` lên Google Search Console.
+Đã chuyển sang **[mục 18. Triển khai lên website (FE + BE)](#18-triển-khai-lên-website-fe--be)**: đưa code lên bằng git và build trên server, các bước lần đầu, cập nhật bằng `ops/deploy.sh`, lỗi hay gặp, chuyển sang yp.vn.
 
 ---
 
@@ -2652,3 +2483,355 @@ Menu **Thực thể → Doanh nghiệp → Nhập doanh nghiệp** (`/listing-im
 | `/listing-import/:id` | Đầu trang: nguồn, thời gian, nút **Xuất bản N doanh nghiệp nháp** (đợt thật đã xong, bấm 2 bước). Thông báo: đang chạy (tự cập nhật, xong thì tải lại bảng), lỗi đợt, chạy thử ("kết quả là điều SẼ xảy ra"), **N dòng nghi trùng chờ duyệt → Duyệt ngay**. **Bộ đếm = bộ lọc** (Tất cả, Nghi trùng, Tạo mới/Sẽ tạo mới, Bổ sung/Sẽ bổ sung, Đã có, Trùng trong file, Lỗi, Đã bỏ qua — rê chuột xem giải thích). Bảng: dòng, doanh nghiệp trong file (tên, MST, SĐT, mã nguồn), kết quả + căn cứ + điểm, doanh nghiệp đang có (mở tab mới), **trường đã bổ sung** + **ghi chú** (không nhận ra tỉnh, tọa độ sai…; trên điện thoại hiện dưới tên). **Dòng nghi trùng**: bảng **so cạnh nhau** tên/MST/SĐT/di động/email/website/địa chỉ cũ, mới/người đại diện — giống (bỏ dấu, khoảng trắng, ký tự) tô xanh, khác tô vàng, "sẽ bổ sung" khi doanh nghiệp đang có còn trống; nút **Cùng doanh nghiệp — gộp**, **Khác doanh nghiệp — tạo mới**, **Bỏ qua**, ô **gộp vào doanh nghiệp khác (ID)**. Đợt chạy thử không có nút duyệt (giải thích vì sao). |
 
 Backend kèm theo: `rows` trả thêm email, website, địa chỉ mới, người đại diện của doanh nghiệp bị khớp (để so). **Kiểm thử:** `listing-import-display.spec.ts` 7, `listing-import-list.spec.ts` 6, `listing-import-detail.spec.ts` 5 — 18/18; navbar 13/13. Chrome (đăng nhập admin): menu có mục mới; chạy thử 7 dòng qua giao diện → bộ lọc "Sẽ tạo mới 6 · Sẽ bổ sung 1", không nút duyệt; nhập thật 1 dòng nghi trùng → khối so sánh (tên, SĐT khác tô vàng) → **Bỏ qua** → dòng "Đã bỏ qua", có thông báo; 390 px không cuộn ngang; không lỗi console. Không tạo/sửa doanh nghiệp nào; đã xóa nhật ký các đợt thử theo id.
+
+---
+
+## 18. Triển khai lên website (FE + BE)
+
+Đây là hướng dẫn **duy nhất** để đưa dự án lên máy chủ thật: cách đưa lên, triển khai lần đầu, cập nhật phiên bản, lỗi hay gặp, chuyển sang yp.vn. Nội dung này trước đây nằm ở mục 9.5.
+
+### 18.1 Cách đưa lên: git clone, build trên server
+
+**Cả hai repo đều đưa code lên bằng git và build ngay trên server.** Máy dev chỉ commit và push; server kéo code về, build, rồi chạy bản production.
+
+```text
+Máy dev:  sửa code → commit → git push ──► GitHub ──► Server:  git pull → build → thay bản đang chạy
+                                                             (sudo bash /opt/yp/src/backend/ops/deploy.sh all)
+```
+
+| | Backend (repo này, nhánh `main`) | FE (repo `nextyp-v2`, nhánh `edit_seo`) |
+|---|---|---|
+| Code trên server | `/opt/yp/src/backend` (git clone) | `/opt/yp/src/fe` (git clone) |
+| Build | `./mvnw -Pprod clean package` → một file jar chứa API, trang quản trị Angular và thay đổi CSDL (Liquibase tự chạy khi khởi động) | `npm ci && npm run build` trong thư mục mới `/opt/yp/fe-releases/<thời điểm>` |
+| Bản đang chạy | `/opt/yp/backend/app.jar` (+ `app.jar.bak` bản trước) | `/opt/yp/fe` → symlink tới bản build mới nhất (giữ 3 bản) |
+| Cấu hình | `/opt/yp/backend/.env`, đọc lúc **khởi động** | `/opt/yp/src/fe/.env.production`; biến `NEXT_PUBLIC_*` được **gắn vào lúc build** |
+| Server cần | Java 21 **JDK** (Maven tự tải Node để build trang quản trị) | Node.js 22 |
+
+**Vì sao build trên server:**
+- **Một quy trình cho cả hai:** cập nhật chỉ là `git pull` rồi build. Không phải chép file jar hơn 100 MB qua mạng.
+- **FE bắt buộc build trên server:** tên miền (`NEXT_PUBLIC_SITE_URL`) phải đúng lúc build, và lúc build Next gọi backend qua `127.0.0.1:8080`, địa chỉ chỉ có trên server.
+- **Máy dev không cần build production.** Ổ D: gần đầy.
+
+**Ba thứ không đi qua git:**
+
+| Thứ | Cách đưa lên |
+|---|---|
+| File cấu hình có mật khẩu | `scp` (xem bảng "File cấu hình soạn sẵn" ở 18.3) |
+| Dữ liệu MySQL | `mysqldump` ở máy dev → `scp` → nhập trên server (bước 5) |
+| Dữ liệu Elasticsearch | Không chép; reindex trên server từ MySQL (bước 7) |
+
+**Server chỉ lấy được code đã commit và push.** Trước mỗi lần triển khai, `git status` ở cả hai repo phải sạch và đã `git push`.
+
+### 18.2 Mô hình máy chủ
+
+Mô hình là **một máy chủ Ubuntu 24.04** chạy tất cả. Internet chỉ vào được cổng 80 và 443 qua nginx; mọi thứ khác chỉ nghe trong máy:
+
+```text
+Internet ──443──► nginx ──► yellowbe.yp.vn → Spring Boot 127.0.0.1:8080 (API + trang quản trị) ──► MySQL 127.0.0.1:3306 (Docker)
+                       └──► yellowfe.yp.vn → Next.js     127.0.0.1:3000 ──(API key)──► backend      └► Elasticsearch 127.0.0.1:9200 (Docker)
+```
+
+File cấu hình mẫu nằm trong thư mục [`ops/`](../ops) của repo backend. Không đặt tên `deploy/` vì JHipster đã đưa thư mục đó vào `.gitignore`.
+
+| File | Dùng cho |
+|---|---|
+| `ops/deploy.sh` | **Cập nhật bản mới bằng một lệnh**: kéo code, build, thay bản đang chạy, kiểm tra đã chạy. `backend`, `fe`, `all`, `fe-rollback` |
+| `ops/docker-compose.yml`, `ops/.env.example` | MySQL 26.7 và Elasticsearch 9.4.5, có mật khẩu, dữ liệu nằm ở named volume |
+| `ops/nginx/yellowbe.yp.vn.conf`, `yellowfe.yp.vn.conf` | Reverse proxy. Upload tới 100 MB, khớp giới hạn nhập doanh nghiệp từ file. **Tối đa 10 lần đăng nhập mỗi phút mỗi IP** (`/api/authenticate`). Backend gửi `X-Robots-Tag: noindex` |
+| `ops/systemd/yp-backend.service`, `yp-fe.service` | Tự chạy khi khởi động máy, tự chạy lại khi lỗi |
+| `ops/backup-mysql.sh` | Sao lưu CSDL hằng ngày, giữ 7 bản |
+
+Thư mục trên server:
+
+```text
+/opt/yp/
+├── src/
+│   ├── backend/      git clone repo backend (có ops/deploy.sh)
+│   └── fe/           git clone nextyp-v2 + .env.production (không commit)
+├── ops/              bản chép của src/backend/ops + .env (mật khẩu MySQL, Elasticsearch) — chạy docker compose ở đây
+├── backend/          app.jar, app.jar.bak, .env (cấu hình backend)
+├── fe-releases/      các bản build FE: 20261028-153000/ …  (giữ 3 bản)
+├── fe ──►            symlink tới bản build FE đang chạy
+└── backups/          bản sao lưu CSDL
+```
+
+**Cấu hình máy chủ:**
+- **Khuyên dùng:** 8 vCPU, 16 GB RAM, 100 GB SSD.
+- **Tối thiểu:** 4 vCPU, 8 GB RAM.
+- **Dung lượng:** CSDL khoảng 4,2 GB; index Elasticsearch khoảng 1–2 GB.
+- **Build trên server cần thêm RAM:** khoảng 2 GB cho Maven và Angular, 2–3 GB cho `next build`, trong khi MySQL, Elasticsearch và backend vẫn chạy. Máy 8 GB thì build lần lượt (`backend` xong mới `fe`, `deploy.sh all` đã làm vậy) và giữ `MYSQL_BUFFER_POOL=2G`, `ES_HEAP=2g`.
+
+### 18.3 Triển khai lần đầu
+
+**File cấu hình soạn sẵn.** Ba file đã được soạn sẵn, có đủ mật khẩu và khóa ngẫu nhiên, các giá trị dùng chung giữa các file đã khớp nhau. Chúng nằm **ngoài repo** ở máy dev, thư mục `C:\Users\ADMIN\Documents\tuanna\yp-server-env\`; cách dùng ghi trong `DOC-TRUOC.txt`.
+
+| File | Đặt trên server | Bước |
+|---|---|---|
+| `ops.env` | `/opt/yp/ops/.env` | 4 |
+| `backend.env` | `/opt/yp/backend/.env` | 6 |
+| `fe.env.production` | `/opt/yp/src/fe/.env.production` | 8 |
+
+Không có bộ file này thì chép `.env.example` tương ứng rồi tự điền (cách tạo khóa ghi trong từng file mẫu).
+
+#### Bước 1: DNS
+
+Tạo bản ghi A `yellowbe` và `yellowfe` trỏ về IP máy chủ. Nếu tên miền dùng Cloudflare, **lúc đầu để "DNS only" (đám mây xám)**, để certbot cấp được chứng chỉ ở bước 9. Bật proxy sau.
+
+#### Bước 2: Cài phần mềm (trên server, quyền root)
+
+```bash
+apt update && apt -y upgrade
+apt -y install openjdk-21-jdk-headless nginx certbot python3-certbot-nginx git jq unzip
+curl -fsSL https://get.docker.com | sh
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt -y install nodejs
+useradd -r -m -d /opt/yp -s /bin/bash yp && mkdir -p /opt/yp/{src,backend,backups,fe-releases} && chown -R yp:yp /opt/yp
+echo 'vm.max_map_count=262144' > /etc/sysctl.d/99-elasticsearch.conf && sysctl --system   # Elasticsearch cần
+ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw enable                                  # chỉ mở 22, 80, 443
+```
+
+#### Bước 3: Lấy code từ GitHub
+
+Hai repo là riêng tư. Trên GitHub, tạo **Fine-grained personal access token**:
+- **Repository access:** chỉ chọn `JavaSpringBoot_backEnd_Yp` và `nextyp-v2`.
+- **Permissions:** `Contents: Read-only`. Không cấp quyền ghi, vì server chỉ cần đọc code.
+
+Trên server, token được lưu trong `/opt/yp/.git-credentials` (chỉ user `yp` đọc được). Lần `git clone` đầu, khi được hỏi, nhập **username GitHub** và **dán token vào ô mật khẩu**:
+
+```bash
+sudo -u yp -H git config --global credential.helper store
+sudo -u yp -H git clone https://github.com/fpthenry/JavaSpringBoot_backEnd_Yp.git /opt/yp/src/backend
+sudo -u yp -H git clone -b edit_seo https://github.com/fpthenry/nextyp-v2.git /opt/yp/src/fe
+```
+
+Đổi nhánh FE sau này (ví dụ sang `main`): `sudo -u yp git -C /opt/yp/src/fe checkout main`.
+
+#### Bước 4: MySQL và Elasticsearch
+
+Trên máy dev (Git Bash, trong thư mục `yp-server-env`):
+
+```bash
+scp ops.env root@IP_SERVER:/opt/yp/ops.env
+```
+
+Trên server:
+
+```bash
+cp -r /opt/yp/src/backend/ops /opt/yp/ops && mv /opt/yp/ops.env /opt/yp/ops/.env   # không có bộ file: cp .env.example .env && nano .env
+chmod 600 /opt/yp/ops/.env && chmod +x /opt/yp/ops/backup-mysql.sh
+cd /opt/yp/ops && docker compose up -d && docker compose ps    # chờ cả hai "healthy"
+```
+
+#### Bước 5: Chuyển dữ liệu từ máy dev
+
+Trên máy dev, **dùng Git Bash, không dùng PowerShell**: PowerShell 5.1 đổi mã hóa khi ghi ra file bằng `>`, làm hỏng file nén.
+
+```bash
+docker exec javaspringbootbackend-mysql-1 mysqldump -uroot --single-transaction --quick --no-tablespaces --set-gtid-purged=OFF javaspringbootbackend | gzip > yp_db.sql.gz
+scp yp_db.sql.gz root@IP_SERVER:/opt/yp/backups/
+```
+
+Trên server, chạy trong `tmux` vì mất khoảng 30–90 phút. Phần lớn thời gian dành cho 25 triệu dòng `rel_listing__category`.
+
+```bash
+gunzip -c /opt/yp/backups/yp_db.sql.gz | docker exec -i yp-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" javaspringbootbackend'
+docker exec yp-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N javaspringbootbackend -e "select count(*) from listing"'   # 1855619
+```
+
+Dữ liệu trên máy dev là dữ liệu thật:
+- Dữ liệu giả do faker sinh đã bị xóa khi đồng bộ từ `jhipster_vnyp`.
+- Banner, gallery và danh mục blog là dữ liệu nhập tay.
+
+Bảng `DATABASECHANGELOG` đi kèm bản dump, nên Liquibase chỉ chạy các changeset mới. Trong số đó có changeset khóa tài khoản `user` (context `prod`).
+
+#### Bước 6: Backend
+
+Trên máy dev (thư mục `yp-server-env`):
+
+```bash
+scp backend.env root@IP_SERVER:/opt/yp/backend/.env
+```
+
+Trên server:
+
+```bash
+chown yp:yp /opt/yp/backend/.env && chmod 600 /opt/yp/backend/.env
+cp /opt/yp/src/backend/ops/systemd/yp-backend.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable yp-backend
+bash /opt/yp/src/backend/ops/deploy.sh backend        # build jar (5–10 phút lần đầu), chạy, chờ health UP
+```
+
+- **Không có bộ file soạn sẵn:** `cp /opt/yp/src/backend/.env.example /opt/yp/backend/.env && nano /opt/yp/backend/.env`. Cần điền:
+  - `DB_PASSWORD`, `ELASTICSEARCH_PASSWORD`: trùng với `/opt/yp/ops/.env`.
+  - `JWT_BASE64_SECRET`: `openssl rand -base64 64 | tr -d '\n'`.
+  - `PUBLIC_API_KEYS`: `openssl rand -hex 32`.
+- **Backend dừng ngay khi khởi động** nếu `.env` thiếu một trong `DB_USERNAME`, `DB_PASSWORD`, `JWT_BASE64_SECRET`, `APP_BASE_URL`. Đây là chủ ý. Xem lỗi bằng `journalctl -u yp-backend -n 100`.
+
+#### Bước 7: Đổi mật khẩu admin và reindex Elasticsearch
+
+Làm bước này trước khi mở ra Internet. Elasticsearch trên server mới chưa có dữ liệu, nên phải reindex từ MySQL. Việc này mất từ vài phút tới khoảng 20 phút; trong lúc đó tìm kiếm chỉ trả về một phần kết quả. Mật khẩu mới không nên chứa ký tự `'` hoặc `"`.
+
+```bash
+TOKEN=$(curl -s -X POST http://127.0.0.1:8080/api/authenticate -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin"}' | jq -r .id_token)
+curl -s -X POST http://127.0.0.1:8080/api/account/change-password -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"currentPassword":"admin","newPassword":"MAT_KHAU_MOI_DAI"}'
+curl -s -X POST http://127.0.0.1:8080/api/admin/elasticsearch/reindex -H "Authorization: Bearer $TOKEN"
+curl -s http://127.0.0.1:8080/api/admin/elasticsearch/reindex -H "Authorization: Bearer $TOKEN" | jq   # xem tiến độ
+```
+
+#### Bước 8: FE
+
+Backend phải **đang chạy** trước khi build FE, vì lúc build Next gọi API.
+
+Trên máy dev (thư mục `yp-server-env`):
+
+```bash
+scp fe.env.production root@IP_SERVER:/opt/yp/src/fe/.env.production
+```
+
+Trên server:
+
+```bash
+chown yp:yp /opt/yp/src/fe/.env.production && chmod 600 /opt/yp/src/fe/.env.production
+ls -a /opt/yp/src/fe | grep '^\.env'                   # chỉ được có .env.example và .env.production — KHÔNG có .env.local
+cp /opt/yp/src/backend/ops/systemd/yp-fe.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable yp-fe
+bash /opt/yp/src/backend/ops/deploy.sh fe              # build vào /opt/yp/fe-releases/<thời điểm>, trỏ /opt/yp/fe sang, chạy
+```
+
+Không có bộ file soạn sẵn thì: `sudo -u yp cp /opt/yp/src/fe/.env.example /opt/yp/src/fe/.env.production`. Mẫu đã điền sẵn tên miền `yellowfe.yp.vn` và backend `127.0.0.1:8080`; chỉ cần điền `YP_API_KEY`, bằng `PUBLIC_API_KEYS` của backend.
+
+#### Bước 9: nginx và HTTPS
+
+```bash
+cp /opt/yp/src/backend/ops/nginx/*.conf /etc/nginx/sites-available/
+ln -s /etc/nginx/sites-available/yellowbe.yp.vn.conf /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/yellowfe.yp.vn.conf /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl reload nginx
+certbot --nginx -d yellowbe.yp.vn -d yellowfe.yp.vn --redirect --agree-tos -m EMAIL_CUA_BAN   # tự gia hạn
+```
+
+**Nếu dùng Cloudflare**, làm thêm các việc sau khi certbot chạy xong:
+1. Bật proxy (đám mây cam).
+2. Đặt SSL/TLS ở chế độ **Full (strict)**.
+3. Cho nginx thấy IP thật của người dùng. Nếu bỏ qua bước này, mọi người dùng mang chung IP Cloudflare, và giới hạn đăng nhập sẽ chặn tất cả cùng lúc:
+
+```bash
+{ for ip in $(curl -s https://www.cloudflare.com/ips-v4) $(curl -s https://www.cloudflare.com/ips-v6); do echo "set_real_ip_from $ip;"; done; \
+  echo "real_ip_header CF-Connecting-IP;"; } > /etc/nginx/conf.d/cloudflare-realip.conf && nginx -t && systemctl reload nginx
+```
+
+Nếu sau này certbot gia hạn lỗi khi đang bật proxy, chuyển sang dùng **Cloudflare Origin Certificate** (hạn 15 năm).
+
+#### Bước 10: Kiểm tra và sao lưu
+
+- `https://yellowbe.yp.vn` mở ra trang quản trị. Đăng nhập được bằng mật khẩu mới; trang Đăng ký trả 403.
+- `https://yellowfe.yp.vn` hiển thị đúng trang chủ, ngành nghề, tỉnh thành, chi tiết doanh nghiệp và blog.
+- Mở một đường dẫn WordPress cũ, ví dụ `https://yellowfe.yp.vn/tinh-thanh/tinh-ha-giang-02`. Kết quả phải là chuyển hướng 301 sang `https://yellowfe.yp.vn/tinh-thanh/tinh-tuyen-quang-08-2025`, **không phải localhost**.
+- `https://yellowfe.yp.vn/robots.txt` có `Disallow: /`, vì tên miền chạy thử bị chặn lập chỉ mục.
+- `curl -sI https://yellowfe.yp.vn` trả về `strict-transport-security` và `x-robots-tag: noindex, nofollow`.
+- Đặt lịch sao lưu: `crontab -e`, thêm dòng `30 2 * * * /opt/yp/ops/backup-mysql.sh >> /var/log/yp-backup.log 2>&1`. Nên chép thư mục `/opt/yp/backups` ra máy khác định kỳ.
+
+### 18.4 Cập nhật phiên bản mới
+
+Máy dev: commit và `git push` repo đã sửa. Server: chạy **một lệnh**.
+
+```bash
+sudo bash /opt/yp/src/backend/ops/deploy.sh all       # backend trước, rồi FE
+sudo bash /opt/yp/src/backend/ops/deploy.sh backend   # chỉ backend
+sudo bash /opt/yp/src/backend/ops/deploy.sh fe        # chỉ FE
+```
+
+Script tự kéo code mới nhất từ nhánh đang checkout, build, thay bản đang chạy rồi kiểm tra đã chạy. **Cập nhật backend trước, FE sau:** backend mới có thể thêm cột hoặc API mà FE mới cần, còn backend cũ vẫn chạy được với các cột mới thêm.
+
+| | Backend | FE |
+|---|---|---|
+| Trong lúc build | Bản cũ vẫn chạy | Bản cũ vẫn chạy (build vào thư mục mới) |
+| Gián đoạn | Khoảng 30–60 giây lúc khởi động lại | Vài giây lúc khởi động lại |
+| Build lỗi | Dừng, bản cũ không bị đụng tới | Dừng, website vẫn chạy bản cũ; xóa thư mục dở như script hướng dẫn |
+| Quay lại bản trước | `cp -p /opt/yp/backend/app.jar.bak /opt/yp/backend/app.jar && systemctl restart yp-backend` | `sudo bash /opt/yp/src/backend/ops/deploy.sh fe-rollback` |
+| Xem bản đang chạy | `git -C /opt/yp/src/backend log -1 --oneline` | `cat /opt/yp/fe/REVISION` |
+
+- **Thay đổi CSDL không tự lùi** khi quay lại bản backend trước. Thay đổi chỉ thêm cột hoặc index thì jar cũ vẫn chạy bình thường.
+- **Đổi mapping Elasticsearch** (ví dụ thêm trường tìm kiếm): reindex entity đó như bước 7.
+
+**Chỉ đổi cấu hình:**
+
+| Đổi gì | Làm gì |
+|---|---|
+| `/opt/yp/backend/.env` | `systemctl restart yp-backend` |
+| `/opt/yp/src/fe/.env.production`, kể cả `NEXT_PUBLIC_*` (tên miền) | `sudo bash /opt/yp/src/backend/ops/deploy.sh fe`. Mỗi lần build, script chép file này vào bản build mới, nên **phải build lại** |
+| File nginx | Sửa trong `/etc/nginx/sites-available/`, rồi `nginx -t && systemctl reload nginx` |
+| `ops/docker-compose.yml` | Chép lại từ `/opt/yp/src/backend/ops/`, rồi `cd /opt/yp/ops && docker compose up -d` |
+
+### 18.5 Lỗi hay gặp khi triển khai
+
+| Hiện tượng | Nguyên nhân | Cách xử lý |
+|---|---|---|
+| `deploy.sh` dừng ở `git pull`: `Not possible to fast-forward` | Có người sửa code trực tiếp trên server | Không sửa code trên server. Bỏ phần sửa: `sudo -u yp git -C /opt/yp/src/… reset --hard origin/<nhánh>` |
+| `git pull` hỏi mật khẩu hoặc báo `Authentication failed` | Token GitHub hết hạn hoặc bị thu hồi | Tạo token mới (bước 3), sửa dòng trong `/opt/yp/.git-credentials` |
+| FE dùng sai tên miền (canonical, sitemap) hoặc gọi `localhost:8081` | Có file **`.env.local`** trong `/opt/yp/src/fe`. Next ưu tiên `.env.local` hơn `.env.production`. File `.env.local` ở máy dev đặt tên miền `yp.com.vn` và backend `localhost:8081` | Xóa file đó (script cũng chặn trường hợp này), rồi `deploy.sh fe` |
+| Đã đổi tên miền nhưng canonical, sitemap, robots vẫn là tên cũ | `NEXT_PUBLIC_*` được gắn vào lúc build | `deploy.sh fe` |
+| FE không có dữ liệu; log có `[/api/v1] Thiếu YP_API_BASE_URL…` hoặc backend trả 401/403 | `YP_API_KEY` không có trong `PUBLIC_API_KEYS` của backend | Sửa `/opt/yp/src/fe/.env.production`, rồi `deploy.sh fe`. Xem log: `journalctl -u yp-fe -n 100` |
+| Build FE lỗi `fetch failed` hoặc `ECONNREFUSED 127.0.0.1:8080` | Backend chưa chạy | `systemctl start yp-backend`, chờ health UP, chạy lại |
+| Build bị dừng giữa chừng (`Killed`, exit 137) | Hết RAM | Build lần lượt (`backend` rồi `fe`), thêm swap, hoặc nâng RAM (mục 18.2) |
+| Đường dẫn cũ chuyển hướng 301 về `http://localhost:3000/...` | Bản FE trước 2026-10-27: middleware lấy tên miền từ request, nên sau nginx tên miền đó là localhost | Đã sửa: ở production, `src/middleware.ts` chuyển hướng về `NEXT_PUBLIC_SITE_URL`. nginx vẫn nên giữ `proxy_set_header Host $host` |
+| Nhập doanh nghiệp từ file lớn lỗi **413** | nginx giới hạn kích thước upload | `client_max_body_size 100m` trong `yellowbe.yp.vn.conf`, khớp `spring.servlet.multipart` 100 MB |
+| Backend dừng ngay khi khởi động | `.env` thiếu biến bắt buộc, hoặc MySQL / Elasticsearch chưa chạy | `journalctl -u yp-backend -n 100`; `docker compose ps` trong `/opt/yp/ops` |
+| Tìm kiếm thiếu doanh nghiệp | Elasticsearch chưa reindex xong | Xem tiến độ (bước 7) |
+| Nhập dữ liệu (`mysql < dump`) báo lỗi cú pháp hoặc ký tự lạ | Bản dump tạo bằng PowerShell | Tạo lại bản dump bằng Git Bash (bước 5) |
+| Đăng nhập liên tục bị 429 | Bật Cloudflare nhưng nginx chưa thấy IP thật | Làm phần Cloudflare ở bước 9 |
+
+### 18.6 Chuyển website sang yp.vn khi đã ổn định
+
+**Trong thời gian chạy thử ở `yellowfe.yp.vn`, SEO của yp.vn không bị ảnh hưởng:**
+- **yp.vn không đổi.** yp.vn (WordPress cũ) vẫn chạy và giữ nguyên thứ hạng; Google không biết gì về bản mới.
+- **`yellowfe.yp.vn` tự chặn Google bằng ba lớp:** robots.txt `Disallow: /`, meta `noindex, nofollow`, header `X-Robots-Tag`. Vì vậy không tạo nội dung trùng với yp.vn. Canonical và sitemap của bản chạy thử trỏ về `yellowfe`, nhưng không sao vì trang không được lập chỉ mục.
+- **`yellowbe.yp.vn` cũng chặn.** nginx gửi header `X-Robots-Tag: noindex, nofollow` cho mọi đường dẫn của backend.
+- **Không gửi `yellowfe` lên Search Console**, và tránh dán link `yellowfe` công khai: lên mạng xã hội, hoặc vào nội dung trên yp.vn.
+- **Một rủi ro nhỏ còn lại:** vì robots.txt chặn, Google không vào trang nên không đọc được `noindex`. Nếu có trang ngoài trỏ link tới `yellowfe`, Google có thể liệt kê đường dẫn trơn, không có nội dung. Không ai link tới thì không xảy ra. Bước 6 bên dưới dọn trường hợp này.
+- **Muốn chặn tuyệt đối:** đặt mật khẩu cho `yellowfe` bằng `auth_basic` của nginx (Google nhận 401). Đổi lại, người thử phải nhập mật khẩu.
+
+**Rủi ro lớn nhất nằm ở lúc chuyển:** nếu đổi DNS sang máy mới mà quên đổi `NEXT_PUBLIC_SITE_URL` và build lại, **cả yp.vn sẽ mang `noindex`**, và canonical trỏ về `yellowfe`. Google sẽ dần gỡ yp.vn khỏi kết quả tìm kiếm. Vì vậy phải làm đủ bước 4 và bước 7.
+
+0. **Trước khi chuyển: thử các đường dẫn cũ trên `yellowfe`.** Đường dẫn cũ mà trả 404 thì mất thứ hạng của trang đó.
+   - **Lấy danh sách đường dẫn cũ:** từ sitemap của yp.vn cũ, hoặc Google Search Console (Hiệu suất → Trang → Xuất), mỗi dòng một URL, ghi vào file `old-urls.txt`.
+   - **Chạy thử:** mọi dòng phải trả `200` hoặc `301` về đường dẫn mới. Dòng nào in ra là chưa xử lý, cần thêm vào bảng chuyển hướng `legacy-redirects.json` của FE.
+
+     ```bash
+     while read -r u; do p="${u#https://yp.vn}"; printf '%s %s\n' "$(curl -s -o /dev/null -w '%{http_code}' "https://yellowfe.yp.vn$p")" "$p"; done < old-urls.txt | grep -v '^200\|^301'
+     ```
+
+1. **Chép kho ảnh WordPress cũ trước khi đổi DNS.**
+   - **Vì sao:** dữ liệu lưu link đầy đủ `https://yp.vn/wp-content/uploads/...` cho logo và ảnh của khoảng 6.700 doanh nghiệp, khoảng 740 bài viết và 44 banner (đếm ngày 2026-10-27). Một số trang tĩnh của FE cũng dùng các file này. Hiện máy chủ yp.vn cũ đang phục vụ chúng, nên nếu đổi DNS mà chưa chép, toàn bộ ảnh này sẽ lỗi.
+   - **Cách chép:** dùng lệnh dưới đây. Theo bản sao cấu hình nginx, thư mục trên máy cũ là `/var/www/yp.vn/`; hãy kiểm tra lại trên máy thật.
+
+     ```bash
+     rsync -a --info=progress2 root@IP_MAY_CU:/var/www/yp.vn/wp-content/uploads/ /opt/yp/wp-content/uploads/
+     ```
+
+   - **Bật phục vụ ảnh:** bỏ dấu `#` ở khối `location /wp-content/uploads/` trong `yellowfe.yp.vn.conf`.
+   - **Không lấy từ `media.yp.vn`:** đó là kho khác, không chứa các file này (thử thì trả 404).
+2. Trỏ DNS `yp.vn` và `www` về máy chủ.
+3. Trong `yellowfe.yp.vn.conf`, đổi `server_name` thành `yp.vn www.yp.vn`, rồi chạy `certbot --nginx -d yp.vn -d www.yp.vn`.
+4. Trong `.env.production`, đặt `NEXT_PUBLIC_SITE_URL=https://yp.vn` rồi build lại FE và restart `yp-fe`. Làm cùng lúc với bước 2 và 3. Site tự mở cho Google lập chỉ mục; canonical, sitemap, Open Graph và chuyển hướng 301 tự đổi theo.
+5. Gửi `https://yp.vn/sitemap.xml` lên Google Search Console.
+6. **Chuyển `yellowfe` về yp.vn bằng 301.** Bỏ dấu `#` ở khối `server` cuối file `yellowfe.yp.vn.conf`, rồi chạy `certbot --nginx -d yellowfe.yp.vn`. Link `yellowfe` lỡ bị chia sẻ hoặc lập chỉ mục sẽ dồn về yp.vn.
+7. **Kiểm tra ngay sau khi chuyển.** Cả bốn mục dưới đây phải đúng; sai một mục là chưa build lại với `https://yp.vn`:
+
+   ```bash
+   curl -s https://yp.vn/robots.txt                     # Allow: /  và  Sitemap: https://yp.vn/sitemap.xml   (KHÔNG được là Disallow: /)
+   curl -sI https://yp.vn | grep -i x-robots            # không in gì
+   curl -s https://yp.vn | grep -o '<meta name="robots"[^>]*>\|<link rel="canonical"[^>]*>'   # index, follow; canonical https://yp.vn
+   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://yellowfe.yp.vn/nganh-nghe   # 301 https://yp.vn/nganh-nghe
+   ```
+
+   Sau đó theo dõi Search Console 2–4 tuần, ở hai mục "Trang" và "Không tìm thấy (404)".
+
+### 18.7 Rà soát khai báo tên miền ở FE (2026-10-27)
+
+- **Một chỗ duy nhất.** `NEXT_PUBLIC_SITE_URL` chỉ được đọc ở `src/lib/site.ts`. Mọi nơi khác lấy qua `SITE_URL` hoặc `absoluteUrl()`, hoặc dùng đường dẫn tương đối ghép với `metadataBase`: metadata, canonical, Open Graph, JSON-LD, sitemap, robots, chuyển hướng 301 trong `src/middleware.ts`. Không còn chỗ nào ghi cứng tên miền website.
+- **Cho phép lập chỉ mục.** Google chỉ được lập chỉ mục khi `NEXT_PUBLIC_SITE_URL` là `https://yp.vn` hoặc `www.yp.vn` (biến `ALLOW_INDEXING`). Tên miền chạy thử tự chặn bằng ba cách: robots.txt `Disallow: /`, meta `noindex, nofollow` và header `X-Robots-Tag`. Muốn ép bật hoặc tắt thì dùng `NEXT_PUBLIC_ALLOW_INDEXING`.
+- **Kho ảnh cũ là việc riêng.** Link kho ảnh **cố ý không đổi theo tên miền website**: khi chạy thử ở `yellowfe.yp.vn` vẫn phải lấy ảnh từ yp.vn. Các link ghi cứng trong code (ảnh mặc định `NO_IMAGE`, 4 ảnh trang tĩnh, file PDF bảng giá) đã gom về `LEGACY_UPLOADS_URL` và `legacyUpload()` trong `site.ts`.
+- **Chuyển hướng 301 không phụ thuộc nginx.** Trong `src/middleware.ts`, ở production đích chuyển hướng là `NEXT_PUBLIC_SITE_URL`, nên dù nginx thiếu `Host` cũng không còn chuyển về localhost. Các trang tự chuyển hướng bằng `permanentRedirect()` thì dùng đường dẫn tương đối, nên vốn đã không phụ thuộc tên miền.
+- **Link chết đã bỏ.** Đã bỏ 6 link "Xem chi tiết khu vực trên yp.vn" ở trang Thành viên ALSMA, vì chúng trỏ tới trang WordPress `/…_ct/` đã không còn (lỗi 404).
+- **Chữ "yp.vn" trong nội dung** (chân trang, Giới thiệu, Đăng ký, mô tả) là tên thương hiệu, giữ nguyên.
