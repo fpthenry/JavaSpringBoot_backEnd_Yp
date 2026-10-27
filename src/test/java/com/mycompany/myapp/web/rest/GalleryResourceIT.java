@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.mycompany.myapp.IntegrationTest;
 import com.mycompany.myapp.domain.Gallery;
 import com.mycompany.myapp.repository.GalleryRepository;
+import com.mycompany.myapp.security.AuthoritiesConstants;
 import com.mycompany.myapp.service.dto.GalleryDTO;
 import com.mycompany.myapp.service.mapper.GalleryMapper;
 import jakarta.persistence.EntityManager;
@@ -31,7 +32,7 @@ import tools.jackson.databind.ObjectMapper;
  */
 @IntegrationTest
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 class GalleryResourceIT {
 
     private static final String DEFAULT_NAME = "AAAAAAAAAA";

@@ -395,18 +395,7 @@
                   <span jhiTranslate="global.menu.account.login">Sign in</span>
                 </a>
               </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  routerLink="/account/register"
-                  routerLinkActive="active"
-                  (click)="collapseNavbar()"
-                  data-cy="register"
-                >
-                  <fa-icon icon="user-plus" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.account.register">Register</span>
-                </a>
-              </li>
+              <!-- Sửa tay (bảo mật): bỏ "Đăng ký" — tự đăng ký đã tắt (application.registration.enabled=false); admin tạo tài khoản -->
             }
           </ul>
         </li>

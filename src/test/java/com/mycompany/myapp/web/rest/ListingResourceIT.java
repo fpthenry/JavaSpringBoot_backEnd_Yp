@@ -15,6 +15,7 @@ import com.mycompany.myapp.domain.Listing;
 import com.mycompany.myapp.domain.Location;
 import com.mycompany.myapp.repository.ListingRepository;
 import com.mycompany.myapp.repository.search.ListingSearchRepository;
+import com.mycompany.myapp.security.AuthoritiesConstants;
 import com.mycompany.myapp.service.ListingService;
 import com.mycompany.myapp.service.dto.ListingDTO;
 import com.mycompany.myapp.service.mapper.ListingMapper;
@@ -49,7 +50,7 @@ import tools.jackson.databind.ObjectMapper;
 @IntegrationTest
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 class ListingResourceIT {
 
     private static final Long DEFAULT_WP_ID = 1L;

@@ -1,5 +1,6 @@
 package com.mycompany.myapp.web.rest;
 
+import com.mycompany.myapp.config.ApplicationProperties;
 import com.mycompany.myapp.domain.User;
 import com.mycompany.myapp.repository.UserRepository;
 import com.mycompany.myapp.security.SecurityUtils;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * REST controller for managing the current user's account.
@@ -48,16 +50,27 @@ public class AccountResource {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final ApplicationProperties applicationProperties;
+
     public AccountResource(
         UserRepository userRepository,
         UserService userService,
         MailService mailService,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        ApplicationProperties applicationProperties
     ) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.mailService = mailService;
         this.passwordEncoder = passwordEncoder;
+        this.applicationProperties = applicationProperties;
+    }
+
+    /** Sửa tay: tự đăng ký đã tắt (application.registration.enabled = false) → 403. */
+    private void requireRegistrationEnabled() {
+        if (!applicationProperties.getRegistration().isEnabled()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Registration is disabled");
+        }
     }
 
     /**
@@ -72,6 +85,7 @@ public class AccountResource {
     @ResponseStatus(HttpStatus.CREATED)
     public void registerAccount(@Valid @RequestBody ManagedUserVM managedUserVM) {
         LOG.debug("REST request to register account");
+        requireRegistrationEnabled();
         if (isPasswordLengthInvalid(managedUserVM.getPassword())) {
             throw new InvalidPasswordException();
         }
@@ -88,6 +102,7 @@ public class AccountResource {
     @GetMapping("/activate")
     public void activateAccount(@RequestParam(value = "key") String key) {
         LOG.debug("REST request to activate account");
+        requireRegistrationEnabled();
         Optional<User> user = userService.activateRegistration(key);
         if (user.isEmpty()) {
             throw new AccountResourceException("No user was found for this activation key");

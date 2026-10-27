@@ -15,6 +15,7 @@ import com.mycompany.myapp.domain.BlogPost;
 import com.mycompany.myapp.domain.Tag;
 import com.mycompany.myapp.repository.BlogPostRepository;
 import com.mycompany.myapp.repository.search.BlogPostSearchRepository;
+import com.mycompany.myapp.security.AuthoritiesConstants;
 import com.mycompany.myapp.service.BlogPostService;
 import com.mycompany.myapp.service.dto.BlogPostDTO;
 import com.mycompany.myapp.service.mapper.BlogPostMapper;
@@ -49,7 +50,7 @@ import tools.jackson.databind.ObjectMapper;
 @IntegrationTest
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 class BlogPostResourceIT {
 
     private static final Long DEFAULT_WP_ID = 1L;

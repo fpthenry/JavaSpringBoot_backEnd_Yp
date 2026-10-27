@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay (rà soát bảo mật 2026-10-27): JHipster tạo sẵn tài khoản user/user (ROLE_USER) — ai cũng đoán được.
+        Production: khóa tài khoản này (không xóa, để không vỡ khóa ngoại nếu có dữ liệu ghi created_by = 'user').
+        Chỉ chạy context "prod": máy dev không bị đụng. Mật khẩu admin KHÔNG đặt ở đây — đổi ngay sau lần đăng nhập đầu
+        (Tài khoản → Mật khẩu), xem docs/TONG-HOP-DU-AN.md mục 9.4.
+    -->
+    <changeSet id="20261027100000-1" author="claude" context="prod">
+        <update tableName="jhi_user">
+            <column name="activated" valueBoolean="false"/>
+            <where>login = 'user'</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>

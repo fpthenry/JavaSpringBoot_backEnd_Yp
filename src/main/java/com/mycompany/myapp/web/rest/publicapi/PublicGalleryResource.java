@@ -1,5 +1,6 @@
 package com.mycompany.myapp.web.rest.publicapi;
 
+import com.mycompany.myapp.security.UploadedImageTypes;
 import com.mycompany.myapp.service.PublicGalleryService;
 import com.mycompany.myapp.service.dto.publicapi.PublicGalleryDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.function.LongFunction;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -76,11 +78,23 @@ public class PublicGalleryResource {
                 if (request.checkNotModified(etag)) {
                     return ResponseEntity.status(304).eTag(etag).cacheControl(IMAGE_CACHE).<byte[]>build();
                 }
-                MediaType type =
-                    image.getImageContentType() == null
-                        ? MediaType.APPLICATION_OCTET_STREAM
-                        : MediaType.parseMediaType(image.getImageContentType());
-                return ResponseEntity.ok().contentType(type).eTag(etag).cacheControl(IMAGE_CACHE).body(image.getImage());
+                // Sửa tay (bảo mật): chỉ trả đúng kiểu với ảnh raster được phép; kiểu khác (HTML, SVG…, dữ liệu cũ hoặc
+                // upload trước khi có kiểm tra) → tải xuống dạng nhị phân, trình duyệt không hiển thị/chạy được.
+                // nosniff + CSP sandbox: kể cả file bị khai sai kiểu cũng không chạy script trên tên miền này.
+                boolean allowed = UploadedImageTypes.isAllowed(image.getImageContentType());
+                MediaType type = allowed
+                    ? MediaType.parseMediaType(UploadedImageTypes.normalize(image.getImageContentType()))
+                    : MediaType.APPLICATION_OCTET_STREAM;
+                ResponseEntity.BodyBuilder response = ResponseEntity.ok()
+                    .contentType(type)
+                    .eTag(etag)
+                    .cacheControl(IMAGE_CACHE)
+                    .header("X-Content-Type-Options", "nosniff")
+                    .header("Content-Security-Policy", "default-src 'none'; sandbox");
+                if (!allowed) {
+                    response.header(HttpHeaders.CONTENT_DISPOSITION, "attachment");
+                }
+                return response.body(image.getImage());
             })
             .orElseGet(() -> ResponseEntity.notFound().build());
     }

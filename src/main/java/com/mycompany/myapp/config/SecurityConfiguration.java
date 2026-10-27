@@ -67,8 +67,11 @@ public class SecurityConfiguration {
                     .requestMatchers("/api/activate").permitAll()
                     .requestMatchers("/api/account/reset-password/init").permitAll()
                     .requestMatchers("/api/account/reset-password/finish").permitAll()
-                    .requestMatchers("/api/admin/**").hasAuthority(AuthoritiesConstants.ADMIN)
-                    .requestMatchers("/api/**").authenticated()
+                    // Sửa tay (rà soát bảo mật 2026-10-27): trước đây "/api/**" chỉ cần đăng nhập → tài khoản thường
+                    // (vd user/user) thêm/sửa/xóa được doanh nghiệp, bài viết, banner… Nay chỉ tài khoản của chính mình
+                    // (xem, sửa thông tin, đổi mật khẩu) cho người đã đăng nhập; mọi API dữ liệu cần ROLE_ADMIN.
+                    .requestMatchers("/api/account", "/api/account/**").authenticated()
+                    .requestMatchers("/api/**").hasAuthority(AuthoritiesConstants.ADMIN)
                     .requestMatchers("/v3/api-docs/**").hasAuthority(AuthoritiesConstants.ADMIN)
                     .requestMatchers("/management/health").permitAll()
                     .requestMatchers("/management/health/**").permitAll()

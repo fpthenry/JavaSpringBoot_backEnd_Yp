@@ -15,6 +15,7 @@ import com.mycompany.myapp.domain.Category;
 import com.mycompany.myapp.domain.Listing;
 import com.mycompany.myapp.repository.CategoryRepository;
 import com.mycompany.myapp.repository.search.CategorySearchRepository;
+import com.mycompany.myapp.security.AuthoritiesConstants;
 import com.mycompany.myapp.service.CategoryService;
 import com.mycompany.myapp.service.dto.CategoryDTO;
 import com.mycompany.myapp.service.mapper.CategoryMapper;
@@ -49,7 +50,7 @@ import tools.jackson.databind.ObjectMapper;
 @IntegrationTest
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 class CategoryResourceIT {
 
     private static final Long DEFAULT_WP_TERM_ID = 1L;

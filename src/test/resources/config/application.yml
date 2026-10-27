@@ -91,6 +91,9 @@ jhipster:
 # ===================================================================
 
 application:
+  # Sửa tay: tự đăng ký tài khoản tắt ở dev/production; bật trong test để AccountResourceIT kiểm tra luồng đăng ký
+  registration:
+    enabled: true
   public-api:
     keys:
       - test-public-api-key

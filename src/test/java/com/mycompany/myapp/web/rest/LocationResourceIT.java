@@ -15,6 +15,7 @@ import com.mycompany.myapp.domain.Location;
 import com.mycompany.myapp.domain.Location;
 import com.mycompany.myapp.repository.LocationRepository;
 import com.mycompany.myapp.repository.search.LocationSearchRepository;
+import com.mycompany.myapp.security.AuthoritiesConstants;
 import com.mycompany.myapp.service.LocationService;
 import com.mycompany.myapp.service.dto.LocationDTO;
 import com.mycompany.myapp.service.mapper.LocationMapper;
@@ -49,7 +50,7 @@ import tools.jackson.databind.ObjectMapper;
 @IntegrationTest
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 class LocationResourceIT {
 
     private static final Long DEFAULT_WP_TERM_ID = 1L;

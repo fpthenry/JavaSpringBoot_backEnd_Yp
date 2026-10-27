@@ -1231,13 +1231,43 @@ Chạy trên app dev ngày 2026-10-05:
 | # | Vấn đề | Rủi ro | Hướng xử lý |
 |---|---|---|---|
 | 1 | **Khóa JWT dev đã lên GitHub** (`application-secret-samples.yml`, `jwtSecretKey` trong `.yo-rc.json`) | Ai có khóa thì tự ký được token admin. **Chỉ nguy hiểm nếu dùng khóa này ở production.** | Production đặt khóa riêng qua `JHIPSTER_SECURITY_AUTHENTICATION_JWT_BASE64_SECRET` (`openssl rand -base64 64`); không bao giờ bật profile `secret-samples` ở production |
-| 2 | **Tài khoản mặc định** `admin/admin`, `user/user` | Ai cũng đoán được | Đổi mật khẩu hoặc khóa tài khoản `user` ngay khi triển khai |
+| 2 | **Tài khoản mặc định** `admin/admin`, `user/user` | Ai cũng đoán được | ✅ 2026-10-27: `user` tự khóa ở production (Liquibase), tự đăng ký tắt. **Còn: đổi mật khẩu `admin` ngay sau lần chạy đầu** ([mục 9.4](#94-rà-soát-bảo-mật-trước-production-2026-10-27-và-cách-triển-khai)) |
 | 3 | **Không chống dò mật khẩu** | Thử mật khẩu không giới hạn | Giới hạn số lần đăng nhập sai theo IP và tài khoản (ở reverse proxy, hoặc filter trong app) |
-| 4 | **Không thu hồi được token** | Đăng xuất chỉ xóa token ở trình duyệt; token bị lộ hoặc sau khi đổi mật khẩu vẫn dùng được tới hết hạn (24 giờ, "Remember me" 30 ngày) | Rút ngắn hạn "Remember me"; thêm danh sách token bị thu hồi, hoặc lưu "phiên bản token" theo user để vô hiệu khi đổi mật khẩu |
+| 4 | **Không thu hồi được token** | Đăng xuất chỉ xóa token ở trình duyệt; token bị lộ hoặc sau khi đổi mật khẩu vẫn dùng được tới hết hạn (24 giờ, "Remember me" 30 ngày → **7 ngày từ 2026-10-27**) | Rút ngắn hạn "Remember me"; thêm danh sách token bị thu hồi, hoặc lưu "phiên bản token" theo user để vô hiệu khi đổi mật khẩu |
 | 5 | **Không có refresh token** | Muốn hạn ngắn thì người dùng phải đăng nhập lại thường xuyên | Thêm access token ngắn hạn (15–60 phút) và refresh token có thể thu hồi |
 | 6 | Token "Remember me" nằm trong `localStorage` | Nếu trang bị XSS thì token có thể bị đọc | Giữ CSP chặt (đang có), không chèn HTML chưa lọc (ví dụ `description` của doanh nghiệp) |
 | 7 | ~~Mọi API đọc dữ liệu đều phải đăng nhập~~ | | **Đã chọn (2026-10-05):** quản trị viên dùng JWT như cũ; FE Next.js dùng API công khai chỉ đọc `/api/public/v1/**` với `X-API-Key` ([mục 10](#10-api-công-khai-cho-fe-nextjs)) |
 | 8 | HTTPS | Token gửi bằng HTTP có thể bị nghe lén | Production bắt buộc HTTPS (reverse proxy hoặc profile `tls`) |
+
+### 9.4 Rà soát bảo mật trước production (2026-10-27) và cách triển khai
+
+Rà soát cả backend, FE và yp.vn đang chạy (kiểm chứng bằng thao tác vô hại: chỉ đếm, xóa id không tồn tại).
+
+**Đã sửa (đợt 1):**
+
+| # | Lỗ hổng | Bằng chứng trước khi sửa | Đã làm |
+|---|---|---|---|
+| 1 | **Tài khoản thường sửa/xóa được mọi dữ liệu** | `user/user` đăng nhập được; `DELETE /api/listings`, `/blog-posts`, `/categories`, `/locations`, `/tags`, `/galleries`, `/gallery-images`, `/blog-categories` → 204 (8 nhóm API JHipster chỉ cần "đã đăng nhập"). `/api/register` cho tự đăng ký | `SecurityConfiguration`: `/api/account/**` cho người đã đăng nhập, **mọi `/api/**` khác cần ROLE_ADMIN**. Tự đăng ký tắt: `application.registration.enabled=false` (mặc định; chỉ bật trong test) → `/api/register`, `/api/activate` trả 403; bỏ link "Đăng ký" ở menu và trang đăng nhập. Liquibase `20261027100000_disable_default_user.xml` (context `prod`) khóa tài khoản `user`. Test `ApiAuthorizationIT`; 8 IT entity + `ExceptionTranslatorIT` đổi sang `@WithMockUser(authorities = ADMIN)`. Sau sửa: ROLE_USER ghi/đọc dữ liệu → 403, xem tài khoản mình → 200, admin → 200, đăng ký → 403 |
+| 2 | **Proxy Elasticsearch mở trên yp.vn** | `POST https://yp.vn/api/listings` (và `/api/terms`) nhận truy vấn ES tùy ý từ bất kỳ ai, kèm token → đếm được 1.856.213 bản ghi (chỉ dữ liệu đã công khai, nhưng cào hàng loạt / truy vấn nặng làm sập ES được) | FE: **xóa** `src/app/api/listings`, `src/app/api/terms` → 404. Chế độ nguồn `wp` không còn chạy; production dùng `NEXT_PUBLIC_API_SOURCE_*=new`. ⚠️ **yp.vn hiện tại (bản FE cũ) vẫn mở cho tới khi deploy bản mới** — tạm thời có thể đặt rule Cloudflare giới hạn tốc độ `/api/listings`, `/api/terms` |
+| 3 | **Chèn mã độc qua "ảnh" banner** | `/api/public/v1/media/gallery-images/{id}` trả file đúng `imageContentType` người upload khai → upload HTML/SVG = chạy script trên tên miền trang quản trị (đánh cắp token admin); FE proxy trả lại y nguyên trên tên miền FE | Lớp `UploadedImageTypes`: chỉ nhận JPEG/PNG/WebP/GIF/AVIF (`image/jpg` hiểu là jpeg) khi tạo/sửa ảnh banner → kiểu khác 400 "Chỉ nhận ảnh…". Khi phục vụ: kiểu ngoài danh sách → `application/octet-stream` + `Content-Disposition: attachment`; mọi ảnh kèm `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`. FE proxy `/api/v1/media/*` làm y như vậy. Test `UploadedImageTypesTest`. Dữ liệu hiện có: 5 ảnh, đều `image/png` |
+
+**Kèm theo:** FE thêm header bảo mật cho mọi trang (`next.config.ts`: HSTS 1 năm không kèm `includeSubDomains`, `nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy` chặn camera/micro/định vị), bỏ `X-Powered-By`. Chưa bật CSP cho FE (cần thử với bản đồ, video, quảng cáo). "Ghi nhớ đăng nhập" 30 → 7 ngày.
+
+**Còn lại (đợt sau):** lọc HTML đoạn trích trang `/blog` (`getExcerpt` chỉ bỏ `<script>`), giới hạn số lần đăng nhập sai (Cloudflare/nginx cho `/api/authenticate`), cập nhật thư viện (FE: `next`, `sharp`, `dompurify`; trang quản trị: `@angular/router`, `zod`), chặn địa chỉ nội bộ khi nhập doanh nghiệp từ API (SSRF), thu hẹp `images.remotePatterns` (`**.cloudfront.net`), CSP cho FE.
+
+#### Triển khai: backend `yellowbe.yp.vn`, FE `yellowfe.yp.vn`
+
+**Khai báo một chỗ:**
+
+| Phần | File | Biến chính |
+|---|---|---|
+| Backend | `.env` cạnh file jar (mẫu: [`.env.example`](../.env.example) ở gốc dự án; `.env` đã vào `.gitignore`) — `application-prod.yml` đọc bằng `spring.config.import: optional:file:.env[.properties]`; biến môi trường thật của server được ưu tiên | `APP_BASE_URL=https://yellowbe.yp.vn`, `DB_URL/DB_USERNAME/DB_PASSWORD`, `ELASTICSEARCH_*`, `JWT_BASE64_SECRET`, `PUBLIC_API_KEYS`, `MAIL_*` |
+| FE | `.env.production` (mẫu: `d:\nextyp-v2\.env.example`) | `NEXT_PUBLIC_SITE_URL=https://yellowfe.yp.vn`, `YP_API_BASE_URL`, `YP_API_KEY` (= một khóa trong `PUBLIC_API_KEYS`) |
+
+- Backend thiếu biến bắt buộc (`DB_USERNAME`, `DB_PASSWORD`, `JWT_BASE64_SECRET`, `APP_BASE_URL`) → **dừng khi khởi động** (cố ý). `server.forward-headers-strategy: framework`: sau nginx/Cloudflare, link ảnh banner và email là `https://yellowbe.yp.vn/...`. Build: `./mvnw -Pprod clean package -DskipTests`, chạy `java -jar target/java-spring-boot-back-end-*.jar` trong thư mục có `.env`.
+- FE: **Google chỉ được lập chỉ mục khi `NEXT_PUBLIC_SITE_URL` là `https://yp.vn`** (`ALLOW_INDEXING` trong `src/lib/site.ts`). `yellowfe.yp.vn` tự chặn (robots.txt `Disallow: /`, meta `noindex, nofollow`, header `X-Robots-Tag`) để sau này Google không coi yp.vn là bản sao. Chuyển sang yp.vn: đổi `NEXT_PUBLIC_SITE_URL=https://yp.vn`, build lại → lập chỉ mục, canonical, sitemap, Open Graph tự đổi. Ép bật/tắt: `NEXT_PUBLIC_ALLOW_INDEXING`.
+
+**Sau lần chạy đầu tiên:** đổi mật khẩu `admin` ngay (Tài khoản → Mật khẩu); tạo tài khoản quản trị riêng; MySQL dùng user riêng (không root, có mật khẩu); bật xác thực Elasticsearch; cổng 3306/9200 chỉ mở trong máy; không bật profile `secret-samples`; Cloudflare SSL "Full (strict)".
 
 ---
 

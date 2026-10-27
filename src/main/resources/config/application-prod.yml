@@ -26,6 +26,11 @@ management:
         enabled: false
 
 spring:
+  # Sửa tay: cấu hình production đọc từ biến môi trường của server HOẶC file .env đặt cạnh file jar (thư mục chạy app);
+  # file .env được nạp ở application.yml (spring.config.import). Mẫu: .env.example ở thư mục gốc dự án.
+  # Biến môi trường thật của server được ưu tiên hơn file .env.
+  # Bí mật bắt buộc (DB_USERNAME, DB_PASSWORD, JWT_BASE64_SECRET, APP_BASE_URL) không có giá trị mặc định: thiếu thì
+  # app dừng ngay khi khởi động (thay vì chạy với khóa/tài khoản sai).
   devtools:
     restart:
       enabled: false
@@ -33,7 +38,9 @@ spring:
       enabled: false
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:mysql://localhost:3306/javaSpringBootBackEnd?useUnicode=true&characterEncoding=utf8&useSSL=false&useLegacyDatetimeCode=false&createDatabaseIfNotExist=true
+    url: ${DB_URL:jdbc:mysql://localhost:3306/javaspringbootbackend?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&useLegacyDatetimeCode=false}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     hikari:
       poolName: Hikari
       auto-commit: false
@@ -43,13 +50,17 @@ spring:
         prepStmtCacheSqlLimit: 2048
         useServerPrepStmts: true
   elasticsearch:
-    uris: http://localhost:9200
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    username: ${ELASTICSEARCH_USERNAME:}
+    password: ${ELASTICSEARCH_PASSWORD:}
   # Replace by 'prod, faker' to add the faker context and have sample data loaded in production
   liquibase:
     contexts: prod
   mail:
-    host: localhost
-    port: 25
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:25}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
   thymeleaf:
     cache: true
 
@@ -73,7 +84,9 @@ spring:
 #     ciphers: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 ,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 ,TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 ,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA,TLS_RSA_WITH_CAMELLIA_256_CBC_SHA,TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,TLS_RSA_WITH_CAMELLIA_128_CBC_SHA
 # ===================================================================
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
+  # Sau nginx / Cloudflare: đọc X-Forwarded-Proto/Host để URL app tự tạo (link ảnh banner, email) là https://<tên miền>
+  forward-headers-strategy: framework
   shutdown: graceful # see https://docs.spring.io/spring-boot/reference/web/graceful-shutdown.html#web.graceful-shutdown
   compression:
     enabled: true
@@ -93,11 +106,16 @@ jhipster:
   security:
     authentication:
       jwt:
+        # Sửa tay: khóa ký token — bắt buộc, riêng cho production (openssl rand -base64 64). KHÔNG dùng khóa dev.
+        base64-secret: ${JWT_BASE64_SECRET}
         # Token is valid 24 hours
         token-validity-in-seconds: 86400
-        token-validity-in-seconds-for-remember-me: 2592000
+        # Sửa tay (bảo mật): "Ghi nhớ đăng nhập" 30 ngày → 7 ngày (token không thu hồi được, lộ thì dùng được tới hết hạn)
+        token-validity-in-seconds-for-remember-me: 604800
   mail: # specific JHipster mail property, for standard properties see MailProperties
-    base-url: http://my-server-url-to-change # Modify according to your server's URL
+    # Sửa tay: địa chỉ trang quản trị (link trong email đặt lại mật khẩu), vd https://yellowbe.yp.vn
+    base-url: ${APP_BASE_URL}
+    from: ${MAIL_FROM:no-reply@yp.vn}
   logging:
     use-json-format: false # By default, logs are not in Json format
     logstash: # Forward logs to logstash over a socket, used by LoggingConfiguration
@@ -119,4 +137,4 @@ application:
   # đặt biến môi trường APPLICATION_PUBLIC_API_KEYS=khoa1,khoa2 (tạo khóa: openssl rand -base64 32).
   # Không đặt thì mọi request tới API công khai bị từ chối (401).
   public-api:
-    keys: ${APPLICATION_PUBLIC_API_KEYS:}
+    keys: ${PUBLIC_API_KEYS:${APPLICATION_PUBLIC_API_KEYS:}}

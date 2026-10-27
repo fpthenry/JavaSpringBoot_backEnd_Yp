@@ -156,3 +156,8 @@ coverage/
 # Postman: bo request thu API (sinh bang docs/postman/generate-collection.mjs), chi giu tren may
 ######################
 docs/postman/
+
+# Sửa tay: biến môi trường production (chứa mật khẩu, khóa) — chỉ commit file mẫu .env.example
+.env
+.env.*
+!.env.example

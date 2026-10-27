@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.repository.GalleryImageRepository;
+import com.mycompany.myapp.security.UploadedImageTypes;
 import com.mycompany.myapp.service.GalleryImageQueryService;
 import com.mycompany.myapp.service.GalleryImageService;
 import com.mycompany.myapp.service.criteria.GalleryImageCriteria;
@@ -67,6 +68,7 @@ public class GalleryImageResource {
     public ResponseEntity<GalleryImageDTO> createGalleryImage(@Valid @RequestBody GalleryImageDTO galleryImageDTO)
         throws URISyntaxException {
         LOG.debug("REST request to save GalleryImage : {}", galleryImageDTO);
+        UploadedImageTypes.requireAllowed(galleryImageDTO.getImage(), galleryImageDTO.getImageContentType()); // sửa tay: chặn upload HTML/SVG (XSS)
         if (galleryImageDTO.getId() != null) {
             throw new BadRequestAlertException("A new galleryImage cannot already have an ID", ENTITY_NAME, "idexists");
         }
@@ -92,6 +94,7 @@ public class GalleryImageResource {
         @Valid @RequestBody GalleryImageDTO galleryImageDTO
     ) throws URISyntaxException {
         LOG.debug("REST request to update GalleryImage : {}, {}", id, galleryImageDTO);
+        UploadedImageTypes.requireAllowed(galleryImageDTO.getImage(), galleryImageDTO.getImageContentType()); // sửa tay: chặn upload HTML/SVG (XSS)
         if (galleryImageDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }
@@ -126,6 +129,7 @@ public class GalleryImageResource {
         @NotNull @RequestBody GalleryImageDTO galleryImageDTO
     ) throws URISyntaxException {
         LOG.debug("REST request to partial update GalleryImage partially : {}, {}", id, galleryImageDTO);
+        UploadedImageTypes.requireAllowed(galleryImageDTO.getImage(), galleryImageDTO.getImageContentType()); // sửa tay: chặn upload HTML/SVG (XSS)
         if (galleryImageDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
         }

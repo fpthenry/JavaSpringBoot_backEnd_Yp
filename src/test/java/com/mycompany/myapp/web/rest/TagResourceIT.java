@@ -13,6 +13,7 @@ import com.mycompany.myapp.IntegrationTest;
 import com.mycompany.myapp.domain.Tag;
 import com.mycompany.myapp.repository.TagRepository;
 import com.mycompany.myapp.repository.search.TagSearchRepository;
+import com.mycompany.myapp.security.AuthoritiesConstants;
 import com.mycompany.myapp.service.dto.TagDTO;
 import com.mycompany.myapp.service.mapper.TagMapper;
 import jakarta.persistence.EntityManager;
@@ -38,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
  */
 @IntegrationTest
 @AutoConfigureMockMvc
-@WithMockUser
+@WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 class TagResourceIT {
 
     private static final Long DEFAULT_WP_TERM_ID = 1L;

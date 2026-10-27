@@ -17,6 +17,8 @@ public class ApplicationProperties {
 
     private final WordPress wordpress = new WordPress();
 
+    private final Registration registration = new Registration();
+
     // jhipster-needle-application-properties-property
 
     public Liquibase getLiquibase() {
@@ -29,6 +31,10 @@ public class ApplicationProperties {
 
     public WordPress getWordpress() {
         return wordpress;
+    }
+
+    public Registration getRegistration() {
+        return registration;
     }
 
     // jhipster-needle-application-properties-property-getter
@@ -49,6 +55,23 @@ public class ApplicationProperties {
 
         public void setKeys(java.util.List<String> keys) {
             this.keys = keys;
+        }
+    }
+
+    /**
+     * Sửa tay: tự đăng ký tài khoản ({@code POST /api/register}, {@code GET /api/activate}). Trang quản trị chỉ dành cho
+     * quản trị viên — tài khoản do admin tạo trong "Quản lý người dùng", nên mặc định TẮT (403). Chỉ bật trong test.
+     */
+    public static class Registration {
+
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 

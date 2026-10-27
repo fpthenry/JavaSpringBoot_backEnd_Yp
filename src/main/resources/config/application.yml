@@ -97,6 +97,10 @@ spring:
       enabled: true
       lifecycle-management: start-only
       file: src/main/docker/services.yml
+  # Sửa tay: nạp biến từ file .env cạnh file jar (thư mục chạy app) nếu có — dùng cho production (application-prod.yml
+  # đọc DB_URL, JWT_BASE64_SECRET…). Máy dev không có file .env thì bỏ qua. Mẫu: .env.example.
+  config:
+    import: optional:file:.env[.properties]
   profiles:
     # The commented value for `active` can be replaced with valid Spring profiles to load.
     # Otherwise, it will be filled in by maven when building the JAR file

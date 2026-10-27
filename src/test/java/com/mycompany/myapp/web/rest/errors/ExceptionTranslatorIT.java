@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.mycompany.myapp.IntegrationTest;
+import com.mycompany.myapp.security.AuthoritiesConstants;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -17,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * Integration tests {@link ExceptionTranslator} controller advice.
  */
-@WithMockUser
+@WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 @AutoConfigureMockMvc
 @IntegrationTest
 class ExceptionTranslatorIT {
