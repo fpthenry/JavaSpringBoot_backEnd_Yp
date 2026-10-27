@@ -24,6 +24,7 @@
 *.sass          text
 *.scss          text
 *.sh            text eol=lf
+ops/**          text eol=lf
 *.sql           text
 *.ts            text
 *.xml           text

@@ -1,0 +1,62 @@
+# MySQL + Elasticsearch cho PRODUCTION (máy chủ chạy yellowbe.yp.vn).
+# Hướng dẫn đầy đủ: docs/TONG-HOP-DU-AN.md mục 9.5.
+#
+# Trên server: chép thư mục ops/ vào /opt/yp/ops, tạo file .env cạnh file này (mẫu: .env.example), rồi:
+#   docker compose up -d
+# Khác bản dev (src/main/docker): có mật khẩu (MySQL + bật xpack.security cho ES), dữ liệu nằm ở named volume,
+# cổng chỉ mở cho chính máy chủ (127.0.0.1) — app Spring Boot chạy trên cùng máy, Internet không vào được.
+name: yp
+services:
+  mysql:
+    image: mysql:26.7.0
+    container_name: yp-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?Thieu MYSQL_ROOT_PASSWORD trong ops/.env}
+      - MYSQL_DATABASE=javaspringbootbackend
+      # Tài khoản app dùng (DB_USERNAME / DB_PASSWORD trong .env của backend) — có toàn quyền trên javaspringbootbackend
+      - MYSQL_USER=yp_app
+      - MYSQL_PASSWORD=${DB_PASSWORD:?Thieu DB_PASSWORD trong ops/.env}
+    # lower_case_table_names chỉ đặt được lúc khởi tạo dữ liệu lần đầu, phải giống bản dev
+    command: >
+      mysqld --lower_case_table_names=1 --skip-mysqlx --character_set_server=utf8mb4 --explicit_defaults_for_timestamp
+      --innodb-buffer-pool-size=${MYSQL_BUFFER_POOL:-2G} --innodb-redo-log-capacity=2G
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - 127.0.0.1:3306:3306
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.5
+    container_name: yp-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      # Bật đăng nhập (user "elastic"); HTTP không TLS vì cổng chỉ mở trong máy chủ
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?Thieu ELASTIC_PASSWORD trong ops/.env}
+      # Heap: khoảng 1/4 RAM máy chủ, tối đa 50% (máy 16 GB → 4g)
+      - ES_JAVA_OPTS=-Xms${ES_HEAP:-2g} -Xmx${ES_HEAP:-2g}
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - 127.0.0.1:9200:9200
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsu "elastic:$$ELASTIC_PASSWORD" "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=10s"']
+      interval: 10s
+      timeout: 15s
+      retries: 20
+
+volumes:
+  mysql-data:
+  elasticsearch-data:

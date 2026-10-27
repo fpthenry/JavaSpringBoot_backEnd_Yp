@@ -1,0 +1,22 @@
+# Chạy backend Spring Boot như dịch vụ: tự khởi động cùng máy, tự chạy lại khi lỗi.
+# Chép vào /etc/systemd/system/, rồi: systemctl daemon-reload && systemctl enable --now yp-backend
+# Log: journalctl -u yp-backend -f
+# /opt/yp/backend chứa app.jar và .env (mẫu: .env.example ở gốc dự án) — app đọc .env trong thư mục chạy.
+[Unit]
+Description=YP backend (Spring Boot, yellowbe.yp.vn)
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+User=yp
+Group=yp
+WorkingDirectory=/opt/yp/backend
+ExecStart=/usr/bin/java -Xms1g -Xmx2g -jar /opt/yp/backend/app.jar
+# Spring Boot thoát mã 143 khi nhận SIGTERM (dừng bình thường)
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

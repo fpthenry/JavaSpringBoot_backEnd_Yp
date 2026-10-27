@@ -1,0 +1,21 @@
+# Chạy website Next.js (repo nextyp-v2) như dịch vụ.
+# Chép vào /etc/systemd/system/, rồi: systemctl daemon-reload && systemctl enable --now yp-fe
+# Log: journalctl -u yp-fe -f
+# /opt/yp/fe là bản clone nextyp-v2, đã có .env.production và đã chạy: npm ci && npm run build
+[Unit]
+Description=YP website (Next.js, yellowfe.yp.vn)
+After=network-online.target yp-backend.service
+Wants=network-online.target
+
+[Service]
+User=yp
+Group=yp
+WorkingDirectory=/opt/yp/fe
+Environment=NODE_ENV=production
+# Chỉ nghe trong máy chủ; Internet vào qua nginx
+ExecStart=/usr/bin/node /opt/yp/fe/node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
