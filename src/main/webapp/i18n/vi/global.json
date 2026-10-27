@@ -10,6 +10,7 @@
         "jhipster-needle-menu-add-entry": "JHipster will add additional entities here (do not translate!)",
         "adminAuthority": "Authority",
         "listing": "Listing",
+        "listingImport": "Nhập doanh nghiệp",
         "category": "Category",
         "location": "Location",
         "blogPost": "Bài viết",

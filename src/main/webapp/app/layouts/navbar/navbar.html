@@ -53,6 +53,19 @@
                   <span jhiTranslate="global.menu.entities.listing">Listing</span>
                 </a>
               </li>
+              <!-- Sửa tay: nhập doanh nghiệp (chỉ ROLE_ADMIN) -->
+              <li *jhiHasAnyAuthority="'ROLE_ADMIN'">
+                <a
+                  class="dropdown-item ps-4"
+                  routerLink="/listing-import"
+                  routerLinkActive="active"
+                  (click)="collapseNavbar()"
+                  data-cy="listingImportMenu"
+                >
+                  <fa-icon icon="file-import" [fixedWidth]="true" />
+                  <span jhiTranslate="global.menu.entities.listingImport">Nhập doanh nghiệp</span>
+                </a>
+              </li>
               <!-- Category: nhóm Ngành nghề (cây phân cấp + danh sách) -->
               <li><hr class="dropdown-divider" /></li>
               <li>

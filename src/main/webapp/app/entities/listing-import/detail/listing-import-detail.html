@@ -1,0 +1,337 @@
+<!-- Sửa tay: một đợt nhập doanh nghiệp — tiến độ, kết quả từng dòng, duyệt nghi trùng, xuất bản. Không qua JDL. -->
+<div class="listing-import">
+  @if (batch(); as b) {
+    <div class="page-header align-items-start">
+      <div class="min-w-0">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-1 small">
+            <li class="breadcrumb-item">
+              <a routerLink="/listing-import" jhiTranslate="javaSpringBootBackEndApp.listingImport.action.backToList">Các đợt nhập</a>
+            </li>
+          </ol>
+        </nav>
+        <h2 class="page-title" data-cy="listingImportDetailHeading">
+          {{ 'javaSpringBootBackEndApp.listingImport.detail.title' | translate: { id: b.id } }}
+          @if (b.dryRun) {
+            <span
+              class="badge bg-light text-dark border fs-6 align-middle"
+              jhiTranslate="javaSpringBootBackEndApp.listingImport.mode.dryRun"
+              >Chạy thử</span
+            >
+          } @else {
+            <span class="badge bg-dark fs-6 align-middle" jhiTranslate="javaSpringBootBackEndApp.listingImport.mode.real">Nhập thật</span>
+          }
+        </h2>
+        <div class="page-meta text-break">
+          <span>
+            <span class="badge bg-secondary">{{
+              'javaSpringBootBackEndApp.listingImport.sourceKind.' + sourceKind(b.source) | translate
+            }}</span>
+            @if (sourceCode(b.source); as code) {
+              <code class="ms-1">{{ code }}</code>
+            }
+            {{ b.sourceName }}
+          </span>
+          <span>{{ b.startedAt | date: 'dd/MM/yyyy HH:mm' }} · {{ duration() }}</span>
+          @if (b.createdBy) {
+            <span>{{ b.createdBy }}</span>
+          }
+        </div>
+      </div>
+      @if (!b.dryRun && b.status === 'DONE' && b.createdCount > 0) {
+        <div class="d-flex flex-wrap gap-2 align-items-center" data-cy="publishBox">
+          @if (!confirmPublish()) {
+            <button type="button" class="btn btn-success" (click)="confirmPublish.set(true)" data-cy="publishButton">
+              <fa-icon icon="upload" />
+              {{ 'javaSpringBootBackEndApp.listingImport.action.publish' | translate: { count: fmt(b.createdCount) } }}
+            </button>
+          } @else {
+            <span class="small fw-semibold">{{
+              'javaSpringBootBackEndApp.listingImport.action.publishConfirm' | translate: { count: fmt(b.createdCount) }
+            }}</span>
+            <button type="button" class="btn btn-success btn-sm" (click)="publish()" [disabled]="publishing()" data-cy="publishConfirm">
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.publishYes">Xuất bản</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="confirmPublish.set(false)">
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.publishNo">Thôi</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <jhi-alert-error />
+    <jhi-alert />
+
+    @if (running()) {
+      <div class="alert alert-info d-flex align-items-center gap-2" data-cy="runningNotice">
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        <span>
+          {{ 'javaSpringBootBackEndApp.listingImport.list.rows' | translate: { count: fmt(b.totalRows) } }} ·
+          {{ 'javaSpringBootBackEndApp.listingImport.detail.runningNotice' | translate }}
+        </span>
+      </div>
+    }
+    @if (b.status === 'FAILED') {
+      <div class="alert alert-danger">
+        {{ 'javaSpringBootBackEndApp.listingImport.detail.failed' | translate: { error: b.error ?? '' } }}
+      </div>
+    }
+    @if (b.dryRun && !running()) {
+      <div class="alert alert-light border small" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.dryRunNotice"></div>
+    }
+    @if (!b.dryRun && b.suspectCount > 0 && filter() !== 'SUSPECT') {
+      <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" data-cy="suspectNotice">
+        <fa-icon icon="triangle-exclamation" />
+        <span>{{ 'javaSpringBootBackEndApp.listingImport.detail.suspectNotice' | translate: { count: fmt(b.suspectCount) } }}</span>
+        <button type="button" class="btn btn-warning btn-sm ms-auto" (click)="setFilter('SUSPECT')">
+          <span jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.reviewSuspects">Duyệt ngay</span>
+        </button>
+      </div>
+    }
+
+    <!-- Bộ đếm = bộ lọc -->
+    <div class="import-filters d-flex flex-wrap gap-2 mb-3" role="tablist" data-cy="statusFilters">
+      <button type="button" class="btn btn-sm" [class]="filter() === null ? 'btn-dark' : 'btn-outline-secondary'" (click)="setFilter(null)">
+        {{ 'javaSpringBootBackEndApp.listingImport.status.all' | translate }}
+        <span class="badge bg-light text-dark ms-1">{{ fmt(b.totalRows) }}</span>
+      </button>
+      @for (s of statuses; track s) {
+        <!-- SKIPPED chỉ có ở đợt nhập thật (do duyệt tay), không có bộ đếm riêng -->
+        @if (s === 'SKIPPED' ? !b.dryRun : statusCount(b, s) !== 0) {
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class]="filter() === s ? 'btn-dark' : 'btn-outline-secondary'"
+            [title]="'javaSpringBootBackEndApp.listingImport.statusHelp.' + s | translate"
+            (click)="setFilter(s)"
+            [attr.data-cy]="'filter-' + s"
+          >
+            <span class="status-dot" [class]="badge[s]"></span>
+            {{ statusLabelKey(s, b.dryRun) | translate }}
+            @if (statusCount(b, s); as n) {
+              <span class="badge bg-light text-dark ms-1">{{ fmt(n) }}</span>
+            }
+          </button>
+        }
+      }
+    </div>
+
+    <!-- Từng dòng -->
+    @if (rows().length === 0 && !loadingRows()) {
+      <div class="surface p-4 text-center text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.noRows"></div>
+    } @else {
+      <div class="surface table-responsive" [class.opacity-50]="loadingRows()">
+        <table class="table table-entities align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col" class="text-nowrap" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.rowNo">Dòng</th>
+              <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.company">Doanh nghiệp trong file</th>
+              <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.result">Kết quả</th>
+              <th scope="col" class="d-none d-lg-table-cell" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.matched">
+                Doanh nghiệp đang có
+              </th>
+              <th scope="col" class="d-none d-md-table-cell" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.notes">
+                Bổ sung / ghi chú
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of rows(); track v.row.id) {
+              <tr [class.table-warning]="v.row.status === 'SUSPECT'" data-cy="importRow">
+                <td class="text-muted">{{ v.row.rowNo }}</td>
+                <td class="text-break">
+                  <div class="fw-semibold">{{ v.row.name || '—' }}</div>
+                  <div class="small text-muted">
+                    @if (v.row.taxCode) {
+                      <span class="me-2">MST {{ v.row.taxCode }}</span>
+                    }
+                    @if (v.row.phone) {
+                      <span class="me-2">{{ v.row.phone }}</span>
+                    }
+                    @if (v.row.sourceRef) {
+                      <span>#{{ v.row.sourceRef }}</span>
+                    }
+                  </div>
+                  <!-- Điện thoại: cột ghi chú bị ẩn → hiện ghi chú ngay dưới tên -->
+                  @for (note of messageList(v.row.message); track $index) {
+                    <div class="d-md-none small text-warning-emphasis"><fa-icon icon="triangle-exclamation" class="me-1" />{{ note }}</div>
+                  }
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [class]="badge[v.row.status]"
+                    [title]="'javaSpringBootBackEndApp.listingImport.statusHelp.' + v.row.status | translate"
+                    >{{ statusLabelKey(v.row.status, b.dryRun) | translate }}</span
+                  >
+                  @if (v.row.matchReason) {
+                    <div class="small text-muted mt-1">
+                      {{ reasonLabelKey(v.row.matchReason) | translate }}
+                      @if (v.row.matchReason !== 'TAX_CODE' && v.row.matchReason !== 'SOURCE_REF') {
+                        · {{ scorePercent(v.row.matchScore) }}
+                      }
+                    </div>
+                  }
+                  @if (v.row.resolvedBy) {
+                    <div class="small text-muted">
+                      {{ 'javaSpringBootBackEndApp.listingImport.detail.resolvedBy' | translate: { user: v.row.resolvedBy } }}
+                    </div>
+                  }
+                </td>
+                <td class="d-none d-lg-table-cell text-break">
+                  @if (v.matched; as m) {
+                    <a [routerLink]="['/listing', m.id, 'view']" target="_blank" rel="noopener">{{ m.name }}</a>
+                    <div class="small text-muted">
+                      #{{ m.id }}
+                      @if (m.taxCode) {
+                        · MST {{ m.taxCode }}
+                      }
+                    </div>
+                  } @else if (v.row.listingId && v.row.status === 'CREATED') {
+                    <a [routerLink]="['/listing', v.row.listingId, 'view']" target="_blank" rel="noopener"
+                      >{{ 'javaSpringBootBackEndApp.listingImport.detail.created' | translate }} #{{ v.row.listingId }}</a
+                    >
+                  }
+                </td>
+                <td class="d-none d-md-table-cell small">
+                  @if (filledList(v.row.filledFields).length) {
+                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                      <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.filled">Bổ sung:</span>
+                      @for (f of filledList(v.row.filledFields); track f) {
+                        <span class="badge bg-primary-subtle text-primary-emphasis">{{
+                          'javaSpringBootBackEndApp.listingImport.field.' + f | translate
+                        }}</span>
+                      }
+                    </div>
+                  }
+                  @for (note of messageList(v.row.message); track $index) {
+                    <div class="text-warning-emphasis"><fa-icon icon="triangle-exclamation" class="me-1" />{{ note }}</div>
+                  }
+                </td>
+              </tr>
+
+              <!-- Nghi trùng: so cạnh nhau + duyệt -->
+              @if (v.row.status === 'SUSPECT') {
+                <tr class="import-review-row">
+                  <td colspan="5">
+                    <div class="import-review" data-cy="reviewBox">
+                      <table class="table table-sm table-borderless mb-2 import-compare">
+                        <thead>
+                          <tr>
+                            <th scope="col"></th>
+                            <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.review.imported">Dòng nhập</th>
+                            <th scope="col">
+                              @if (v.matched; as m) {
+                                <a [routerLink]="['/listing', m.id, 'view']" target="_blank" rel="noopener">{{
+                                  'javaSpringBootBackEndApp.listingImport.review.existing' | translate: { id: m.id }
+                                }}</a>
+                              }
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (line of compareLines(v); track line.field) {
+                            <tr [class]="'cmp-' + line.state">
+                              <th scope="row" class="text-muted fw-normal text-nowrap">
+                                {{ 'javaSpringBootBackEndApp.listingImport.field.' + line.field | translate }}
+                              </th>
+                              <td class="text-break">
+                                {{ line.imported ?? '—' }}
+                                @if (line.state === 'same') {
+                                  <span class="badge bg-success-subtle text-success-emphasis ms-1">{{
+                                    'javaSpringBootBackEndApp.listingImport.review.same' | translate
+                                  }}</span>
+                                } @else if (line.state === 'fill') {
+                                  <span class="badge bg-primary-subtle text-primary-emphasis ms-1">{{
+                                    'javaSpringBootBackEndApp.listingImport.review.fill' | translate
+                                  }}</span>
+                                }
+                              </td>
+                              <td class="text-break">{{ line.existing ?? '—' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+
+                      @if (canResolve()) {
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            [disabled]="busyRow() === v.row.id"
+                            [title]="'javaSpringBootBackEndApp.listingImport.review.mergeHelp' | translate"
+                            (click)="resolve(v, 'MERGE')"
+                            data-cy="resolveMerge"
+                          >
+                            <fa-icon icon="code-merge" />
+                            <span jhiTranslate="javaSpringBootBackEndApp.listingImport.review.merge">Cùng doanh nghiệp — gộp</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-outline-success btn-sm"
+                            [disabled]="busyRow() === v.row.id"
+                            (click)="resolve(v, 'CREATE')"
+                            data-cy="resolveCreate"
+                          >
+                            <fa-icon icon="plus" />
+                            <span jhiTranslate="javaSpringBootBackEndApp.listingImport.review.create">Khác doanh nghiệp — tạo mới</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            [disabled]="busyRow() === v.row.id"
+                            (click)="resolve(v, 'SKIP')"
+                            data-cy="resolveSkip"
+                          >
+                            <fa-icon icon="forward" />
+                            <span jhiTranslate="javaSpringBootBackEndApp.listingImport.review.skip">Bỏ qua</span>
+                          </button>
+                          <div class="input-group input-group-sm ms-md-auto import-merge-other">
+                            <input
+                              type="number"
+                              min="1"
+                              class="form-control"
+                              [placeholder]="'javaSpringBootBackEndApp.listingImport.review.mergeOther' | translate"
+                              [(ngModel)]="otherId[v.row.id]"
+                              [attr.aria-label]="'javaSpringBootBackEndApp.listingImport.review.mergeOther' | translate"
+                            />
+                            <button
+                              type="button"
+                              class="btn btn-outline-primary"
+                              [disabled]="!otherId[v.row.id] || busyRow() === v.row.id"
+                              (click)="mergeOther(v)"
+                            >
+                              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.review.mergeOtherGo">Gộp</span>
+                            </button>
+                          </div>
+                        </div>
+                        @if (rowError()?.rowId === v.row.id) {
+                          <div class="text-danger small mt-2">{{ rowError()?.message }}</div>
+                        }
+                      } @else if (b.dryRun) {
+                        <div class="small text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.review.dryRunBlocked"></div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (rowTotal() > rowsPerPage) {
+        <div class="d-flex justify-content-center mt-3">
+          <ngb-pagination
+            [collectionSize]="rowTotal()"
+            [page]="rowPage()"
+            [pageSize]="rowsPerPage"
+            [maxSize]="5"
+            [rotate]="true"
+            (pageChange)="changeRowPage($event)"
+          />
+        </div>
+      }
+    }
+  }
+</div>

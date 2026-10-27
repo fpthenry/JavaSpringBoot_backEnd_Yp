@@ -10,6 +10,7 @@
         "jhipster-needle-menu-add-entry": "JHipster will add additional entities here (do not translate!)",
         "adminAuthority": "Authority",
         "listing": "Listing",
+        "listingImport": "Import listings",
         "category": "Category",
         "location": "Location",
         "blogPost": "Posts",

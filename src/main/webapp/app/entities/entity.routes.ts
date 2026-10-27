@@ -51,6 +51,12 @@ const routes: Routes = [
     title: 'javaSpringBootBackEndApp.blogCategory.home.title',
     loadChildren: () => import('./blog-category/blog-category.routes'),
   },
+  {
+    // Sửa tay: nhập doanh nghiệp từ file Excel/CSV, API ngoài (không qua JDL)
+    path: 'listing-import',
+    title: 'javaSpringBootBackEndApp.listingImport.home.title',
+    loadChildren: () => import('./listing-import/listing-import.routes'),
+  },
   // jhipster-needle-add-entity-route - JHipster will add entity modules routes here
 ];
 

@@ -1,0 +1,173 @@
+{
+  "javaSpringBootBackEndApp": {
+    "listingImport": {
+      "home": {
+        "title": "Nhập doanh nghiệp",
+        "subtitle": "Đưa doanh nghiệp từ file Excel/CSV hoặc API bên ngoài vào hệ thống, tự kiểm tra trùng với doanh nghiệp đang có.",
+        "notFound": "Chưa có đợt nhập nào. Bắt đầu bằng \"Nhập mới\" — nên chọn chạy thử trước."
+      },
+      "action": {
+        "template": "Tải file mẫu",
+        "newImport": "Nhập mới",
+        "refresh": "Tải lại",
+        "start": "Bắt đầu nhập",
+        "starting": "Đang gửi…",
+        "cancel": "Đóng",
+        "backToList": "Các đợt nhập",
+        "publish": "Xuất bản {{ count }} doanh nghiệp nháp",
+        "publishConfirm": "Xuất bản ngay {{ count }} doanh nghiệp nháp lên website?",
+        "publishYes": "Xuất bản",
+        "publishNo": "Thôi",
+        "published": "Đã xuất bản {{ count }} doanh nghiệp.",
+        "importAgain": "Nhập thật với file này"
+      },
+      "new": {
+        "title": "Nhập mới",
+        "tabFile": "File Excel / CSV",
+        "tabApi": "Từ API",
+        "fileHint": "File .xlsx hoặc .csv (UTF-8), tối đa 100 MB. Dòng đầu là tên cột — nhận tiếng Việt có/không dấu (\"Tên doanh nghiệp\", \"MST\", \"Phường/xã\"…). Xem file mẫu để biết đủ 28 cột.",
+        "drop": "Kéo thả file vào đây hoặc",
+        "choose": "chọn file",
+        "chosen": "{{ name }} · {{ size }}",
+        "badType": "Chỉ nhận file .xlsx hoặc .csv (file .xls cũ: mở bằng Excel rồi lưu lại thành .xlsx).",
+        "tooBig": "File quá 100 MB.",
+        "dryRun": "Chạy thử — chỉ phân loại, không ghi gì vào doanh nghiệp",
+        "dryRunHelp": "Nên chạy thử trước: xem số tạo mới / bổ sung / nghi trùng, ghi chú lỗi từng dòng, rồi mới nhập thật.",
+        "realRunWarning": "Nhập thật: doanh nghiệp mới được tạo ở dạng nháp (chưa hiện trên website), doanh nghiệp trùng được bổ sung ô còn trống.",
+        "api": {
+          "source": "Mã nguồn",
+          "sourceHelp": "Chữ thường, số, gạch ngang. Ghi vào doanh nghiệp: api:<mã>. Nhập lại cùng mã nguồn thì khớp đúng bản ghi cũ.",
+          "url": "URL (GET, trả JSON)",
+          "itemsPath": "Đường dẫn tới mảng doanh nghiệp",
+          "itemsPathHelp": "Dấu chấm, vd data.items. Để trống nếu JSON gốc là mảng.",
+          "headers": "Header gửi kèm",
+          "headersHelp": "Mỗi dòng một header: Tên: giá trị (vd X-API-Key: …).",
+          "pageParam": "Tham số trang",
+          "pageParamHelp": "Vd page. Để trống: chỉ gọi 1 lần.",
+          "firstPage": "Trang đầu",
+          "maxPages": "Số trang tối đa",
+          "delayMs": "Nghỉ giữa 2 trang (ms)",
+          "fieldMapping": "Ánh xạ trường",
+          "fieldMappingHelp": "Khi khóa JSON khác tên chuẩn. Mỗi dòng: tên chuẩn = đường dẫn trong phần tử (vd taxCode = mst, name = company.ten).",
+          "advanced": "Tùy chọn nâng cao",
+          "invalidSource": "Mã nguồn chỉ gồm chữ thường, số, gạch ngang.",
+          "invalidUrl": "URL phải bắt đầu bằng http:// hoặc https://"
+        }
+      },
+      "list": {
+        "running": "Đang chạy đợt #{{ id }} · đã xử lý {{ count }} dòng · {{ duration }}",
+        "id": "Đợt",
+        "source": "Nguồn",
+        "mode": "Chế độ",
+        "result": "Kết quả",
+        "time": "Thời gian",
+        "by": "Người chạy",
+        "rows": "{{ count }} dòng"
+      },
+      "mode": {
+        "dryRun": "Chạy thử",
+        "real": "Nhập thật"
+      },
+      "sourceKind": {
+        "file": "File",
+        "api": "API",
+        "json": "JSON"
+      },
+      "batchStatus": {
+        "RUNNING": "Đang chạy",
+        "DONE": "Xong",
+        "FAILED": "Lỗi"
+      },
+      "status": {
+        "SUSPECT": "Nghi trùng",
+        "CREATED": "Tạo mới",
+        "CREATED_DRY": "Sẽ tạo mới",
+        "MERGED": "Bổ sung",
+        "MERGED_DRY": "Sẽ bổ sung",
+        "UNCHANGED": "Đã có, không đổi",
+        "DUPLICATE_IN_BATCH": "Trùng trong file",
+        "INVALID": "Lỗi dữ liệu",
+        "SKIPPED": "Đã bỏ qua",
+        "all": "Tất cả"
+      },
+      "statusHelp": {
+        "SUSPECT": "Tên gần giống doanh nghiệp đang có (kèm SĐT / địa chỉ) — cần bạn duyệt",
+        "CREATED": "Không trùng doanh nghiệp nào → doanh nghiệp mới, dạng nháp",
+        "MERGED": "Trùng chắc chắn (mã số thuế / mã nguồn) → bổ sung các ô còn trống",
+        "UNCHANGED": "Trùng chắc chắn, không có gì để bổ sung",
+        "DUPLICATE_IN_BATCH": "Trùng một dòng phía trên trong cùng file",
+        "INVALID": "Thiếu tên doanh nghiệp",
+        "SKIPPED": "Bạn đã chọn bỏ qua"
+      },
+      "reason": {
+        "TAX_CODE": "Mã số thuế",
+        "SOURCE_REF": "Mã nguồn",
+        "NAME_PHONE": "Tên + SĐT",
+        "NAME_ADDRESS": "Tên + địa chỉ",
+        "NAME": "Tên"
+      },
+      "detail": {
+        "title": "Đợt nhập #{{ id }}",
+        "dryRunNotice": "Đây là đợt chạy thử: các kết quả là điều SẼ xảy ra, chưa ghi gì vào doanh nghiệp. Muốn ghi thật, nhập lại file và bỏ chọn \"Chạy thử\".",
+        "runningNotice": "Đang xử lý… trang tự cập nhật. Có thể rời trang, đợt vẫn chạy tiếp.",
+        "failed": "Đợt nhập lỗi: {{ error }}",
+        "suspectNotice": "{{ count }} dòng nghi trùng đang chờ duyệt.",
+        "reviewSuspects": "Duyệt ngay",
+        "rowNo": "Dòng",
+        "company": "Doanh nghiệp trong file",
+        "result": "Kết quả",
+        "basis": "Căn cứ",
+        "matched": "Doanh nghiệp đang có",
+        "notes": "Bổ sung / ghi chú",
+        "filled": "Bổ sung:",
+        "created": "Đã tạo",
+        "noRows": "Không có dòng nào.",
+        "resolvedBy": "Duyệt bởi {{ user }}"
+      },
+      "review": {
+        "title": "So sánh",
+        "imported": "Dòng nhập",
+        "existing": "Doanh nghiệp #{{ id }}",
+        "same": "giống",
+        "fill": "sẽ bổ sung",
+        "merge": "Cùng doanh nghiệp — gộp",
+        "mergeHelp": "Bổ sung ô còn trống của doanh nghiệp đang có, không ghi đè",
+        "create": "Khác doanh nghiệp — tạo mới",
+        "skip": "Bỏ qua",
+        "mergeOther": "Gộp vào doanh nghiệp khác (ID)",
+        "mergeOtherGo": "Gộp",
+        "dryRunBlocked": "Đợt chạy thử không duyệt được — nhập thật rồi duyệt.",
+        "done": "Đã duyệt dòng {{ row }}: {{ result }}"
+      },
+      "field": {
+        "sourceRef": "Mã nguồn",
+        "name": "Tên",
+        "nameEn": "Tên tiếng Anh",
+        "nameAlias": "Tên viết tắt",
+        "taxCode": "Mã số thuế",
+        "phone": "Điện thoại",
+        "mobile": "Di động",
+        "email": "Email",
+        "website": "Website",
+        "address": "Địa chỉ",
+        "addressNew": "Địa chỉ mới",
+        "province": "Tỉnh thành",
+        "district": "Quận/huyện",
+        "ward": "Phường/xã",
+        "coordinate": "Tọa độ",
+        "representative": "Người đại diện",
+        "capital": "Vốn",
+        "foundedYear": "Ngày thành lập",
+        "businessType": "Loại hình",
+        "businessStatus": "Tình trạng",
+        "industryCode": "Mã ngành",
+        "categories": "Ngành nghề",
+        "locations": "Tỉnh thành",
+        "managedBy": "Cơ quan thuế",
+        "description": "Giới thiệu",
+        "logo": "Logo",
+        "images": "Ảnh"
+      }
+    }
+  }
+}

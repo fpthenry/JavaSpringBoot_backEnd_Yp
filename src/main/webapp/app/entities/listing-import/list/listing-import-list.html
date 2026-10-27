@@ -1,0 +1,310 @@
+<!-- Sửa tay: trang "Nhập doanh nghiệp" (các đợt nhập + nhập mới). Không qua JDL. -->
+<div class="listing-import">
+  <div class="page-header">
+    <div class="min-w-0">
+      <h2 class="page-title" data-cy="listingImportHeading" jhiTranslate="javaSpringBootBackEndApp.listingImport.home.title">
+        Nhập doanh nghiệp
+      </h2>
+      <p class="text-muted mb-0 small" jhiTranslate="javaSpringBootBackEndApp.listingImport.home.subtitle"></p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="downloadTemplate()" data-cy="templateButton">
+        <fa-icon icon="download" />
+        <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.template">Tải file mẫu</span>
+      </button>
+      <button type="button" class="btn btn-outline-secondary" (click)="load()" [disabled]="loading()">
+        <fa-icon icon="sync" [animation]="loading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.refresh">Tải lại</span>
+      </button>
+      <button type="button" class="btn btn-primary" (click)="toggleNew()" data-cy="newImportButton">
+        <fa-icon icon="plus" />
+        <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.newImport">Nhập mới</span>
+      </button>
+    </div>
+  </div>
+
+  <jhi-alert-error />
+  <jhi-alert />
+
+  @if (running(); as r) {
+    <a class="alert alert-info d-flex align-items-center gap-2 text-decoration-none" [routerLink]="['/listing-import', r.id]">
+      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+      <span>{{
+        'javaSpringBootBackEndApp.listingImport.list.running'
+          | translate: { id: r.id, count: fmt(r.totalRows), duration: runningDuration() }
+      }}</span>
+      <fa-icon icon="arrow-right" class="ms-auto" />
+    </a>
+  }
+
+  <!-- Nhập mới -->
+  @if (showNew()) {
+    <section class="form-card mb-4" data-cy="newImportCard">
+      <h3 class="form-card-title">
+        <fa-icon icon="upload" />
+        <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.title">Nhập mới</span>
+      </h3>
+
+      <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+          <button type="button" class="nav-link" [class.active]="tab() === 'file'" (click)="tab.set('file')" role="tab">
+            <fa-icon icon="file-excel" />
+            <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.tabFile">File Excel / CSV</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button type="button" class="nav-link" [class.active]="tab() === 'api'" (click)="tab.set('api')" role="tab">
+            <fa-icon icon="cloud-arrow-down" />
+            <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.tabApi">Từ API</span>
+          </button>
+        </li>
+      </ul>
+
+      @if (tab() === 'file') {
+        <p class="small text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.fileHint"></p>
+        <label
+          class="import-drop"
+          [class.drag-over]="dragOver()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="dragOver.set(false)"
+          (drop)="onDrop($event)"
+          data-cy="dropZone"
+        >
+          <input type="file" class="visually-hidden" accept=".xlsx,.csv" (change)="onFileInput($event)" data-cy="fileInput" />
+          <fa-icon icon="file-arrow-up" size="2x" class="text-muted" />
+          @if (file(); as f) {
+            <strong class="text-break">{{
+              'javaSpringBootBackEndApp.listingImport.new.chosen' | translate: { name: f.name, size: fileSize(f.size) }
+            }}</strong>
+          } @else {
+            <span>
+              {{ 'javaSpringBootBackEndApp.listingImport.new.drop' | translate }}
+              <span class="link-primary text-decoration-underline">{{
+                'javaSpringBootBackEndApp.listingImport.new.choose' | translate
+              }}</span>
+            </span>
+          }
+        </label>
+        @if (fileError(); as key) {
+          <div class="text-danger small mt-2" [jhiTranslate]="key"></div>
+        }
+      } @else {
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label required" for="apiSource" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.source"
+              >Mã nguồn</label
+            >
+            <input
+              id="apiSource"
+              class="form-control"
+              [class.is-invalid]="api.source && !apiSourceValid()"
+              [(ngModel)]="api.source"
+              placeholder="vd: masothue"
+              autocomplete="off"
+            />
+            <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.sourceHelp"></div>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label required" for="apiUrl" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.url">URL</label>
+            <input
+              id="apiUrl"
+              class="form-control"
+              [class.is-invalid]="api.url && !apiUrlValid()"
+              [(ngModel)]="api.url"
+              placeholder="https://api.example.com/companies?size=100"
+              autocomplete="off"
+            />
+            @if (api.url && !apiUrlValid()) {
+              <div class="invalid-feedback" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.invalidUrl"></div>
+            }
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="apiItemsPath" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.itemsPath"></label>
+            <input id="apiItemsPath" class="form-control" [(ngModel)]="api.itemsPath" placeholder="data.items" autocomplete="off" />
+            <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.itemsPathHelp"></div>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label" for="apiHeaders" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.headers"></label>
+            <textarea id="apiHeaders" class="form-control font-monospace" rows="2" [(ngModel)]="api.headers"></textarea>
+            <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.headersHelp"></div>
+          </div>
+        </div>
+        <details class="mt-3">
+          <summary class="small" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.advanced">Tùy chọn nâng cao</summary>
+          <div class="row g-3 mt-1">
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="apiPageParam" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.pageParam"></label>
+              <input id="apiPageParam" class="form-control" [(ngModel)]="api.pageParam" placeholder="page" />
+              <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.pageParamHelp"></div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="apiFirstPage" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.firstPage"></label>
+              <input id="apiFirstPage" type="number" min="0" class="form-control" [(ngModel)]="api.firstPage" />
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="apiMaxPages" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.maxPages"></label>
+              <input id="apiMaxPages" type="number" min="1" max="10000" class="form-control" [(ngModel)]="api.maxPages" />
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="apiDelay" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.delayMs"></label>
+              <input id="apiDelay" type="number" min="0" class="form-control" [(ngModel)]="api.delayMs" />
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="apiMapping" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.fieldMapping"></label>
+              <textarea
+                id="apiMapping"
+                class="form-control font-monospace"
+                rows="3"
+                [(ngModel)]="api.fieldMapping"
+                placeholder="taxCode = mst&#10;name = company.ten"
+              ></textarea>
+              <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.api.fieldMappingHelp"></div>
+            </div>
+          </div>
+        </details>
+      }
+
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" id="dryRun" [(ngModel)]="dryRun" data-cy="dryRun" />
+        <label class="form-check-label fw-semibold" for="dryRun" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.dryRun"></label>
+        <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.dryRunHelp"></div>
+      </div>
+      @if (!dryRun) {
+        <div class="alert alert-warning small mt-2 mb-0" jhiTranslate="javaSpringBootBackEndApp.listingImport.new.realRunWarning"></div>
+      }
+      @if (submitError(); as err) {
+        <div class="alert alert-danger small mt-3 mb-0" data-cy="submitError">{{ err }}</div>
+      }
+
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button type="button" class="btn btn-primary" [disabled]="!canSubmit()" (click)="submit()" data-cy="startImport">
+          @if (submitting()) {
+            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.starting">Đang gửi…</span>
+          } @else {
+            <fa-icon icon="play" />
+            <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.start">Bắt đầu nhập</span>
+          }
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="toggleNew()">
+          <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.cancel">Đóng</span>
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- Các đợt nhập -->
+  @if (batches().length === 0 && !loading()) {
+    <div class="surface p-4 text-center text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.home.notFound"></div>
+  } @else {
+    <div class="surface table-responsive">
+      <table class="table table-entities align-middle mb-0" aria-describedby="listingImportHeading">
+        <thead>
+          <tr>
+            <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.list.id">Đợt</th>
+            <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.list.source">Nguồn</th>
+            <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.list.result">Kết quả</th>
+            <th scope="col" class="d-none d-md-table-cell" jhiTranslate="javaSpringBootBackEndApp.listingImport.list.time">Thời gian</th>
+            <th scope="col" class="d-none d-lg-table-cell" jhiTranslate="javaSpringBootBackEndApp.listingImport.list.by">Người chạy</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (b of batches(); track b.id) {
+            <tr data-cy="batchRow">
+              <td>
+                <a [routerLink]="['/listing-import', b.id]" class="fw-semibold">#{{ b.id }}</a>
+                <div>
+                  @if (b.dryRun) {
+                    <span class="badge bg-light text-dark border" jhiTranslate="javaSpringBootBackEndApp.listingImport.mode.dryRun"
+                      >Chạy thử</span
+                    >
+                  } @else {
+                    <span class="badge bg-dark" jhiTranslate="javaSpringBootBackEndApp.listingImport.mode.real">Nhập thật</span>
+                  }
+                </div>
+              </td>
+              <td class="text-break">
+                <span class="badge bg-secondary me-1">{{
+                  'javaSpringBootBackEndApp.listingImport.sourceKind.' + sourceKind(b.source) | translate
+                }}</span>
+                @if (sourceCode(b.source); as code) {
+                  <code>{{ code }}</code>
+                }
+                <div class="small text-muted">{{ b.sourceName }}</div>
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1 align-items-center">
+                  @switch (b.status) {
+                    @case ('RUNNING') {
+                      <span class="badge bg-info text-dark"
+                        ><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span
+                        >{{ 'javaSpringBootBackEndApp.listingImport.batchStatus.RUNNING' | translate }}</span
+                      >
+                    }
+                    @case ('FAILED') {
+                      <span class="badge bg-danger" [title]="b.error ?? ''">{{
+                        'javaSpringBootBackEndApp.listingImport.batchStatus.FAILED' | translate
+                      }}</span>
+                    }
+                  }
+                  <span class="small text-muted me-1">{{
+                    'javaSpringBootBackEndApp.listingImport.list.rows' | translate: { count: fmt(b.totalRows) }
+                  }}</span>
+                  @if (b.suspectCount) {
+                    <span class="badge bg-warning text-dark"
+                      >{{ 'javaSpringBootBackEndApp.listingImport.status.SUSPECT' | translate }} {{ fmt(b.suspectCount) }}</span
+                    >
+                  }
+                  @if (b.createdCount) {
+                    <span class="badge bg-success"
+                      >{{
+                        (b.dryRun
+                          ? 'javaSpringBootBackEndApp.listingImport.status.CREATED_DRY'
+                          : 'javaSpringBootBackEndApp.listingImport.status.CREATED'
+                        ) | translate
+                      }}
+                      {{ fmt(b.createdCount) }}</span
+                    >
+                  }
+                  @if (b.mergedCount) {
+                    <span class="badge bg-primary"
+                      >{{
+                        (b.dryRun
+                          ? 'javaSpringBootBackEndApp.listingImport.status.MERGED_DRY'
+                          : 'javaSpringBootBackEndApp.listingImport.status.MERGED'
+                        ) | translate
+                      }}
+                      {{ fmt(b.mergedCount) }}</span
+                    >
+                  }
+                  @if (b.invalidCount) {
+                    <span class="badge bg-danger"
+                      >{{ 'javaSpringBootBackEndApp.listingImport.status.INVALID' | translate }} {{ fmt(b.invalidCount) }}</span
+                    >
+                  }
+                </div>
+              </td>
+              <td class="d-none d-md-table-cell small text-nowrap">
+                {{ b.startedAt | date: 'dd/MM/yyyy HH:mm' }}
+                <div class="text-muted">{{ durationOf(b) }}</div>
+              </td>
+              <td class="d-none d-lg-table-cell small">{{ b.createdBy }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (totalItems() > pageSize) {
+      <div class="d-flex justify-content-center mt-3">
+        <ngb-pagination
+          [collectionSize]="totalItems()"
+          [page]="page()"
+          [pageSize]="pageSize"
+          [maxSize]="5"
+          [rotate]="true"
+          (pageChange)="changePage($event)"
+        />
+      </div>
+    }
+  }
+</div>

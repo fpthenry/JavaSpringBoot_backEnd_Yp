@@ -1,0 +1,173 @@
+{
+  "javaSpringBootBackEndApp": {
+    "listingImport": {
+      "home": {
+        "title": "Import listings",
+        "subtitle": "Bring companies from an Excel/CSV file or an external API into the system, with automatic duplicate checks.",
+        "notFound": "No import yet. Start with \"New import\" — a dry run first is recommended."
+      },
+      "action": {
+        "template": "Download template",
+        "newImport": "New import",
+        "refresh": "Refresh",
+        "start": "Start import",
+        "starting": "Sending…",
+        "cancel": "Close",
+        "backToList": "Imports",
+        "publish": "Publish {{ count }} draft listings",
+        "publishConfirm": "Publish {{ count }} draft listings to the website now?",
+        "publishYes": "Publish",
+        "publishNo": "Cancel",
+        "published": "Published {{ count }} listings.",
+        "importAgain": "Import for real with this file"
+      },
+      "new": {
+        "title": "New import",
+        "tabFile": "Excel / CSV file",
+        "tabApi": "From API",
+        "fileHint": ".xlsx or .csv (UTF-8) file, up to 100 MB. The first row holds column names (Vietnamese or English). See the template for all 28 columns.",
+        "drop": "Drop a file here or",
+        "choose": "choose a file",
+        "chosen": "{{ name }} · {{ size }}",
+        "badType": "Only .xlsx or .csv files (old .xls: open in Excel and save as .xlsx).",
+        "tooBig": "File larger than 100 MB.",
+        "dryRun": "Dry run — classify only, write nothing to listings",
+        "dryRunHelp": "Run a dry run first: check created / merged / suspected counts and row notes, then import for real.",
+        "realRunWarning": "Real import: new listings are created as drafts (not on the website yet), duplicates get their empty fields filled.",
+        "api": {
+          "source": "Source code",
+          "sourceHelp": "Lowercase letters, digits, dashes. Stored on listings as api:<code>. Re-importing the same source matches the same records.",
+          "url": "URL (GET, returns JSON)",
+          "itemsPath": "Path to the array of companies",
+          "itemsPathHelp": "Dotted, e.g. data.items. Empty if the root JSON is an array.",
+          "headers": "Request headers",
+          "headersHelp": "One per line: Name: value (e.g. X-API-Key: …).",
+          "pageParam": "Page parameter",
+          "pageParamHelp": "E.g. page. Empty: call once.",
+          "firstPage": "First page",
+          "maxPages": "Max pages",
+          "delayMs": "Delay between pages (ms)",
+          "fieldMapping": "Field mapping",
+          "fieldMappingHelp": "When JSON keys differ from standard names. One per line: standard name = path in item (e.g. taxCode = mst).",
+          "advanced": "Advanced options",
+          "invalidSource": "Source code may only contain lowercase letters, digits and dashes.",
+          "invalidUrl": "URL must start with http:// or https://"
+        }
+      },
+      "list": {
+        "running": "Running import #{{ id }} · {{ count }} rows processed · {{ duration }}",
+        "id": "Import",
+        "source": "Source",
+        "mode": "Mode",
+        "result": "Result",
+        "time": "Time",
+        "by": "By",
+        "rows": "{{ count }} rows"
+      },
+      "mode": {
+        "dryRun": "Dry run",
+        "real": "Real import"
+      },
+      "sourceKind": {
+        "file": "File",
+        "api": "API",
+        "json": "JSON"
+      },
+      "batchStatus": {
+        "RUNNING": "Running",
+        "DONE": "Done",
+        "FAILED": "Failed"
+      },
+      "status": {
+        "SUSPECT": "Suspected duplicate",
+        "CREATED": "Created",
+        "CREATED_DRY": "Will create",
+        "MERGED": "Merged",
+        "MERGED_DRY": "Will merge",
+        "UNCHANGED": "Exists, unchanged",
+        "DUPLICATE_IN_BATCH": "Duplicate in file",
+        "INVALID": "Invalid",
+        "SKIPPED": "Skipped",
+        "all": "All"
+      },
+      "statusHelp": {
+        "SUSPECT": "Name close to an existing listing (with phone / address) — needs review",
+        "CREATED": "No duplicate → new listing, as draft",
+        "MERGED": "Certain duplicate (tax code / source id) → empty fields filled",
+        "UNCHANGED": "Certain duplicate, nothing to add",
+        "DUPLICATE_IN_BATCH": "Same as an earlier row in the same file",
+        "INVALID": "Missing company name",
+        "SKIPPED": "You chose to skip"
+      },
+      "reason": {
+        "TAX_CODE": "Tax code",
+        "SOURCE_REF": "Source id",
+        "NAME_PHONE": "Name + phone",
+        "NAME_ADDRESS": "Name + address",
+        "NAME": "Name"
+      },
+      "detail": {
+        "title": "Import #{{ id }}",
+        "dryRunNotice": "This was a dry run: results show what WOULD happen; nothing was written. Import the file again without \"Dry run\" to write.",
+        "runningNotice": "Processing… this page updates itself. You can leave; the import keeps running.",
+        "failed": "Import failed: {{ error }}",
+        "suspectNotice": "{{ count }} suspected duplicates waiting for review.",
+        "reviewSuspects": "Review now",
+        "rowNo": "Row",
+        "company": "Company in file",
+        "result": "Result",
+        "basis": "Matched by",
+        "matched": "Existing listing",
+        "notes": "Filled / notes",
+        "filled": "Filled:",
+        "created": "Created",
+        "noRows": "No rows.",
+        "resolvedBy": "Reviewed by {{ user }}"
+      },
+      "review": {
+        "title": "Compare",
+        "imported": "Imported row",
+        "existing": "Listing #{{ id }}",
+        "same": "same",
+        "fill": "will fill",
+        "merge": "Same company — merge",
+        "mergeHelp": "Fill empty fields of the existing listing, never overwrite",
+        "create": "Different company — create",
+        "skip": "Skip",
+        "mergeOther": "Merge into another listing (ID)",
+        "mergeOtherGo": "Merge",
+        "dryRunBlocked": "Dry-run rows cannot be reviewed — import for real first.",
+        "done": "Row {{ row }} reviewed: {{ result }}"
+      },
+      "field": {
+        "sourceRef": "Source id",
+        "name": "Name",
+        "nameEn": "English name",
+        "nameAlias": "Short name",
+        "taxCode": "Tax code",
+        "phone": "Phone",
+        "mobile": "Mobile",
+        "email": "Email",
+        "website": "Website",
+        "address": "Address",
+        "addressNew": "New address",
+        "province": "Province",
+        "district": "District",
+        "ward": "Ward",
+        "coordinate": "Coordinates",
+        "representative": "Representative",
+        "capital": "Capital",
+        "foundedYear": "Founded",
+        "businessType": "Business type",
+        "businessStatus": "Status",
+        "industryCode": "Industry code",
+        "categories": "Industries",
+        "locations": "Province",
+        "managedBy": "Tax office",
+        "description": "Description",
+        "logo": "Logo",
+        "images": "Images"
+      }
+    }
+  }
+}
