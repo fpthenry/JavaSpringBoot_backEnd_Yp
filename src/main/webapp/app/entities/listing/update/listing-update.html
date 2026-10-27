@@ -36,7 +36,7 @@
         }
       </h2>
       @if (listing?.id) {
-        <div class="text-muted small">ID {{ listing.id }} · WordPress {{ listing.wpId }}</div>
+        <div class="text-muted small">ID {{ listing.id }}{{ listing.wpId ? ' · WordPress ' + listing.wpId : '' }}</div>
       }
     </div>
     @if (listing?.id) {
@@ -490,7 +490,7 @@
               </div>
             }
             <div class="mb-3">
-              <label class="form-label required" for="field_wpId" jhiTranslate="javaSpringBootBackEndApp.listing.wpId">Mã WordPress</label>
+              <label class="form-label" for="field_wpId" jhiTranslate="javaSpringBootBackEndApp.listing.wpId">Mã WordPress</label>
               <input
                 type="number"
                 class="form-control"

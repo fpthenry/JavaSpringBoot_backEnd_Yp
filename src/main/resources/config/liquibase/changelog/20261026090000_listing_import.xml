@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay: nhập (clone) doanh nghiệp từ nguồn ngoài — file Excel/CSV, API bên thứ ba (service/listingimport).
+
+        Đánh dấu nguồn trên listing:
+          source          NULL = dữ liệu gốc WordPress; 'file' / 'api:<mã nguồn>' / 'json:<mã nguồn>' = nhập từ ngoài
+          source_ref      id của doanh nghiệp ở nguồn (nếu có) — nhập lại cùng nguồn thì khớp đúng bản ghi cũ
+          import_batch_id đợt nhập đã TẠO doanh nghiệp này (listing_import_batch.id)
+        wp_id bỏ NOT NULL: doanh nghiệp nhập từ ngoài không có bài WordPress (UNIQUE vẫn giữ, MySQL cho nhiều NULL).
+
+        Index để kiểm tra trùng không quét cả bảng (1,86 triệu dòng): tax_code, slug, (source, source_ref).
+        Gộp một câu ALTER: bảng chỉ dựng lại một lần (INPLACE, không khóa ghi), vài phút trên 1,86 triệu dòng.
+    -->
+    <changeSet id="20261026090000-1" author="dev">
+        <sql dbms="mysql,mariadb"><![CDATA[
+            ALTER TABLE listing
+                MODIFY wp_id BIGINT NULL COMMENT 'ID bài viết WordPress (wp_posts.ID); NULL với doanh nghiệp nhập từ nguồn ngoài',
+                ADD COLUMN source VARCHAR(50) NULL COMMENT 'Nguồn: NULL = WordPress gốc; file, api:<mã>, json:<mã> = nhập từ ngoài',
+                ADD COLUMN source_ref VARCHAR(255) NULL COMMENT 'Id doanh nghiệp ở nguồn ngoài',
+                ADD COLUMN import_batch_id BIGINT NULL COMMENT 'Đợt nhập đã tạo doanh nghiệp (listing_import_batch.id)',
+                ADD INDEX idx_listing_tax_code (tax_code),
+                ADD INDEX idx_listing_slug (slug(191)),
+                ADD UNIQUE INDEX ux_listing_source_ref (source, source_ref),
+                ADD INDEX idx_listing_import_batch (import_batch_id),
+                ALGORITHM = INPLACE, LOCK = NONE
+        ]]></sql>
+        <rollback>
+            <sql dbms="mysql,mariadb">
+                ALTER TABLE listing
+                    DROP INDEX idx_listing_import_batch,
+                    DROP INDEX ux_listing_source_ref,
+                    DROP INDEX idx_listing_slug,
+                    DROP INDEX idx_listing_tax_code,
+                    DROP COLUMN import_batch_id,
+                    DROP COLUMN source_ref,
+                    DROP COLUMN source,
+                    MODIFY wp_id BIGINT NOT NULL
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!-- Một đợt nhập: nguồn, trạng thái, đếm kết quả (tiến độ đọc từ đây khi job đang chạy) -->
+    <changeSet id="20261026090000-2" author="dev">
+        <createTable tableName="listing_import_batch" remarks="Đợt nhập doanh nghiệp từ nguồn ngoài">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="source" type="varchar(50)" remarks="Ghi vào listing.source: file, api:mã, json:mã">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_name" type="varchar(500)" remarks="Tên file hoặc URL API"/>
+            <column name="dry_run" type="boolean" defaultValueBoolean="false" remarks="Chạy thử: chỉ phân loại, không ghi listing">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)" remarks="RUNNING, DONE, FAILED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_rows" type="int" defaultValueNumeric="0"/>
+            <column name="created_count" type="int" defaultValueNumeric="0"/>
+            <column name="merged_count" type="int" defaultValueNumeric="0"/>
+            <column name="unchanged_count" type="int" defaultValueNumeric="0"/>
+            <column name="suspect_count" type="int" defaultValueNumeric="0"/>
+            <column name="duplicate_in_batch_count" type="int" defaultValueNumeric="0"/>
+            <column name="invalid_count" type="int" defaultValueNumeric="0"/>
+            <column name="error" type="varchar(2000)"/>
+            <column name="created_by" type="varchar(50)"/>
+            <column name="started_at" type="${datetimeType}"/>
+            <column name="finished_at" type="${datetimeType}"/>
+        </createTable>
+    </changeSet>
+
+    <!-- Từng dòng đã nhập: dữ liệu gốc + kết quả kiểm tra trùng (khớp bản ghi nào, vì sao, đã bổ sung trường nào) -->
+    <changeSet id="20261026090000-3" author="dev">
+        <createTable tableName="listing_import_row" remarks="Một dòng dữ liệu của đợt nhập và kết quả kiểm tra trùng">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="batch_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_listing_import_row__batch" references="listing_import_batch(id)"/>
+            </column>
+            <column name="row_no" type="int" remarks="Số thứ tự dòng trong file / bản ghi trong API (từ 1)"/>
+            <column name="source_ref" type="varchar(255)"/>
+            <column name="name" type="varchar(500)"/>
+            <column name="tax_code" type="varchar(20)" remarks="Mã số thuế đã chuẩn hóa"/>
+            <column name="phone" type="varchar(30)" remarks="Số điện thoại đầu tiên, chỉ còn chữ số"/>
+            <column name="status" type="varchar(20)" remarks="CREATED, MERGED, UNCHANGED, SUSPECT, DUPLICATE_IN_BATCH, INVALID, SKIPPED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="match_reason" type="varchar(30)" remarks="TAX_CODE, SOURCE_REF, NAME_PHONE, NAME_ADDRESS, NAME"/>
+            <column name="match_score" type="double"/>
+            <column name="matched_listing_id" type="bigint" remarks="Doanh nghiệp đã có bị trùng / nghi trùng"/>
+            <column name="listing_id" type="bigint" remarks="Doanh nghiệp được tạo hoặc bổ sung từ dòng này"/>
+            <column name="filled_fields" type="varchar(500)" remarks="Các trường đã bổ sung vào doanh nghiệp đã có"/>
+            <column name="message" type="varchar(1000)"/>
+            <column name="data" type="longtext" remarks="Dữ liệu gốc của dòng (JSON) — để duyệt và xử lý lại"/>
+            <column name="resolved_by" type="varchar(50)"/>
+            <column name="resolved_at" type="${datetimeType}"/>
+        </createTable>
+        <createIndex tableName="listing_import_row" indexName="idx_listing_import_row__batch_status">
+            <column name="batch_id"/>
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

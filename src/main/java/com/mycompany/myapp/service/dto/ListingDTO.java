@@ -18,8 +18,7 @@ public class ListingDTO implements Serializable {
 
     private Long id;
 
-    @NotNull
-    @Schema(description = "ID bài viết WordPress (wp_posts.ID)", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "ID bài viết WordPress (wp_posts.ID); trống với doanh nghiệp nhập từ nguồn ngoài")
     private Long wpId;
 
     @Size(max = 100)

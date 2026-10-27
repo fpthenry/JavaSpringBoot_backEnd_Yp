@@ -92,9 +92,8 @@ export class ListingFormService {
           validators: [Validators.required],
         },
       ),
-      wpId: new FormControl(listingRawValue.wpId, {
-        validators: [Validators.required],
-      }),
+      // Không bắt buộc: doanh nghiệp nhập từ nguồn ngoài (listing-imports) không có bài WordPress
+      wpId: new FormControl(listingRawValue.wpId),
       apiId: new FormControl(listingRawValue.apiId, {
         validators: [Validators.maxLength(100)],
       }),

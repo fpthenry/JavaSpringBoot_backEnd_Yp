@@ -110,6 +110,13 @@ spring:
         #- tls
   jmx:
     enabled: false
+  # Sửa tay: nhập doanh nghiệp từ file Excel/CSV (POST /api/admin/listing-imports/file) — mặc định Spring chỉ nhận 1 MB.
+  # File ghi tạm ra đĩa khi quá 2 MB (không giữ cả file trong bộ nhớ). Sau nginx thì tăng cả client_max_body_size.
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+      file-size-threshold: 2MB
   data:
     jpa:
       repositories:

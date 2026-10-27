@@ -31,10 +31,9 @@ public class Listing implements Serializable {
     private Long id;
 
     /**
-     * ID bài viết WordPress (wp_posts.ID)
+     * ID bài viết WordPress (wp_posts.ID). NULL với doanh nghiệp nhập từ nguồn ngoài (xem {@link #source}).
      */
-    @NotNull
-    @Column(name = "wp_id", nullable = false, unique = true)
+    @Column(name = "wp_id", unique = true)
     @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
     private Long wpId;
 
@@ -524,6 +523,26 @@ public class Listing implements Serializable {
     @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Boolean)
     private Boolean esIndexed;
 
+    // Sửa tay: đánh dấu nguồn dữ liệu (changelog 20261026090000_listing_import.xml). Không ghi vào Elasticsearch
+    // (không phải đổi mapping / reindex); lọc theo nguồn thì truy vấn DB (có index).
+
+    /** NULL = dữ liệu gốc WordPress; {@code file}, {@code api:<mã>}, {@code json:<mã>} = nhập từ nguồn ngoài. */
+    @Size(max = 50)
+    @Column(name = "source", length = 50)
+    @org.springframework.data.annotation.Transient
+    private String source;
+
+    /** Id doanh nghiệp ở nguồn ngoài; cùng {@link #source} là duy nhất — nhập lại khớp đúng bản ghi cũ. */
+    @Size(max = 255)
+    @Column(name = "source_ref", length = 255)
+    @org.springframework.data.annotation.Transient
+    private String sourceRef;
+
+    /** Đợt nhập đã tạo doanh nghiệp này (listing_import_batch.id). */
+    @Column(name = "import_batch_id")
+    @org.springframework.data.annotation.Transient
+    private Long importBatchId;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_listing__category",
@@ -990,6 +1009,30 @@ public class Listing implements Serializable {
 
     public void setEsIndexed(Boolean esIndexed) {
         this.esIndexed = esIndexed;
+    }
+
+    public String getSource() {
+        return this.source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getSourceRef() {
+        return this.sourceRef;
+    }
+
+    public void setSourceRef(String sourceRef) {
+        this.sourceRef = sourceRef;
+    }
+
+    public Long getImportBatchId() {
+        return this.importBatchId;
+    }
+
+    public void setImportBatchId(Long importBatchId) {
+        this.importBatchId = importBatchId;
     }
 
     public Set<Category> getCategories() {

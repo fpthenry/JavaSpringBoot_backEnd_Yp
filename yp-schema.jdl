@@ -32,8 +32,8 @@
 
 /** Doanh nghiệp (bảng listing) */
 entity Listing(listing) {
-    /** ID bài viết WordPress (wp_posts.ID) */
-    wpId Long required unique
+    /** ID bài viết WordPress (wp_posts.ID); trống với doanh nghiệp nhập từ nguồn ngoài (source, source_ref, import_batch_id thêm tay: changelog 20261026090000_listing_import.xml) */
+    wpId Long unique
     /** ID từ API nguồn */
     apiId String maxlength(100)
 

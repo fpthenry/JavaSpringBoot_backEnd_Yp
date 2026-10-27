@@ -79,7 +79,7 @@ describe('Listing Management Update Component', () => {
 
       expect(comp.editForm.controls.status.value).toBe('draft');
       expect(comp.technicalOpen()).toBe(true);
-      expect(comp.invalidFields().map(field => field.key)).toEqual(['wpId', 'name']);
+      expect(comp.invalidFields().map(field => field.key)).toEqual(['name']);
     });
 
     it('keeps an unknown status from the data as an extra option', () => {

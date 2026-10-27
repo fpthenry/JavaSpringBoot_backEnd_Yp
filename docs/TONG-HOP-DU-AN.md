@@ -20,6 +20,7 @@
 14. [Việc còn tồn đọng](#14-việc-còn-tồn-đọng)
 15. [Lệnh hay dùng](#15-lệnh-hay-dùng)
 16. [Giao diện quản trị (bàn giao khách hàng)](#16-giao-diện-quản-trị-bàn-giao-khách-hàng)
+17. [Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)](#17-nhập-doanh-nghiệp-từ-nguồn-ngoài-clone-dữ-liệu)
 
 ---
 
@@ -1788,6 +1789,59 @@ Sitemap do FE tạo (Google chỉ đọc `https://yp.vn/sitemap.xml`); backend c
 
 Dùng chung `lib/seo/sitemap.ts` (dựng XML có thoát ký tự, giữ nguyên `%xx` của slug cũ, tên miền từ `NEXT_PUBLIC_SITE_URL`). Không giữ bản sao trong bộ nhớ Next (38 file × ~5 MB; fetch cache của Next không nhận mục > 2 MB) — dựa vào `Cache-Control` cho nginx/CDN; Google đọc vài lần mỗi ngày. Kiểm tra (dev): mục lục 39 file, 38 file đều có `</urlset>`, không có `&` chưa thoát, tổng **1.855.578 URL doanh nghiệp** (= số slug khác nhau: 1.855.611 đã xuất bản − 33 slug trùng), 136 s cho cả 38 file. **Sau khi triển khai:** nộp `https://yp.vn/sitemap.xml` trong Google Search Console (Sitemaps); `robots.txt` đã khai báo sẵn.
 
+#### SEO bước 3: tiêu đề, mô tả, canonical các trang tĩnh (FE, 2026-10-26)
+
+Trước: 13 trang (giới thiệu, liên hệ, bảng giá, đăng ký, cho thuê lao động, đào tạo, quảng cáo xe buýt, sách Trang Vàng, ALSMA, mục lục ngành nghề, tin tức `/blog`, `/category`, tìm kiếm `/listing`) là client component: HTML có tiêu đề, mô tả chung của cả site, không canonical; tiêu đề riêng chỉ đặt bằng `document.title` sau khi tải và **đặt về tiêu đề chung khi rời trang** (có thể ghi đè tiêu đề của trang vừa chuyển tới).
+
+- **Khai báo một chỗ:** `src/lib/seo/static-pages.ts` (`STATIC_PAGES`: đường dẫn → tiêu đề, mô tả; `staticPageMetadata(path)` thêm canonical = chính đường dẫn, Open Graph). Thêm trang tĩnh mới: thêm một dòng ở đây.
+- Mỗi trang: giao diện cũ đổi tên `page.tsx` → `PageClient.tsx` (giữ nguyên, chỉ bỏ effect `document.title`), `page.tsx` mới (máy chủ) chỉ khai báo `metadata` và hiển thị `<PageClient />`. Không đặt metadata ở `layout.tsx` vì layout áp cả trang con (vd `/blog/[slug]` sẽ nhận nhầm canonical `/blog`).
+- `/listing` có bộ lọc trên URL (`?q=`, `?category=`…) → `noindex, follow`, canonical `/listing` (kết quả tìm kiếm nội bộ; trang ngành/tỉnh đã có URL riêng).
+- Bỏ thêm effect `document.title` ở `SearchCategoryByLetter` (trang chữ cái đã có metadata máy chủ từ bước 1).
+- Kiểm tra (dev): 13 trang đều có title riêng ("Liên hệ | Trang Vàng Việt Nam"…), description, canonical đúng, `index, follow` (`/listing?q=bia` → `noindex`); Chrome headless: tiêu đề giữ đúng sau khi chạy JS, không lỗi console. `tsc --noEmit` sạch.
+- Còn tự đặt tiêu đề bằng JS: chi tiết bài viết `/blog/[slug]`, `/category/[slug]` (trang dữ liệu động, chưa dựng ở máy chủ).
+
+#### Tối ưu tốc độ trang chủ (FE, 2026-10-26)
+
+**Trước (đo bản production build):** mọi dữ liệu tải ở trình duyệt — trình duyệt tải xong JS mới gọi 7 API (điện thoại 4G chậm: bắt đầu giây ~4,3); HTML không có doanh nghiệp/tin tức; 23 ảnh banner đặt `priority` (tải hết một lúc, file gốc tới 573 KB, ảnh 2.048 px hiện trong khung 405 px); ảnh danh mục `<img>` 800 px cho khung 128×160; font `@import` Google Fonts trong `globals.css` (chặn hiển thị, kèm 12 kiểu Roboto không dùng); `/api/v1/galleries` gọi 2 lần.
+
+| File | Sửa |
+|---|---|
+| `lib/seo/home-data.ts` (mới), `app/page.tsx` | Máy chủ đọc song song banner, 12 doanh nghiệp nổi bật, 7 sự kiện, 6 tin tức, bài công đoàn; giữ 60 s trong bộ nhớ (một lần đọc cho nhiều request; khối lỗi → null, không giữ) |
+| `components/home/HomeDataContext.tsx` (mới), `app/HomePage.tsx` | `HomeDataProvider` truyền dữ liệu xuống; `useHomeData()` |
+| `HeaderBanner`, `CarouselImgae`, `PostGridHome`, `ArticleLayout`, `PostTabs` | Có dữ liệu máy chủ → hiện ngay, không gọi API; không có (trang khác, backend lỗi, nguồn WordPress) → tự tải như cũ. Số mục mỗi khối ở `lib/homeSizes.ts` (dùng chung máy chủ/trình duyệt) |
+| `HeaderBanner`, `CarouselImgae` | Bỏ `unoptimized`: Next nén WebP **quality 90** đúng cỡ khung (`sizes` 830 px / 410 px / 1.250 px); chỉ ảnh đầu `priority`, ảnh sau tải khi băng chuyền tới; link quảng cáo `rel="sponsored nofollow"`. Ảnh so sánh gốc ↔ q90 ở màn hình ×2: không khác độ nét |
+| `CategoriesGrid` | `<img>` → `next/image` `fill` + `sizes` |
+| `app/layout.tsx`, `globals.css` | Roboto Condensed qua `next/font/google` (biến `--font-roboto-condensed`, latin + vietnamese, lưu trên máy chủ, không chặn hiển thị); bỏ `@import` và Roboto thường. Chữ nghiêng (2 chỗ) do trình duyệt tạo |
+| `lib/api/backend-adapter.ts` | `fetchAllGallery` dùng chung một lần đọc (`remembered`, 60 s) |
+
+**Kết quả (cùng khung thời gian, bản build cũ ở commit HEAD so với bản mới, 2 lần đo mỗi bên):**
+
+| | Máy tính (8 s đầu) | Điện thoại 4G chậm, CPU ×4 (20 s đầu) |
+|---|---|---|
+| Doanh nghiệp nổi bật, tin tức hiện (có trong DOM) | 0,76–0,96 s → **0,06–0,07 s** (có sẵn trong HTML) | 5,4–6,2 s → **0,2–0,4 s** |
+| Ảnh banner đầu hiện xong | 1,1–1,3 s → **0,23–0,25 s** | 7,6–8,4 s → **1,4–1,6 s** |
+| Dung lượng tải | 4,2–4,3 MB → **2,0 MB** | 3,5–3,8 MB → **2,0 MB** |
+| Ảnh | 3,5 MB (47) → **1,4 MB** (30) | 3,0–3,2 MB (41) → **1,4 MB** (24) |
+| Gọi API từ trình duyệt | 7 → **1** (đếm tổng doanh nghiệp cho ô tìm kiếm, nằm ở layout) | 7 → **1** |
+
+HTML trang chủ 13 KB → 44 KB (gzip) vì có sẵn dữ liệu (thay 7 API ~74 KB); có 12 link doanh nghiệp, 14 link bài viết cho Google. `next build` thành công; trang chủ đổi từ tĩnh (○) sang dựng theo request (ƒ) — TTFB tăng nhẹ (~30 ms → ~330 ms ở lần đọc backend, sau đó dữ liệu lấy từ bộ nhớ 60 s). Không lỗi console. Font: 241 KB → 228 KB (bản biến thiên chứa mọi độ đậm), nhưng không còn chặn hiển thị, không còn phụ thuộc fonts.googleapis.com.
+
+#### Trang bài viết `/blog/[slug]`: dựng ở máy chủ, sửa dữ liệu giả (FE, 2026-10-26)
+
+**Trước:** HTML máy chủ hiện "Không tìm thấy bài viết" (state `loading` khởi đầu false), `<title>` chung "Sự Kiện Nổi Bật…" (của `blog/layout.tsx`), không H1/canonical, slug sai 200. Giao diện hiện **số liệu giả**: lượt xem, số bình luận `Math.random()` (backend: viewCount = 0 ở cả 2.433 bài, không có bình luận); "Từ khóa liên quan" 6 từ viết cứng giống nhau ở mọi bài, link `#`; "Thời gian đọc ~5 phút" cố định. Nội dung chèn HTML **không lọc**.
+
+| File | Sửa |
+|---|---|
+| `lib/seo/blog-page.ts` (mới), `app/blog/[slug]/page.tsx` (máy chủ) | Đọc `/blog-posts/{slug}`: title = tên bài, description (tóm tắt/đầu bài, bỏ phần lặp tiêu đề, ≤ 160), canonical, Open Graph `article` (ảnh đại diện, `published_time`, `modified_time`, section), JSON-LD **Article** + BreadcrumbList (Trang chủ › Tin tức › danh mục › bài); 404 thật; 6 bài liên quan cùng danh mục đầu (máy chủ đọc sẵn) |
+| `app/blog/[slug]/BlogPostView.tsx` (giao diện cũ, đổi tên) | Nhận `initial`/`related`; bỏ `document.title`; bỏ lượt xem/bình luận ngẫu nhiên (lượt xem thật chỉ hiện khi > 0, `toPostHit` thêm `view_count`); thời gian đọc theo số chữ (~200 chữ/phút); từ khóa thật của bài (`terms.post_tag`), ẩn khi không có; khối "Bài viết liên quan" |
+| `lib/sanitizeHtml.ts` | Thêm chế độ `{ rich: true }` cho bài viết (2.433 bài: 1.358 có `style`, 725 `figure`, 10 `iframe` YouTube, 1 `video`, 0 `script`): giữ `style` (chỉ thuộc tính trình bày, không `url()`/`expression`), `class`, `width/height/colspan/rowspan`, figure/figcaption, video, iframe chỉ YouTube/Vimeo/Facebook/Google Maps; `<h1>` trong bài → `<h2>` (một trang một H1) |
+| `globals.css` | `.prose iframe/video` co theo khung 16:9, ảnh/bảng không tràn ngang trên điện thoại |
+| `app/sitemap/posts.xml/route.ts` (mới), `lib/seo/sitemap.ts` | Sitemap bài viết: 2.432 URL + `lastmod` (25 trang × 100, đọc 5 trang một lượt, ~5 s dev), thêm vào `/sitemap.xml` |
+
+**Kiểm tra (dev):** HTML có title, description, canonical, `og:type=article`, H1, nội dung, 6 link bài liên quan, JSON-LD Article; slug sai 404; bài có video YouTube giữ iframe (qua bộ lọc). Chrome: trang chủ → bấm bài: hiện sau ~1,5 s (dev), không chớp "Không tìm thấy", không lỗi console; điện thoại 390 px: không cuộn ngang, video 278×156.
+
+**Còn lại:** nút Thích/Lưu và form "Nhận tin mới nhất" (dòng chữ "Cập nhật thông tin từ Công Thương Hà Nội") chưa có chức năng; `/category/[slug]` vẫn dựng ở trình duyệt; backend chưa đếm lượt xem bài viết.
+
 **Còn lại:**
 
 | Việc | Ảnh hưởng giao diện |
@@ -1795,7 +1849,7 @@ Dùng chung `lib/seo/sitemap.ts` (dựng XML có thoát ký tự, giữ nguyên 
 | Reindex listing (`POST /api/admin/elasticsearch/reindex?entities=listing`) | Đến lúc đó chữ không dấu chỉ khớp dữ liệu không dấu ("cong ty thang long" 17 kết quả, "công ty thăng long" 5.999); gợi ý không dấu rỗng |
 | Ảnh doanh nghiệp (URL) và tọa độ chính xác | Logo hiện ảnh "noimg", không có thư viện ảnh; bản đồ dùng tọa độ gần đúng |
 | Tạo vị trí banner `left-header-banner`, `right-header-banner`, `side-bar-ads`, `classification-ads` (mã hoặc tên) và nhập ảnh | Đến lúc đó các khối banner đó trống |
-| SEO: ~~301 slug cũ, sitemap, metadata + 404 trang ngành nghề~~ ✅ 2026-10-26 (mục trên). Tỉnh thành, chi tiết doanh nghiệp ✅ 2026-10-26 (SEO bước 2). Còn: trang tĩnh; sitemap doanh nghiệp | Trang tĩnh tiêu đề chung |
+| SEO: ~~301 slug cũ, sitemap, metadata + 404 trang ngành nghề~~ ✅ 2026-10-26 (mục trên). Tỉnh thành, chi tiết doanh nghiệp ✅ 2026-10-26 (SEO bước 2); sitemap 1,85 triệu doanh nghiệp ✅; trang tĩnh ✅ (SEO bước 3). Chi tiết bài viết `/blog/[slug]` ✅. Còn: `/category/[slug]` | Tiêu đề danh mục tin đặt bằng JS |
 
 ---
 
@@ -2081,7 +2135,7 @@ Lưu ý:
 | # | Việc | Ghi chú |
 |---|---|---|
 | 1 | ~~Reindex Elasticsearch cho 1,86 triệu listing~~ | ✅ Xong 2026-10-02 ([mục 8.4](#84-job-reindex-giai-đoạn-1)) |
-| 2 | **Changelog Liquibase viết tay**: index thường, `ON DELETE CASCADE`, `DEFAULT` | Index cần cho hiệu năng: `listing(slug)`, `listing(status)`, `listing(tax_code)`, `listing(api_id)`, `listing(is_featured)`, `location(type)`, `category(slug)` |
+| 2 | **Changelog Liquibase viết tay**: index thường, `ON DELETE CASCADE`, `DEFAULT` | Index cần cho hiệu năng: ~~`listing(slug)`~~, `listing(status)`, ~~`listing(tax_code)`~~ (✅ 2026-10-26, [mục 17](#17-nhập-doanh-nghiệp-từ-nguồn-ngoài-clone-dữ-liệu)), `listing(api_id)`, `listing(is_featured)`, `location(type)`, `category(slug)` |
 | 3 | **Xác định múi giờ** của datetime nguồn | Mở một listing trên giao diện, so với website cũ. Nếu lệch 7 giờ thì `UPDATE` trừ 7 giờ. |
 | 4 | ~~**URL ảnh** doanh nghiệp~~ ✅ Xong 2026-10-13 (6.290 logo, 1.605 thư viện ảnh, [mục 10.9](#109-doanh-nghiệp-chi-tiết-ngành-nghề-và-địa-phương-chuyển-fe-khỏi-wordpress-bước-1)). Còn: **tọa độ thật** (ES WordPress `coordinate`), chép thư mục ảnh `/var/www/yp.vn/wp-content/uploads` sang server mới | Ảnh đang dùng link `https://yp.vn/wp-content/uploads/…` của server cũ |
 | 5 | **User từ WordPress** (`jhi_user` của nguồn: 4 user, có `wp_user_id`) | Chưa chuyển |
@@ -2273,3 +2327,74 @@ Kết quả trên Chrome (bài mẫu theo từng nguồn): yp.vn 2/2, pcdn 5/5, 
 | 2 | Áp dụng cho Ngành nghề, Tỉnh thành, Danh mục bài viết, Thẻ, Vị trí banner, Ảnh banner (danh sách gọn, form chia nhóm, ô tự xuống dòng, chọn cha bằng gõ tìm, nhãn tiếng Việt) | Ngành nghề: form + trang xem xong 2026-10-12 (danh sách chưa); các entity còn lại chưa làm |
 | 3 | Trang xem cho các entity còn lại theo mẫu trang xem Doanh nghiệp (`.detail-grid`, `.detail-chip`, `.contact-row`, nút chép); hộp thoại xóa; menu gọn (bỏ nhóm "Thực thể" tiếng Anh) | Doanh nghiệp xong; còn lại chưa làm |
 | 4 | Trang quản trị hệ thống (Người dùng, Tài khoản) tiếng Việt; trang đăng nhập có logo | Chưa làm |
+
+---
+
+## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
+
+> Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.
+
+### 17.1 Đánh dấu nguồn trong DB
+
+| Cột / bảng | Ý nghĩa |
+|---|---|
+| `listing.source` | `NULL` = dữ liệu gốc WordPress; `file`, `api:<mã>`, `json:<mã>` = nhập từ ngoài |
+| `listing.source_ref` | Id doanh nghiệp ở nguồn. `UNIQUE (source, source_ref)`: nhập lại cùng nguồn thì khớp đúng bản ghi cũ, không tạo trùng |
+| `listing.import_batch_id` | Đợt nhập đã **tạo** doanh nghiệp này |
+| `listing.wp_id` | Bỏ `NOT NULL` (vẫn `UNIQUE`): doanh nghiệp nhập từ ngoài không có bài WordPress |
+| `listing_import_batch` | Một đợt nhập: nguồn, chạy thử hay thật, trạng thái `RUNNING/DONE/FAILED`, bộ đếm từng loại kết quả, người chạy |
+| `listing_import_row` | Từng dòng: dữ liệu gốc (JSON), MST/SĐT đã chuẩn hóa, kết quả, khớp doanh nghiệp nào (`matched_listing_id`), vì sao (`match_reason`), điểm, các trường đã bổ sung, người duyệt |
+
+Index mới để kiểm tra trùng không quét bảng: `listing(tax_code)`, `listing(slug)`, `listing(source, source_ref)`, `listing(import_batch_id)`. Ba cột đánh dấu **không ghi vào Elasticsearch** (không phải đổi mapping / reindex).
+
+> Migration gộp một câu `ALTER TABLE ... ALGORITHM=INPLACE, LOCK=NONE`: bảng dựng lại một lần, vài phút trên 1,86 triệu dòng. **Thêm thư viện mới (commons-csv, fastexcel-reader) thì phải khởi động lại hẳn backend** (Ctrl+C, `./mvnw`): devtools không nạp jar mới, lần tự khởi động lại sẽ lỗi.
+
+### 17.2 Kiểm tra trùng: thứ tự và căn cứ
+
+Mỗi lô 200 dòng: **1 truy vấn MST + 1 truy vấn id nguồn + 1 multi-search Elasticsearch** (không truy vấn từng dòng).
+
+| Bước | Căn cứ | Kết quả |
+|---|---|---|
+| 1 | Thiếu tên | `INVALID` |
+| 2 | Trùng dòng trước **trong cùng đợt**: cùng MST, cùng id nguồn, hoặc (không MST) cùng tên + SĐT/địa chỉ | `DUPLICATE_IN_BATCH` |
+| 3 | Cùng `(source, source_ref)` hoặc cùng **MST** với doanh nghiệp đã có | Bổ sung ô còn trống → `MERGED` (ghi rõ trường nào); không có gì thêm → `UNCHANGED` |
+| 4 | Gần đúng: tên (bỏ "công ty, TNHH, cổ phần, JSC…") giống ≥ 0,9; hoặc ≥ 0,6 + cùng SĐT; hoặc ≥ 0,7 + địa chỉ giống ≥ 0,5. Khi có SĐT/địa chỉ, tên ngắn nằm trọn trong tên dài cũng tính ("An Phước JSC" ⊂ "CP Xây dựng và Thương mại An Phước"). Ứng viên có **MST khác** → chắc chắn khác doanh nghiệp, bỏ | `SUSPECT` — chờ duyệt, không tự gộp |
+| 5 | Còn lại | Tạo doanh nghiệp **nháp** (`status = draft`, chưa hiện trên website) → `CREATED` |
+
+Chuẩn hóa ([`ListingImportNormalizer`](../src/main/java/com/mycompany/myapp/service/listingimport/ListingImportNormalizer.java)):
+
+- **MST**: `0123456789` hoặc chi nhánh `0123456789-001` (đúng định dạng dữ liệu đang có). Bù số 0 đầu Excel làm mất (`101234567` → `0101234567`), `0101234567001` → `0101234567-001`. MST chi nhánh là đơn vị khác MST công ty mẹ.
+- **SĐT**: số đầu tiên, chỉ chữ số, `+84` → `0`; so **8 số cuối** (mã vùng cũ `04` → `024`, thiếu mã vùng vẫn khớp).
+- **Tên**: bỏ dấu, bỏ cụm loại hình → "CÔNG TY TNHH ÁNH DƯƠNG" và "Ánh Dương Co., Ltd" cùng khóa `anh duong`; so bằng hệ số Dice trên tập từ.
+- So cả doanh nghiệp **nháp** của đợt trước (chưa duyệt) để không tạo trùng giữa các đợt.
+
+**Bổ sung ô còn trống** (không ghi đè): MST, tên tiếng Anh/viết tắt, SĐT, di động, email, website, địa chỉ, người đại diện, vốn, ngày thành lập, loại hình, tình trạng, mã ngành, mô tả. Ngành nghề / tỉnh chỉ gắn khi doanh nghiệp chưa có.
+
+**Ngành nghề, tỉnh** ([`ImportTermResolver`](../src/main/java/com/mycompany/myapp/service/listingimport/ImportTermResolver.java)): ngành theo mã VSIC (đuôi slug, `...-4690`), slug hoặc tên; tỉnh theo tên ("TP.HCM", "Hà Nội", "Tỉnh Bắc Ninh"), mã (01, 79) hoặc slug, ưu tiên 34 tỉnh mới; không có cột tỉnh thì lấy từ cuối địa chỉ.
+
+### 17.3 API (ROLE_ADMIN, `/api/admin/listing-imports`)
+
+| Method | Đường dẫn | Việc |
+|---|---|---|
+| GET | `/template.csv` | File mẫu: tiêu đề cột chuẩn + 1 dòng ví dụ (UTF-8 BOM, Excel mở đúng tiếng Việt) |
+| POST | `/file?dryRun=true` | Upload `.xlsx` / `.csv` (multipart `file`, tối đa 100 MB). Tiêu đề cột nhận tiếng Việt có/không dấu, tiếng Anh ("Tên doanh nghiệp", "MST", "Số điện thoại"…) |
+| POST | `/api` | Gọi API JSON bên thứ ba: `{source, url, headers, itemsPath, pageParam, firstPage, maxPages, delayMs, fieldMapping, dryRun}` |
+| POST | `/records` | Gửi thẳng ≤ 10.000 bản ghi JSON: `{source, records: [...], dryRun}` |
+| GET | `` / `/{id}` / `/running` | Danh sách đợt; một đợt (tiến độ, bộ đếm); đợt đang chạy |
+| GET | `/{id}/rows?status=SUSPECT` | Dòng của đợt, kèm dữ liệu gốc (`data`) và doanh nghiệp bị khớp (`matched`) để so cạnh nhau |
+| POST | `/rows/{rowId}/resolve` | Duyệt dòng nghi trùng: `{action: MERGE \| CREATE \| SKIP, listingId?}` |
+| POST | `/{id}/publish` | Xuất bản doanh nghiệp nháp do đợt tạo (hiện lên website, ES) |
+
+Quy trình nên dùng: **chạy thử** (`dryRun=true`: làm y hệt rồi rollback phần ghi listing — số tạo mới / bổ sung / nghi trùng đúng như chạy thật) → xem bộ đếm, dòng `SUSPECT`, `INVALID` → chạy thật → duyệt `SUSPECT` → `publish`. Một đợt chạy một lúc (409 nếu đang có đợt khác).
+
+**Kiểm thử**: `ListingImportNormalizerTest` (11), `ListingImportMatcherTest` (9), `ImportFileReaderTest` (5).
+
+**Chưa làm**: giao diện quản trị cho nhập / duyệt (hiện dùng Swagger hoặc Postman); file `.xls` cũ (lưu lại thành `.xlsx`).
+
+### 17.4 Sửa lỗi nghi trùng không hoạt động (2026-10-27)
+
+Chạy thử đầu tiên (đợt #1, `dryRun`, 4 dòng: trùng MST, cùng công ty nhưng tên khác + cùng SĐT không MST, công ty mới, thiếu tên): dòng "Công ty Tân Minh Technology" (SĐT trùng doanh nghiệp #413261) bị **tạo mới**. Nguyên nhân: bước 4 chỉ tìm ứng viên trên `name.folded`, mà index `listing` hiện tại **chưa reindex** nên không có field này (`exists name.folded` = 0) → mọi dòng 0 ứng viên → **không bao giờ ra SUSPECT**; chống trùng thực tế chỉ còn MST + id nguồn.
+
+Sửa (`ListingImportMatcher.candidateQuery`): tìm trên **cả** `name.folded` (không dấu, sau reindex) **và** `name` (còn dấu, index nào cũng có) — từ phân biệt giữ dấu lấy bằng `ListingImportNormalizer.accentedNameWords` ("Công ty TNHH Tân Minh Technology" → "tân minh technology"); ứng viên mỗi dòng 5 → 10 (tên phổ biến có hàng chục doanh nghiệp). Test `accentedNameWordsKeepDiacriticsDropLegalForms`. Chạy lại: dòng đó → `SUSPECT` (chờ duyệt), các dòng khác như cũ.
+
+**Còn yếu:** ứng viên chỉ tìm theo tên. Dòng trên được đề xuất "MINH TÂN TECHNOLOGY" (#533428, tên gần nhất) chứ không phải Tân Minh #413261 (cùng SĐT) vì #413261 không lọt top 10 theo tên. Cần tìm ứng viên thêm theo **SĐT** (đề xuất: cột sinh tự động 8 số cuối SĐT/di động + index, xem 17.5 khi làm).
