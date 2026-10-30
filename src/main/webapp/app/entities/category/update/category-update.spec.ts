@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
@@ -17,9 +17,9 @@ import { CategoryUpdate } from './category-update';
 
 /** Cây: 1 SẢN XUẤT > 4 BAO BÌ > 5 BAO BÌ GIẤY */
 const TREE: Record<number, ICategory> = {
-  1: { id: 1, name: 'SẢN XUẤT', parent: null },
-  4: { id: 4, name: 'BAO BÌ', parent: { id: 1, name: 'SẢN XUẤT' } },
-  5: { id: 5, name: 'BAO BÌ GIẤY', parent: { id: 4, name: 'BAO BÌ' } },
+  1: { id: 1, code: 'C', level: 1, name: 'SẢN XUẤT', parent: null },
+  4: { id: 4, code: '17', level: 2, name: 'BAO BÌ', parent: { id: 1, name: 'SẢN XUẤT' } },
+  5: { id: 5, code: '170', level: 3, name: 'BAO BÌ GIẤY', parent: { id: 4, name: 'BAO BÌ' } },
 };
 
 describe('Category Management Update Component', () => {
@@ -60,10 +60,11 @@ describe('Category Management Update Component', () => {
 
       expect(comp.category).toEqual(TREE[5]);
       expect(comp.parentPath()).toEqual([
-        { id: 1, name: 'SẢN XUẤT' },
-        { id: 4, name: 'BAO BÌ' },
+        { id: 1, name: 'SẢN XUẤT', code: 'C' },
+        { id: 4, name: 'BAO BÌ', code: '17' },
       ]);
       expect(comp.level()).toBe(3);
+      expect(comp.parentHint()).toBeNull();
       expect(comp.parentCycle()).toBe(false);
       expect(categoryQuery).not.toHaveBeenCalled();
       expect(listingQuery).not.toHaveBeenCalled();
@@ -95,7 +96,7 @@ describe('Category Management Update Component', () => {
       routeWith({ parentId: '4' });
       activatedRoute.data = of({ category: null });
       comp.ngOnInit();
-      expect(comp.editForm.controls.parent.value).toEqual({ id: 4, name: 'BAO BÌ' });
+      expect(comp.editForm.controls.parent.value).toEqual({ id: 4, name: 'BAO BÌ', code: '17' });
       expect(comp.level()).toBe(3);
     });
 
@@ -108,12 +109,56 @@ describe('Category Management Update Component', () => {
     });
   });
 
-  it('generateSlug builds the slug from the Vietnamese name', () => {
-    activatedRoute.data = of({ category: { id: 9, name: 'Lập trình máy vi tính &amp; Đồ họa' } });
+  it('generateSlug builds the slug from the Vietnamese name + code', () => {
+    activatedRoute.data = of({ category: { id: 9, code: '6201', name: 'Lập trình máy vi tính &amp; Đồ họa', slug: 'lap-trinh' } });
     comp.ngOnInit();
+    expect(comp.slugSuggestion()).toBe('lap-trinh-may-vi-tinh-va-do-hoa-6201');
     comp.generateSlug();
-    expect(comp.editForm.controls.slug.value).toBe('lap-trinh-may-vi-tinh-do-hoa');
+    expect(comp.editForm.controls.slug.value).toBe('lap-trinh-may-vi-tinh-va-do-hoa-6201');
+    expect(comp.slugSuggestion()).toBeNull();
     expect(comp.editForm.dirty).toBe(true);
+  });
+
+  it('new category: code is upper-cased, level and slug follow the code until the slug is edited', () => {
+    activatedRoute.data = of({ category: null });
+    comp.ngOnInit();
+    const { code, name, slug } = comp.editForm.controls;
+    code.setValue(' g ');
+    comp.normalizeCode();
+    expect(code.value).toBe('G');
+    expect(comp.level()).toBe(1);
+    code.setValue('46321');
+    name.setValue('Bán buôn thịt và các sản phẩm từ thịt');
+    expect(comp.level()).toBe(5);
+    expect(slug.value).toBe('ban-buon-thit-va-cac-san-pham-tu-thit-46321');
+    slug.setValue('tu-dat');
+    slug.markAsDirty();
+    name.setValue('Bán buôn thịt');
+    expect(slug.value).toBe('tu-dat');
+    code.setValue('4632A');
+    expect(code.hasError('pattern')).toBe(true);
+    expect(comp.level()).toBeNull();
+  });
+
+  it('parent hint: 1702 belongs under 170, button picks it by code', () => {
+    const query = vi
+      .spyOn(categoryService, 'query')
+      .mockReturnValue(of(new HttpResponse({ body: [{ id: 5, code: '170', name: 'BAO BÌ GIẤY' }] as ICategory[] })));
+    activatedRoute.data = of({ category: { id: 9, code: '1702', name: 'Hộp giấy', parent: { id: 4, name: 'BAO BÌ' } } });
+    comp.ngOnInit();
+    expect(comp.parentHint()).toEqual({ key: 'parentByCode', params: { code: '1702', parent: '170' } });
+    comp.pickParentByCode();
+    expect(query).toHaveBeenCalledWith({ 'code.equals': '170', size: 1 });
+    expect(comp.editForm.controls.parent.value).toEqual({ id: 5, name: 'BAO BÌ GIẤY', code: '170' });
+    expect(comp.parentHint()).toBeNull();
+
+    query.mockReturnValue(of(new HttpResponse({ body: [] as ICategory[] })));
+    comp.editForm.controls.code.setValue('99991');
+    comp.pickParentByCode();
+    expect(comp.parentHint()).toEqual({ key: 'parentNotFound', params: { code: '99991', parent: '9999' } });
+
+    comp.editForm.controls.code.setValue('C');
+    expect(comp.parentHint()?.key).toBe('parentOfLevel1');
   });
 
   it('searchParents maps the A–Z index with the parent as hint', async () => {

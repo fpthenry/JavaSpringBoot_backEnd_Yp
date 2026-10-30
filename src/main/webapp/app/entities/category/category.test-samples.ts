@@ -4,31 +4,34 @@ import { ICategory, NewCategory } from './category.model';
 
 export const sampleWithRequiredData: ICategory = {
   id: 8109,
-  name: 'midst croon cautiously',
+  code: '4632',
+  name: 'Bán buôn thực phẩm',
 };
 
 export const sampleWithPartialData: ICategory = {
   id: 13566,
-  wpTermId: 8343,
-  name: 'mothball cornet',
-  slug: 'consequently',
+  code: '463',
+  level: 3,
+  name: 'Bán buôn lương thực, thực phẩm, đồ uống và sản phẩm thuốc lá, thuốc lào',
+  slug: 'ban-buon-luong-thuc-thuc-pham-do-uong-va-san-pham-thuoc-la-thuoc-lao-463',
   description: '../fake-data/blob/hipster.txt',
 };
 
 export const sampleWithFullData: ICategory = {
   id: 28780,
-  wpTermId: 6868,
-  name: 'filthy',
-  slug: 'flight',
+  code: '46321',
+  level: 5,
+  name: 'Bán buôn thịt và các sản phẩm từ thịt',
+  slug: 'ban-buon-thit-va-cac-san-pham-tu-thit-46321',
   description: '../fake-data/blob/hipster.txt',
-  icon: 'unless bleakly',
   listingCount: 22110,
   createdAt: dayjs('2026-09-30T22:37'),
   updatedAt: dayjs('2026-09-30T21:27'),
 };
 
 export const sampleWithNewData: NewCategory = {
-  name: 'where pfft regularly',
+  code: 'G',
+  name: 'Bán buôn và bán lẻ',
   id: null,
 };
 

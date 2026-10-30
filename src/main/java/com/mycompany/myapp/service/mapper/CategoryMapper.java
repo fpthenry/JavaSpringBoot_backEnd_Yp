@@ -35,6 +35,8 @@ public interface CategoryMapper extends EntityMapper<CategoryDTO, Category> {
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
+    // Sửa tay: kèm mã ngành VSIC để giao diện hiện "4632 · Bán buôn thực phẩm"
+    @Mapping(target = "code", source = "code")
     CategoryDTO toDtoCategoryName(Category category);
 
     @Named("listingId")

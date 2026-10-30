@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay: slug ngành nghề cũ (WordPress, trước VSIC 2025) → ngành mới, để FE chuyển hướng 301 link cũ.
+        category_id NULL: ngành cũ không có ngành tương ứng (vd "CHƯA PHÂN LOẠI") → FE chuyển về /nganh-nghe.
+        Dữ liệu nạp một lần bằng ops/vsic/fill_slug_redirect.sql (từ backup_vsic_20261029.category_redirect).
+    -->
+    <changeSet id="20261030090000-1" author="dev">
+        <createTable tableName="category_slug_redirect" remarks="Slug ngành nghề cũ → ngành VSIC 2025 (chuyển hướng 301)">
+            <column name="old_slug" type="varchar(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="old_name" type="varchar(255)"/>
+            <column name="category_id" type="bigint"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="category_slug_redirect" baseColumnNames="category_id"
+                                 constraintName="fk_category_slug_redirect__category_id"
+                                 referencedTableName="category" referencedColumnNames="id" onDelete="SET NULL"/>
+    </changeSet>
+</databaseChangeLog>

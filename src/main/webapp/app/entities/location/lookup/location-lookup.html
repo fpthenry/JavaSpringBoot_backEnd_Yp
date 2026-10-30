@@ -1,0 +1,303 @@
+<div class="loc-lookup">
+  <h2 id="page-heading" data-cy="LocationLookupHeading">
+    <span jhiTranslate="javaSpringBootBackEndApp.location.lookup.title">Tra cứu đơn vị hành chính</span>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button class="btn btn-info" (click)="reload()" [disabled]="isLoading()">
+        <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.location.home.refreshListLabel">Làm mới</span>
+      </button>
+      <a class="btn btn-outline-secondary" routerLink="/location/index">
+        <fa-icon icon="arrow-down-a-z" />
+        <span jhiTranslate="global.menu.entities.locationIndex">Mục lục A–Z</span>
+      </a>
+      <a class="btn btn-primary" routerLink="/location">
+        <fa-icon icon="list" />
+        <span jhiTranslate="javaSpringBootBackEndApp.location.tree.listView">Dạng bảng</span>
+      </a>
+    </div>
+  </h2>
+
+  <p class="text-secondary mb-3" jhiTranslate="javaSpringBootBackEndApp.location.lookup.subtitle">
+    Địa giới mới và địa giới cũ tách riêng. Mở một đơn vị để xem hình thành từ đâu / nay thuộc đâu.
+  </p>
+
+  <jhi-alert-error />
+
+  <!-- Hai bộ địa giới -->
+  <div class="loc-tabs mb-3" role="tablist">
+    <button
+      type="button"
+      role="tab"
+      class="loc-tab"
+      data-cy="tabNew"
+      [class.active]="generation() === 'new'"
+      [attr.aria-selected]="generation() === 'new'"
+      (click)="switchTo('new')"
+    >
+      <span class="loc-tab-title"
+        ><fa-icon icon="map" /> <span jhiTranslate="javaSpringBootBackEndApp.location.lookup.tabNew">Địa giới mới</span></span
+      >
+      <span class="loc-tab-hint" jhiTranslate="javaSpringBootBackEndApp.location.lookup.tabNewHint"
+        >Từ 01/07/2025 · tỉnh → phường, xã, đặc khu</span
+      >
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="loc-tab"
+      data-cy="tabOld"
+      [class.active]="generation() === 'old'"
+      [attr.aria-selected]="generation() === 'old'"
+      (click)="switchTo('old')"
+    >
+      <span class="loc-tab-title"
+        ><fa-icon icon="clock-rotate-left" /> <span jhiTranslate="javaSpringBootBackEndApp.location.lookup.tabOld">Địa giới cũ</span></span
+      >
+      <span class="loc-tab-hint" jhiTranslate="javaSpringBootBackEndApp.location.lookup.tabOldHint"
+        >Trước 01/07/2025 · tỉnh → quận, huyện → xã</span
+      >
+    </button>
+  </div>
+
+  <!-- Số liệu bộ đang xem -->
+  @if (summary(); as s) {
+    <div class="loc-stats mb-3" data-cy="lookupStats">
+      @for (entry of s.kinds; track entry[0]) {
+        <div class="loc-stat">
+          <span class="loc-stat-value">{{ entry[1] }}</span>
+          <span class="badge" [class]="kindClass(entry[0])">{{ entry[0] }}</span>
+        </div>
+      }
+      <button type="button" class="loc-stat loc-stat-action" [class.active]="filter() === 'listings'" (click)="setFilter('listings')">
+        <span class="loc-stat-value">{{ s.withListings }}</span>
+        <span class="small" jhiTranslate="javaSpringBootBackEndApp.location.lookup.filterListings">Có doanh nghiệp</span>
+      </button>
+      @if (s.unmapped > 0) {
+        <button
+          type="button"
+          class="loc-stat loc-stat-action loc-stat-warning"
+          data-cy="filterUnmapped"
+          [class.active]="filter() === 'unmapped'"
+          (click)="setFilter('unmapped')"
+        >
+          <span class="loc-stat-value">{{ s.unmapped }}</span>
+          <span class="small" jhiTranslate="javaSpringBootBackEndApp.location.lookup.filterUnmapped">Chưa có trong bảng chuyển đổi</span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Ô tìm, sắp xếp, Mở hết / Thu gọn -->
+  <div class="d-flex flex-wrap gap-2 pb-3 mb-3 border-bottom">
+    <div class="input-group flex-grow-1 loc-search">
+      <span class="input-group-text"><fa-icon icon="search" /></span>
+      <input
+        #searchBox
+        type="search"
+        class="form-control form-control-lg"
+        data-cy="lookupSearch"
+        [placeholder]="'javaSpringBootBackEndApp.location.lookup.searchPlaceholder' | translate"
+        [value]="query()"
+        (input)="onSearchInput(searchBox.value)"
+        (keydown.enter)="setQuery(searchBox.value)"
+      />
+    </div>
+    <select
+      class="form-select loc-sort"
+      [value]="sort()"
+      (change)="setSort($any($event.target).value)"
+      [attr.aria-label]="'javaSpringBootBackEndApp.location.lookup.sort' | translate"
+    >
+      <option value="code">{{ 'javaSpringBootBackEndApp.location.lookup.sortCode' | translate }}</option>
+      <option value="name">{{ 'javaSpringBootBackEndApp.location.lookup.sortName' | translate }}</option>
+    </select>
+    <button type="button" class="btn btn-primary fw-semibold" data-cy="expandAll" (click)="expandAll()">
+      [+] <span jhiTranslate="javaSpringBootBackEndApp.location.lookup.expandAll">Mở hết</span>
+    </button>
+    <button type="button" class="btn btn-secondary fw-semibold" data-cy="collapseAll" (click)="collapseAll()">
+      [−] <span jhiTranslate="javaSpringBootBackEndApp.location.lookup.collapseAll">Thu gọn</span>
+    </button>
+  </div>
+
+  @if (query() && search(); as found) {
+    @if (found.matches.size > 0) {
+      <p class="small text-secondary" data-cy="lookupMatches">
+        {{ 'javaSpringBootBackEndApp.location.lookup.matches' | translate: { count: found.matches.size, query: query() } }}
+      </p>
+    } @else {
+      <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" data-cy="lookupNoMatch">
+        <span>{{ 'javaSpringBootBackEndApp.location.lookup.noMatch' | translate: { query: query() } }}</span>
+        <button type="button" class="btn btn-sm btn-outline-dark" (click)="switchTo(generation() === 'new' ? 'old' : 'new')">
+          {{
+            (generation() === 'new' ? 'javaSpringBootBackEndApp.location.lookup.tryOld' : 'javaSpringBootBackEndApp.location.lookup.tryNew')
+              | translate
+          }}
+        </button>
+      </div>
+    }
+  }
+  @if (filter() === 'unmapped') {
+    <div class="alert alert-info small py-2" jhiTranslate="javaSpringBootBackEndApp.location.lookup.unmappedHint">
+      Đơn vị cũ không có trong bảng chuyển đổi 2025: thường là xã đã sáp nhập, giải thể trước 2025 hoặc dữ liệu cũ của WordPress. Website
+      chuyển hướng các link này theo huyện, tỉnh chứa nó.
+    </div>
+  }
+
+  @if (isLoading() && !tree()) {
+    <div class="text-center text-secondary py-5"><fa-icon icon="sync" animation="spin" size="2x" /></div>
+  }
+
+  <ul class="loc-tree" data-cy="lookupTree">
+    @for (node of roots(); track node.item.id) {
+      <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: node }" />
+    }
+  </ul>
+</div>
+
+<ng-template #nodeTemplate let-node>
+  <li>
+    <div
+      class="loc-row"
+      [id]="'loc-' + node.item.id"
+      [class.expanded]="isExpanded(node)"
+      [class.match]="isMatch(node)"
+      [class.focused]="focused() === node.item.id"
+      [class.root]="!node.parent"
+      (click)="toggle(node)"
+    >
+      <button
+        type="button"
+        class="loc-toggle"
+        [attr.aria-expanded]="isExpanded(node)"
+        [attr.aria-label]="node.item.name"
+        (click)="$event.stopPropagation(); toggle(node)"
+      >
+        {{ isExpanded(node) ? '−' : '+' }}
+      </button>
+      <span class="loc-code">{{ node.item.code }}</span>
+      <span class="loc-name">
+        {{ node.item.name }}
+        @if (node.children.length > 0) {
+          <span class="loc-children">({{ node.children.length }})</span>
+        }
+      </span>
+      @if (node.kind) {
+        <span class="badge d-none d-sm-inline" [class]="kindClass(node.kind)">{{ node.kind }}</span>
+      }
+      @if (!node.item.mapped) {
+        <span
+          class="badge text-bg-warning"
+          [title]="'javaSpringBootBackEndApp.location.lookup.filterUnmapped' | translate"
+          jhiTranslate="javaSpringBootBackEndApp.location.lookup.unmapped"
+          >Chưa chuyển đổi</span
+        >
+      }
+
+      <span class="loc-actions" (click)="$event.stopPropagation()">
+        @if (node.item.listingCount > 0) {
+          <a
+            class="badge rounded-pill text-bg-light text-decoration-none"
+            routerLink="/listing"
+            [queryParams]="listingQueryParams(node)"
+            [title]="'javaSpringBootBackEndApp.location.lookup.listings' | translate"
+          >
+            <fa-icon icon="building" /> {{ node.item.listingCount }}
+          </a>
+        }
+        <a class="btn btn-link btn-sm p-0" [routerLink]="['/location', node.item.id, 'view']" [title]="'entity.action.view' | translate"
+          ><fa-icon icon="eye"
+        /></a>
+        <a class="btn btn-link btn-sm p-0" [routerLink]="['/location', node.item.id, 'edit']" [title]="'entity.action.edit' | translate"
+          ><fa-icon icon="pencil-alt"
+        /></a>
+      </span>
+    </div>
+
+    @if (isExpanded(node)) {
+      @if (hasRelation(node)) {
+        @let rel = relation(node);
+        @if (rel === undefined) {
+          <div class="loc-relation text-secondary"><fa-icon icon="sync" animation="spin" /></div>
+        } @else if (rel?.origins; as origins) {
+          @if (origins.length > 0) {
+            <div class="loc-relation" data-cy="lookupOrigins">
+              <strong>
+                {{
+                  (node.parent
+                    ? 'javaSpringBootBackEndApp.location.lookup.origins'
+                    : 'javaSpringBootBackEndApp.location.lookup.originsProvince'
+                  ) | translate: { count: origins.length }
+                }}
+              </strong>
+              <div class="loc-chips">
+                @for (o of origins; track o.type + o.code) {
+                  <button
+                    type="button"
+                    class="loc-chip"
+                    [disabled]="o.id === null"
+                    [title]="o.id === null ? ('javaSpringBootBackEndApp.location.lookup.notInTable' | translate) : ''"
+                    (click)="reveal('old', o.id)"
+                  >
+                    <span class="loc-chip-code">{{ o.code }}</span>
+                    {{ o.name }}
+                    @if (o.partial) {
+                      <span class="badge text-bg-warning" jhiTranslate="javaSpringBootBackEndApp.location.lookup.partial">một phần</span>
+                    }
+                    @if (originPlace(o); as place) {
+                      <span class="loc-chip-place">{{ place }}</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="loc-relation loc-relation-empty" jhiTranslate="javaSpringBootBackEndApp.location.lookup.noOrigins">
+              Không có trong bảng chuyển đổi.
+            </div>
+          }
+        } @else if (rel?.successors; as successors) {
+          @if (successors.length > 0) {
+            <div class="loc-relation loc-relation-new" data-cy="lookupSuccessors">
+              <strong>
+                {{
+                  (successors.length > 1 && node.item.type === 'ward'
+                    ? 'javaSpringBootBackEndApp.location.lookup.split'
+                    : 'javaSpringBootBackEndApp.location.lookup.successors'
+                  ) | translate: { count: successors.length }
+                }}
+              </strong>
+              <div class="loc-chips">
+                @for (s of successors; track s.id) {
+                  <button type="button" class="loc-chip" (click)="reveal('new', s.id)">
+                    {{ s.name }}
+                    @if (s.parentName) {
+                      <span class="loc-chip-place">{{ s.parentName }}</span>
+                    }
+                    @if (s.listingCount > 0) {
+                      <span class="loc-chip-place"><fa-icon icon="building" /> {{ s.listingCount }}</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="loc-relation loc-relation-empty" jhiTranslate="javaSpringBootBackEndApp.location.lookup.noSuccessors">
+              Không có trong bảng chuyển đổi 2025 (website chuyển hướng theo huyện, tỉnh chứa nó).
+            </div>
+          }
+        }
+      }
+
+      @if (visible(node.children); as children) {
+        @if (children.length > 0) {
+          <ul class="loc-tree">
+            @for (child of children; track child.item.id) {
+              <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: child }" />
+            }
+          </ul>
+        }
+      }
+    }
+  </li>
+</ng-template>

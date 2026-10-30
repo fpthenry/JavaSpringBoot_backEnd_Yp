@@ -3,7 +3,7 @@
     "location": {
       "home": {
         "title": "Locations",
-        "refreshListLabel": "Refresh list",
+        "refreshListLabel": "Làm mới",
         "createLabel": "Thêm mới một Location",
         "createOrEditLabel": "Thêm mới hoặc cập nhật Location",
         "search": "Tìm Location",
@@ -79,6 +79,37 @@
         "viewListings": "Xem doanh nghiệp tại đây (gồm các đơn vị con)",
         "notFound": "Không có tỉnh thành nào",
         "treeView": "Dạng cây"
+      },
+      "lookup": {
+        "title": "Tra cứu đơn vị hành chính",
+        "subtitle": "Địa giới mới (từ 01/07/2025, 2 cấp) và địa giới cũ (3 cấp) tách riêng. Gõ tên không dấu hoặc mã ĐVHC (01, 001, 00167); mở một đơn vị để xem hình thành từ đâu / nay thuộc đâu, bấm để nhảy qua bộ kia.",
+        "tabNew": "Địa giới mới",
+        "tabNewHint": "Từ 01/07/2025 · tỉnh, thành phố → phường, xã, đặc khu",
+        "tabOld": "Địa giới cũ",
+        "tabOldHint": "Trước 01/07/2025 · tỉnh → quận, huyện, thị xã → phường, xã, thị trấn",
+        "searchPlaceholder": "Nhập tên (không cần dấu) hoặc mã đơn vị hành chính...",
+        "sort": "Sắp xếp",
+        "sortCode": "Theo mã ĐVHC",
+        "sortName": "Theo tên A–Z",
+        "expandAll": "Mở hết",
+        "collapseAll": "Thu gọn",
+        "filterListings": "Có doanh nghiệp",
+        "filterUnmapped": "Chưa có trong bảng chuyển đổi",
+        "unmapped": "Chưa chuyển đổi",
+        "unmappedHint": "Đơn vị cũ không có trong bảng chuyển đổi 2025: thường là xã đã sáp nhập, giải thể trước 2025 hoặc dữ liệu cũ của WordPress. Website chuyển hướng link các đơn vị này theo huyện, tỉnh chứa nó.",
+        "matches": "{{ count }} đơn vị khớp với “{{ query }}”",
+        "noMatch": "Không có đơn vị nào khớp với “{{ query }}” trong bộ này.",
+        "tryOld": "Tìm trong địa giới cũ",
+        "tryNew": "Tìm trong địa giới mới",
+        "listings": "Doanh nghiệp tại đây",
+        "origins": "Hình thành từ {{ count }} đơn vị cũ:",
+        "originsProvince": "Hợp nhất từ {{ count }} tỉnh cũ:",
+        "partial": "một phần",
+        "notInTable": "Chưa có trong bảng location",
+        "noOrigins": "Không có trong bảng chuyển đổi.",
+        "successors": "Nay thuộc ({{ count }}):",
+        "split": "Bị chia cho {{ count }} đơn vị mới:",
+        "noSuccessors": "Không có trong bảng chuyển đổi 2025 (website chuyển hướng theo huyện, tỉnh chứa nó)."
       }
     }
   }

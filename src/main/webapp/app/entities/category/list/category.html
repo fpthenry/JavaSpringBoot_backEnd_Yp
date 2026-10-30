@@ -1,8 +1,14 @@
+<!-- Sửa tay: danh sách ngành nghề VSIC 2025 (cột mã ngành, cấp; lọc theo cấp; mặc định xếp theo mã). Sinh lại Category sẽ mất. -->
 <div>
   <h2 id="page-heading" data-cy="CategoryHeading">
     <span jhiTranslate="javaSpringBootBackEndApp.category.home.title">Categories</span>
 
     <div class="d-flex justify-content-end">
+      <a class="btn btn-outline-secondary me-2" routerLink="/category/tree">
+        <fa-icon icon="sitemap" />
+        <span class="d-none d-md-inline" jhiTranslate="javaSpringBootBackEndApp.category.index.treeView">Dạng cây</span>
+      </a>
+
       <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading()">
         <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
         <span jhiTranslate="javaSpringBootBackEndApp.category.home.refreshListLabel">Refresh list</span>
@@ -52,6 +58,26 @@
     </div>
   </form>
 
+  <div class="d-flex flex-wrap align-items-center gap-2 mt-3" role="group" data-cy="levelFilter">
+    <span class="text-muted small" jhiTranslate="javaSpringBootBackEndApp.category.level">Cấp</span>
+    <div class="btn-group btn-group-sm flex-wrap">
+      <button type="button" class="btn btn-outline-primary" [class.active]="selectedLevel() === null" (click)="selectLevel(null)">
+        <span jhiTranslate="javaSpringBootBackEndApp.category.index.all">Tất cả</span>
+      </button>
+      @for (lv of levels; track lv) {
+        <button
+          type="button"
+          class="btn btn-outline-primary"
+          [class.active]="selectedLevel() === lv"
+          [title]="'javaSpringBootBackEndApp.category.levelName.' + lv | translate"
+          (click)="selectLevel(lv)"
+        >
+          {{ 'javaSpringBootBackEndApp.category.help.level' | translate: { level: lv } }}
+        </button>
+      }
+    </div>
+  </div>
+
   <jhi-filter [filters]="filters" />
 
   @if (categories().length === 0) {
@@ -69,65 +95,41 @@
                 <fa-icon class="p-1" icon="sort" />
               </div>
             </th>
-            <th scope="col" jhiSortBy="wpTermId">
+            <th scope="col" jhiSortBy="code">
               <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.wpTermId">Wp Term Id</span>
+                <span jhiTranslate="javaSpringBootBackEndApp.category.code">Mã ngành</span>
                 <fa-icon class="p-1" icon="sort" />
               </div>
             </th>
             <th scope="col" jhiSortBy="name">
               <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.name">Name</span>
+                <span jhiTranslate="javaSpringBootBackEndApp.category.name">Tên ngành</span>
                 @if (!currentSearch()) {
                   <fa-icon class="p-1" icon="sort" />
                 }
               </div>
             </th>
-            <th scope="col" jhiSortBy="slug">
+            <th scope="col" jhiSortBy="level">
               <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.slug">Slug</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="description">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.description">Description</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="icon">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.icon">Icon</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="listingCount">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.listingCount">Listing Count</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="createdAt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.createdAt">Created At</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="updatedAt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.updatedAt">Updated At</span>
+                <span jhiTranslate="javaSpringBootBackEndApp.category.level">Cấp</span>
                 <fa-icon class="p-1" icon="sort" />
               </div>
             </th>
             <th scope="col" jhiSortBy="parent.name">
               <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.category.parent">Parent</span>
+                <span jhiTranslate="javaSpringBootBackEndApp.category.parent">Ngành cha</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="listingCount" class="text-end">
+              <div class="d-flex justify-content-end">
+                <span jhiTranslate="javaSpringBootBackEndApp.category.listingCount">Số doanh nghiệp</span>
+                <fa-icon class="p-1" icon="sort" />
+              </div>
+            </th>
+            <th scope="col" jhiSortBy="updatedAt" class="d-none d-xl-table-cell">
+              <div class="d-flex">
+                <span jhiTranslate="javaSpringBootBackEndApp.category.updatedAt">Ngày cập nhật</span>
                 <fa-icon class="p-1" icon="sort" />
               </div>
             </th>
@@ -137,24 +139,39 @@
         <tbody>
           @for (category of categories(); track trackId(category)) {
             <tr data-cy="entityTable">
-              <td>
-                <a [routerLink]="['/category', category.id, 'view']">{{ category.id }}</a>
-              </td>
-              <td>{{ category.wpTermId }}</td>
-              <td>{{ category.name }}</td>
-              <td>{{ category.slug }}</td>
-              <td>{{ category.description }}</td>
-              <td>{{ category.icon }}</td>
-              <td>{{ category.listingCount }}</td>
-              <td>{{ category.createdAt | formatMediumDatetime }}</td>
-              <td>{{ category.updatedAt | formatMediumDatetime }}</td>
-              <td>
-                @if (category.parent) {
-                  <div>
-                    <a [routerLink]="['/category', category.parent.id, 'view']">{{ category.parent.name }}</a>
-                  </div>
+              <td class="text-muted small">{{ category.id }}</td>
+              <td class="text-nowrap">
+                @if (category.code) {
+                  <a [routerLink]="['/category', category.id, 'view']" class="vsic-code" [class.vsic-level-1]="category.level === 1">{{
+                    category.code
+                  }}</a>
+                } @else {
+                  <span class="text-muted">—</span>
                 }
               </td>
+              <td>
+                <a [routerLink]="['/category', category.id, 'view']" class="text-body fw-semibold">{{ decode(category.name) }}</a>
+                @if (category.slug) {
+                  <div class="small text-muted font-monospace text-break">{{ category.slug }}</div>
+                }
+              </td>
+              <td class="text-nowrap">
+                @if (category.level) {
+                  {{ 'javaSpringBootBackEndApp.category.help.level' | translate: { level: category.level } }}
+                }
+              </td>
+              <td>
+                @if (category.parent) {
+                  <a [routerLink]="['/category', category.parent.id, 'view']">
+                    @if (category.parent.code) {
+                      <span class="font-monospace fw-semibold">{{ category.parent.code }}</span>
+                    }
+                    {{ decode(category.parent.name) }}
+                  </a>
+                }
+              </td>
+              <td class="text-end text-nowrap">{{ (category.listingCount ?? 0).toLocaleString('vi-VN') }}</td>
+              <td class="d-none d-xl-table-cell text-nowrap small">{{ category.updatedAt | formatMediumDatetime }}</td>
               <td class="text-end">
                 <div class="btn-group">
                   <a [routerLink]="['/category', category.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">

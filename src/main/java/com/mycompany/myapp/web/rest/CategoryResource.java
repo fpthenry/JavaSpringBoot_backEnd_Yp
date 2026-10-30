@@ -70,6 +70,7 @@ public class CategoryResource {
         if (categoryDTO.getId() != null) {
             throw new BadRequestAlertException("A new category cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        checkCodeUnique(categoryDTO.getCode(), null);
         categoryDTO = categoryService.save(categoryDTO);
         return ResponseEntity.created(new URI("/api/categories/" + categoryDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, categoryDTO.getId().toString()))
@@ -102,6 +103,7 @@ public class CategoryResource {
         if (!categoryRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
+        checkCodeUnique(categoryDTO.getCode(), id);
 
         categoryDTO = categoryService.update(categoryDTO);
         return ResponseEntity.ok()
@@ -135,6 +137,9 @@ public class CategoryResource {
 
         if (!categoryRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+        }
+        if (categoryDTO.getCode() != null) {
+            checkCodeUnique(categoryDTO.getCode(), id);
         }
 
         Optional<CategoryDTO> result = categoryService.partialUpdate(categoryDTO);
@@ -224,6 +229,13 @@ public class CategoryResource {
             return ResponseEntity.ok().headers(headers).body(page.getContent());
         } catch (RuntimeException e) {
             throw ElasticsearchExceptionMapper.mapException(e);
+        }
+    }
+
+    /** Sửa tay: mã ngành VSIC không được trùng (cột code unique): báo 400 dễ hiểu thay vì lỗi ràng buộc CSDL. */
+    private void checkCodeUnique(String code, Long id) {
+        if (code != null && categoryRepository.existsOtherWithCode(code.trim().toUpperCase(java.util.Locale.ROOT), id)) {
+            throw new BadRequestAlertException("Mã ngành " + code + " đã có", ENTITY_NAME, "codeexists");
         }
     }
 }

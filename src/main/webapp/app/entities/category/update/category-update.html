@@ -1,4 +1,4 @@
-<!-- Sửa tay: form ngành nghề chia nhóm, ngành cha chọn bằng gõ tìm + đường dẫn cây, chặn vòng lặp, thanh lưu dính đáy. Sinh lại Category sẽ mất. -->
+<!-- Sửa tay: form ngành nghề VSIC 2025 (mã ngành + cấp, slug = tên + mã, gợi ý ngành cha theo mã), ngành cha chọn bằng gõ tìm + đường dẫn cây, chặn vòng lặp, thanh lưu dính đáy. Sinh lại Category sẽ mất. -->
 <ng-template #fieldErrors let-ref>
   @if (ref.invalid && (ref.dirty || ref.touched)) {
     <div class="invalid-feedback d-block">
@@ -7,6 +7,9 @@
       }
       @if (ref.errors?.maxlength) {
         <span jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: ref.errors.maxlength.requiredLength }">Quá dài.</span>
+      }
+      @if (ref.errors?.pattern) {
+        <span jhiTranslate="javaSpringBootBackEndApp.category.help.codePattern">Mã ngành là một chữ cái A–V (cấp 1) hoặc 2–5 chữ số.</span>
       }
     </div>
   }
@@ -27,6 +30,9 @@
       </nav>
       <h2 id="jhi-category-heading" data-cy="CategoryCreateUpdateHeading" class="page-title">
         @if (category?.id) {
+          @if (code()) {
+            <span class="vsic-code me-1">{{ code() }}</span>
+          }
           {{ decode(editForm.controls.name.value || category.name) }}
         } @else {
           <span jhiTranslate="javaSpringBootBackEndApp.category.home.createLabel">Thêm ngành nghề</span>
@@ -53,6 +59,38 @@
           <h3 class="form-card-title">
             <fa-icon icon="briefcase" /> <span jhiTranslate="javaSpringBootBackEndApp.category.section.general">Thông tin chung</span>
           </h3>
+          <div class="row g-3 mb-3 align-items-start">
+            <div class="col-sm-5 col-md-4">
+              <label class="form-label required" for="field_code" jhiTranslate="javaSpringBootBackEndApp.category.code">Mã ngành</label>
+              <div class="input-group">
+                <input
+                  type="text"
+                  class="form-control form-control-lg font-monospace fw-semibold"
+                  [class.is-invalid]="editForm.controls.code.invalid && editForm.controls.code.touched"
+                  name="code"
+                  id="field_code"
+                  data-cy="code"
+                  formControlName="code"
+                  maxlength="10"
+                  autocomplete="off"
+                  placeholder="4632"
+                  (input)="normalizeCode()"
+                />
+                @if (level(); as lv) {
+                  <span class="input-group-text" data-cy="level">{{
+                    'javaSpringBootBackEndApp.category.help.level' | translate: { level: lv }
+                  }}</span>
+                }
+              </div>
+              <ng-container *ngTemplateOutlet="fieldErrors; context: { $implicit: editForm.controls.code }" />
+            </div>
+            <div class="col-sm-7 col-md-8">
+              <div class="form-text mt-sm-4 pt-sm-2" jhiTranslate="javaSpringBootBackEndApp.category.help.code">
+                Theo hệ thống ngành kinh tế VSIC 2025: chữ cái A–V là ngành cấp 1; 2, 3, 4, 5 chữ số là ngành cấp 2, 3, 4, 5. Mỗi mã chỉ
+                dùng cho một ngành.
+              </div>
+            </div>
+          </div>
           <div class="mb-3">
             <label class="form-label required" for="field_name" jhiTranslate="javaSpringBootBackEndApp.category.name">Tên ngành</label>
             <textarea
@@ -85,15 +123,24 @@
                 type="button"
                 class="btn btn-outline-secondary"
                 (click)="generateSlug()"
-                [disabled]="!editForm.controls.name.value"
+                [disabled]="!editForm.controls.name.value || !code()"
                 data-cy="generateSlug"
               >
-                <fa-icon icon="sync" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.category.help.generateSlug">Tạo từ tên</span>
+                <fa-icon icon="sync" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.category.help.generateSlug">Tạo từ tên + mã</span>
               </button>
             </div>
             <div class="form-text" jhiTranslate="javaSpringBootBackEndApp.category.help.slug">
-              Phần cuối địa chỉ trang ngành trên website.
+              Phần cuối địa chỉ trang ngành trên website: tên + mã ngành, ví dụ ban-buon-thuc-pham-4632.
             </div>
+            @if (slugSuggestion(); as suggestion) {
+              <div class="form-text text-warning-emphasis" data-cy="slugSuggestion">
+                <fa-icon icon="triangle-exclamation" />
+                {{ 'javaSpringBootBackEndApp.category.help.slugNotStandard' | translate: { slug: suggestion } }}
+                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="generateSlug()">
+                  <span jhiTranslate="javaSpringBootBackEndApp.category.help.useStandardSlug">Dùng slug chuẩn</span>
+                </button>
+              </div>
+            }
             <ng-container *ngTemplateOutlet="fieldErrors; context: { $implicit: editForm.controls.slug }" />
           </div>
           <div>
@@ -130,6 +177,23 @@
             [search]="searchParents"
             [placeholder]="'javaSpringBootBackEndApp.category.help.parentPicker' | translate"
           />
+          @if (parentHint(); as hint) {
+            <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small d-flex flex-wrap align-items-center gap-2" data-cy="parentHint">
+              <fa-icon icon="triangle-exclamation" />
+              <span>{{ 'javaSpringBootBackEndApp.category.help.' + hint.key | translate: hint.params }}</span>
+              @if (hint.key === 'parentByCode') {
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary py-0"
+                  (click)="pickParentByCode()"
+                  [disabled]="findingParent()"
+                  data-cy="pickParentByCode"
+                >
+                  {{ 'javaSpringBootBackEndApp.category.help.pickParent' | translate: hint.params }}
+                </button>
+              }
+            </div>
+          }
           @if (parentCycle()) {
             <div class="invalid-feedback d-block" data-cy="parentCycle">
               <fa-icon icon="triangle-exclamation" />
@@ -141,12 +205,20 @@
           <div class="tree-path mt-3" data-cy="treePath">
             <span class="tree-path-label" jhiTranslate="javaSpringBootBackEndApp.category.help.position">Vị trí:</span>
             @for (node of parentPath(); track node.id) {
-              <a class="tree-path-node" [routerLink]="['/category', node.id, 'view']" target="_blank">{{ decode(node.name) }}</a>
+              <a class="tree-path-node" [routerLink]="['/category', node.id, 'view']" target="_blank">
+                @if (node.code) {
+                  <span class="vsic-code me-1">{{ node.code }}</span>
+                }
+                {{ decode(node.name) }}
+              </a>
               <fa-icon icon="chevron-right" class="tree-path-sep" />
             }
-            <span class="tree-path-node current">{{
-              decode(editForm.controls.name.value) || ('javaSpringBootBackEndApp.category.help.thisCategory' | translate)
-            }}</span>
+            <span class="tree-path-node current">
+              @if (code()) {
+                <span class="vsic-code me-1">{{ code() }}</span>
+              }
+              {{ decode(editForm.controls.name.value) || ('javaSpringBootBackEndApp.category.help.thisCategory' | translate) }}
+            </span>
             <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis ms-1">{{
               'javaSpringBootBackEndApp.category.help.level' | translate: { level: level() }
             }}</span>
@@ -198,27 +270,6 @@
               </div>
             </div>
           </section>
-
-          <details class="form-card form-card-collapsible" [open]="technicalOpen()" (toggle)="technicalOpen.set($any($event.target).open)">
-            <summary class="form-card-title">
-              <fa-icon icon="gear" /> <span jhiTranslate="javaSpringBootBackEndApp.category.section.technical">Thông tin kỹ thuật</span>
-            </summary>
-            @if (editForm.controls.id.value !== null) {
-              <div class="mb-3">
-                <label class="form-label" for="field_id" jhiTranslate="global.field.id">ID</label>
-                <input type="number" class="form-control" name="id" id="field_id" data-cy="id" formControlName="id" [readonly]="true" />
-              </div>
-            }
-            <div class="mb-3">
-              <label class="form-label" for="field_wpTermId" jhiTranslate="javaSpringBootBackEndApp.category.wpTermId">Mã WordPress</label>
-              <input type="number" class="form-control" name="wpTermId" id="field_wpTermId" data-cy="wpTermId" formControlName="wpTermId" />
-            </div>
-            <div>
-              <label class="form-label" for="field_icon" jhiTranslate="javaSpringBootBackEndApp.category.icon">Biểu tượng</label>
-              <input type="text" class="form-control" name="icon" id="field_icon" data-cy="icon" formControlName="icon" />
-              <ng-container *ngTemplateOutlet="fieldErrors; context: { $implicit: editForm.controls.icon }" />
-            </div>
-          </details>
         </div>
       </div>
     </div>

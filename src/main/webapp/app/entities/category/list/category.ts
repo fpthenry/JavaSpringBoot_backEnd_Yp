@@ -15,13 +15,16 @@ import { DataUtils } from 'app/core/util';
 import { Alert, AlertError } from 'app/shared/alert';
 import { FormatMediumDatetimePipe } from 'app/shared/date';
 import { Filter, FilterOptions, IFilterOption, IFilterOptions } from 'app/shared/filter';
+import { decodeEntities } from 'app/shared/form';
 import { TranslateDirective } from 'app/shared/language';
 import { ItemCount } from 'app/shared/pagination';
 import { SortByDirective, SortDirective, SortService, type SortState, sortStateSignal } from 'app/shared/sort';
+import { VSIC_LEVELS } from '../category-code';
 import { ICategory } from '../category.model';
 import { CategoryDeleteDialog } from '../delete/category-delete-dialog';
 import { CategoryService } from '../service/category.service';
 
+/** Sửa tay: danh sách ngành nghề VSIC 2025: cột mã ngành, cấp; nút lọc theo cấp (filter level.equals); xếp theo mã. */
 @Component({
   selector: 'jhi-category',
   templateUrl: './category.html',
@@ -42,7 +45,10 @@ import { CategoryService } from '../service/category.service';
   ],
 })
 export class Category {
-  private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['name', 'slug', 'description', 'icon'];
+  private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['name', 'slug', 'description', 'parent.name'];
+  private static readonly LEVEL_FILTER = 'level.equals';
+
+  readonly levels = VSIC_LEVELS;
 
   readonly categories = signal<ICategory[]>([]);
 
@@ -69,6 +75,7 @@ export class Category {
   protected readonly filterOptions = toSignal(this.filters.filterChanges);
   protected dataUtils = inject(DataUtils);
   protected modalService = inject(NgbModal);
+  protected readonly decode = decodeEntities;
 
   constructor() {
     effect(() => {
@@ -101,6 +108,20 @@ export class Category {
   }
 
   trackId = (item: ICategory): number => this.categoryService.getCategoryIdentifier(item);
+
+  /** Cấp đang lọc (filter level.equals trên URL), null = mọi cấp. */
+  selectedLevel(): number | null {
+    const value = this.filters.filterOptions.find(option => option.name === Category.LEVEL_FILTER)?.values.at(0);
+    return value ? Number(value) : null;
+  }
+
+  selectLevel(level: number | null): void {
+    const previous = this.filters.filterOptions.find(option => option.name === Category.LEVEL_FILTER)?.values ?? [];
+    [...previous].forEach(value => this.filters.removeFilter(Category.LEVEL_FILTER, value));
+    if (level !== null) {
+      this.filters.addFilter(Category.LEVEL_FILTER, String(level));
+    }
+  }
 
   search(query: string): void {
     this.page.set(1);

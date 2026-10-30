@@ -1,4 +1,4 @@
-<!-- Sửa tay: trang xem ngành nghề, bố cục gọn (đầu trang ngắn, ngành con dạng danh sách, thông tin gom một khối). Sinh lại Category sẽ mất. -->
+<!-- Sửa tay: trang xem ngành nghề VSIC 2025 (mã ngành trên tiêu đề, đường dẫn cây và ngành con), bố cục gọn (đầu trang ngắn, ngành con dạng danh sách, thông tin gom một khối). Sinh lại Category sẽ mất. -->
 @if (category(); as categoryRef) {
   <div class="category-detail">
     <jhi-alert-error />
@@ -15,14 +15,22 @@
             </li>
             @for (node of ancestors(); track node.id) {
               <li class="breadcrumb-item">
-                <a class="crumb-truncate" [routerLink]="['/category', node.id, 'view']" [title]="decode(node.name)">{{
-                  decode(node.name)
-                }}</a>
+                <a class="crumb-truncate" [routerLink]="['/category', node.id, 'view']" [title]="decode(node.name)">
+                  @if (node.code) {
+                    <span class="font-monospace fw-semibold">{{ node.code }}</span>
+                  }
+                  {{ decode(node.name) }}
+                </a>
               </li>
             }
           </ol>
         </nav>
-        <h2 class="page-title" data-cy="categoryDetailsHeading">{{ name() }}</h2>
+        <h2 class="page-title" data-cy="categoryDetailsHeading">
+          @if (categoryRef.code) {
+            <span class="vsic-code me-1" [class.vsic-level-1]="level() === 1" data-cy="categoryCode">{{ categoryRef.code }}</span>
+          }
+          {{ name() }}
+        </h2>
         <div class="page-meta">
           <span>{{ 'javaSpringBootBackEndApp.category.help.level' | translate: { level: level() } }}</span>
           <span>{{
@@ -147,7 +155,12 @@
               <ul class="simple-list two-columns">
                 @for (child of visibleChildren(); track child.id) {
                   <li>
-                    <a [routerLink]="['/category', child.id, 'view']">{{ decode(child.name) }}</a>
+                    <a [routerLink]="['/category', child.id, 'view']">
+                      @if (child.code) {
+                        <span class="vsic-code me-1">{{ child.code }}</span>
+                      }
+                      {{ decode(child.name) }}
+                    </a>
                     <span class="simple-list-count">{{ (child.listingCount ?? 0).toLocaleString('vi-VN') }}</span>
                   </li>
                 }
@@ -213,10 +226,35 @@
           <h3 class="form-card-title" jhiTranslate="javaSpringBootBackEndApp.category.detail.info">Thông tin</h3>
           <dl class="meta-list">
             <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.category.code">Mã ngành</dt>
+              <dd>
+                @if (categoryRef.code) {
+                  <span class="font-monospace fw-semibold">{{ categoryRef.code }}</span>
+                  <jhi-copy-button [text]="categoryRef.code" />
+                } @else {
+                  <a
+                    [routerLink]="['/category', categoryRef.id, 'edit']"
+                    [queryParams]="editQueryParams('code')"
+                    jhiTranslate="javaSpringBootBackEndApp.listing.detail.fill"
+                    >Bổ sung</a
+                  >
+                }
+              </dd>
+            </div>
+            <div>
+              <dt jhiTranslate="javaSpringBootBackEndApp.category.level">Cấp</dt>
+              <dd>{{ 'javaSpringBootBackEndApp.category.levelName.' + level() | translate }}</dd>
+            </div>
+            <div>
               <dt jhiTranslate="javaSpringBootBackEndApp.category.parent">Ngành cha</dt>
               <dd>
                 @if (categoryRef.parent; as parent) {
-                  <a [routerLink]="['/category', parent.id, 'view']">{{ decode(parent.name) }}</a>
+                  <a [routerLink]="['/category', parent.id, 'view']">
+                    @if (parent.code) {
+                      <span class="font-monospace fw-semibold">{{ parent.code }}</span>
+                    }
+                    {{ decode(parent.name) }}
+                  </a>
                 } @else {
                   <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.category.detail.root">Ngành gốc</span>
                 }
@@ -249,10 +287,6 @@
             <div>
               <dt jhiTranslate="global.field.id">ID</dt>
               <dd class="font-monospace">{{ categoryRef.id }}</dd>
-            </div>
-            <div>
-              <dt jhiTranslate="javaSpringBootBackEndApp.category.wpTermId">Mã WordPress</dt>
-              <dd class="font-monospace">{{ categoryRef.wpTermId ?? '—' }}</dd>
             </div>
           </dl>
         </section>

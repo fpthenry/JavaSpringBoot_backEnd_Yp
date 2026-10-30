@@ -14,7 +14,9 @@ import java.util.List;
  * @param isNew        địa phương thuộc địa giới mới (từ 01/7/2025); ngành nghề: null.
  * @param listingCount số doanh nghiệp đã xuất bản, tính cả cấp con.
  * @param ancestors    các cấp cha, từ gốc xuống cha trực tiếp (breadcrumb).
- * @param children     các cấp con trực tiếp, sắp theo tên.
+ * @param children     các cấp con trực tiếp: ngành nghề sắp theo mã ngành, địa phương sắp theo tên.
+ * @param code         ngành nghề: mã ngành VSIC 2025 (A–V, 2–5 chữ số); địa phương: null.
+ * @param level        ngành nghề: cấp 1–5; địa phương: null.
  */
 public record PublicTermDetailDTO(
     Long id,
@@ -25,8 +27,29 @@ public record PublicTermDetailDTO(
     Boolean isNew,
     long listingCount,
     List<Ref> ancestors,
-    List<Ref> children
+    List<Ref> children,
+    String code,
+    Integer level
 ) implements Serializable {
-    /** Một cấp cha hoặc con. */
-    public record Ref(Long id, String name, String slug, long listingCount) implements Serializable {}
+    /** Địa phương (không có mã ngành, cấp). */
+    public PublicTermDetailDTO(
+        Long id,
+        String name,
+        String slug,
+        String description,
+        String type,
+        Boolean isNew,
+        long listingCount,
+        List<Ref> ancestors,
+        List<Ref> children
+    ) {
+        this(id, name, slug, description, type, isNew, listingCount, ancestors, children, null, null);
+    }
+
+    /** Một cấp cha hoặc con; code, level chỉ ngành nghề có. */
+    public record Ref(Long id, String name, String slug, long listingCount, String code, Integer level) implements Serializable {
+        public Ref(Long id, String name, String slug, long listingCount) {
+            this(id, name, slug, listingCount, null, null);
+        }
+    }
 }

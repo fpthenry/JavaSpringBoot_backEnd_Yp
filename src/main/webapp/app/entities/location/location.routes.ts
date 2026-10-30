@@ -21,7 +21,7 @@ const locationRoute: Routes = [
   },
   {
     path: 'tree',
-    loadComponent: () => import('./tree/location-tree').then(m => m.LocationTree),
+    loadComponent: () => import('./lookup/location-lookup').then(m => m.LocationLookup),
     canActivate: [userRouteAccessService],
   },
   {

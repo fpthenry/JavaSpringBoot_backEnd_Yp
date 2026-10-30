@@ -2,13 +2,17 @@ package com.mycompany.myapp.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
+import com.mycompany.myapp.service.PublicLocationService.Conversion;
 import com.mycompany.myapp.service.PublicLocationService.Row;
 import com.mycompany.myapp.service.dto.publicapi.PublicLocationDTO;
 import com.mycompany.myapp.service.dto.publicapi.PublicPageDTO;
 import com.mycompany.myapp.service.dto.publicapi.PublicTermDetailDTO;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.LongFunction;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +39,19 @@ class PublicLocationServiceTest {
         ROWS,
         Map.of(11960L, 271_041L, 12000L, 2_375L, 13001L, 5L, 2L, 271_128L, 800L, 2_013L)
     );
+
+    @Test
+    void slugXaDaDoiTenTimTheoMaRaSlugMoi() {
+        // Xã lên phường (NQ 2026): slug cũ "xa-...-00454-2025" → đơn vị bộ mới cùng mã
+        assertThat(PublicLocationService.findNewByCode(ALL, "xa-vinh-tuy-00283-2025")).map(PublicLocationDTO::id).contains(12000L);
+        assertThat(PublicLocationService.findNewByCode(ALL, "phuong-dong-anh-00454-2025"))
+            .map(PublicLocationDTO::slug)
+            .contains("xa-dong-anh-00454-2025");
+        // Bộ cũ và mã không có: không đoán
+        assertThat(PublicLocationService.findNewByCode(ALL, "phuong-thanh-luong-00283")).isEmpty();
+        assertThat(PublicLocationService.findNewByCode(ALL, "xa-khong-co-99999-2025")).isEmpty();
+        assertThat(PublicLocationService.findNewByCode(ALL, " ")).isEmpty();
+    }
 
     private static PublicLocationDTO byId(long id) {
         return ALL.stream()
@@ -194,6 +211,138 @@ class PublicLocationServiceTest {
         assertThat(PublicLocationService.find(ALL, "xa-chau-thoi-29002-2025")).map(PublicLocationDTO::id).contains(14001L);
         assertThat(PublicLocationService.find(ALL, "13001")).map(PublicLocationDTO::slug).contains("xa-chau-thoi-29001-2025");
         assertThat(PublicLocationService.find(ALL, "khong-co")).isEmpty();
+    }
+
+    // Thanh Lương cũ → Vĩnh Tuy; Vĩnh Tuy cũ bị chia (Vĩnh Tuy, Đông Anh); cả Huyện Đông Anh (mã xã trống) → Xã Đông Anh
+    private static final List<Conversion> CONVERSIONS = List.of(
+        new Conversion("00283", "Phường Thanh Lương", "007", "Quận Hai Bà Trưng", "01", "Thành phố Hà Nội", "01", "00283", false),
+        new Conversion("00290", "Phường Vĩnh Tuy", "007", "Quận Hai Bà Trưng", "01", "Thành phố Hà Nội", "01", "00454", true),
+        new Conversion("00290", "Phường Vĩnh Tuy", "007", "Quận Hai Bà Trưng", "01", "Thành phố Hà Nội", "01", "00283", true),
+        new Conversion(null, null, "017", "Huyện Đông Anh", "01", "Thành phố Hà Nội", "01", "00454", false)
+    );
+    private static final BiFunction<PublicLocationDTO, List<PublicLocationDTO>, Map<Long, Long>> NO_SHARED = (old, targets) -> Map.of();
+
+    @Test
+    void donViCuRaDonViMoiChuaNo() {
+        List<PublicLocationDTO> all = PublicLocationService.toDtos(
+            Stream.concat(
+                ROWS.stream(),
+                Stream.of(
+                    new Row(801, "Phường Vĩnh Tuy", "phuong-vinh-tuy-00290", "ward", 30L),
+                    new Row(802, "Phường Không Có Trong Bảng", "phuong-khong-co-00999", "ward", 30L),
+                    new Row(803, "Phường Lạc Trung", "phuong-lac-trung-00291", "ward", 30L)
+                )
+            ).toList(),
+            Map.of()
+        );
+        // Lạc Trung cũ bị chia (Đông Anh trước theo bảng, Vĩnh Tuy sau), không xã mới nào cùng tên
+        List<Conversion> split = Stream.concat(
+            CONVERSIONS.stream(),
+            Stream.of(
+                new Conversion("00291", "Phường Lạc Trung", "007", "Quận Hai Bà Trưng", "01", "Thành phố Hà Nội", "01", "00454", true),
+                new Conversion("00291", "Phường Lạc Trung", "007", "Quận Hai Bà Trưng", "01", "Thành phố Hà Nội", "01", "00283", true)
+            )
+        ).toList();
+        LongFunction<PublicLocationDTO> id = n ->
+            all
+                .stream()
+                .filter(l -> l.id() == n)
+                .findFirst()
+                .orElseThrow();
+        // Xã cũ → xã mới; bị chia thì xã mới cùng tên riêng
+        assertThat(PublicLocationService.newUnitOf(all, CONVERSIONS, id.apply(800), NO_SHARED))
+            .map(PublicLocationDTO::id)
+            .contains(12000L);
+        assertThat(PublicLocationService.newUnitOf(all, CONVERSIONS, id.apply(801), NO_SHARED))
+            .map(PublicLocationDTO::id)
+            .contains(12000L);
+        // Quận/huyện, tỉnh cũ → tỉnh mới; xã không có trong bảng → theo huyện chứa nó
+        assertThat(PublicLocationService.newUnitOf(all, CONVERSIONS, id.apply(30), NO_SHARED))
+            .map(PublicLocationDTO::id)
+            .contains(11960L);
+        assertThat(PublicLocationService.newUnitOf(all, CONVERSIONS, id.apply(2), NO_SHARED))
+            .map(PublicLocationDTO::id)
+            .contains(11960L);
+        assertThat(PublicLocationService.newUnitOf(all, CONVERSIONS, id.apply(802), NO_SHARED))
+            .map(PublicLocationDTO::id)
+            .contains(11960L);
+        // Bị chia, không cùng tên: nơi có nhiều doanh nghiệp của xã cũ nhất; không có số liệu thì theo bảng
+        assertThat(PublicLocationService.newUnitOf(all, split, id.apply(803), NO_SHARED))
+            .map(PublicLocationDTO::id)
+            .contains(12001L);
+        assertThat(PublicLocationService.newUnitOf(all, split, id.apply(803), (old, targets) -> Map.of(12000L, 50L, 12001L, 3L)))
+            .map(PublicLocationDTO::id)
+            .contains(12000L);
+    }
+
+    @Test
+    void timTheoTenCuKemDonViMoi() {
+        List<PublicLocationDTO.Former> thanhLuong = PublicLocationService.former(ALL, CONVERSIONS, "thanh luong", 10);
+        assertThat(thanhLuong).extracting(PublicLocationDTO.Former::name).containsExactly("Phường Thanh Lương");
+        assertThat(thanhLuong.getFirst().parentName()).isEqualTo("Quận Hai Bà Trưng");
+        assertThat(thanhLuong.getFirst().targets()).extracting(PublicLocationDTO::id).containsExactly(12000L);
+        // Huyện cũ → các xã mới, nhiều doanh nghiệp trước (Vĩnh Tuy 2.375 trước Đông Anh 0)
+        List<PublicLocationDTO.Former> haiBaTrung = PublicLocationService.former(ALL, CONVERSIONS, "Hai Bà Trưng", 10);
+        assertThat(haiBaTrung).extracting(PublicLocationDTO.Former::type).containsExactly("district");
+        assertThat(haiBaTrung.getFirst().targets()).extracting(PublicLocationDTO::id).containsExactly(12000L, 12001L);
+        // Xã bị chia: giữ dù cùng tên với một xã mới
+        assertThat(PublicLocationService.former(ALL, CONVERSIONS, "vinh tuy", 10))
+            .singleElement()
+            .satisfies(f -> assertThat(f.targets()).hasSize(2));
+        // Chỉ đổi cấp, giữ tên riêng (Huyện Đông Anh → Xã Đông Anh, Hà Nội → Hà Nội): tìm thường đã ra, bỏ
+        assertThat(PublicLocationService.former(ALL, CONVERSIONS, "dong anh", 10)).isEmpty();
+        assertThat(PublicLocationService.former(ALL, CONVERSIONS, "ha noi", 10)).isEmpty();
+        assertThat(PublicLocationService.former(ALL, CONVERSIONS, " ", 10)).isEmpty();
+    }
+
+    @Test
+    void donViMoiGomCacDonViCu() {
+        assertThat(PublicLocationService.origins(ALL, CONVERSIONS, byId(12000)))
+            .extracting(PublicLocationDTO.Origin::name, PublicLocationDTO.Origin::partial)
+            .containsExactly(tuple("Phường Thanh Lương", false), tuple("Phường Vĩnh Tuy", true));
+        assertThat(PublicLocationService.origins(ALL, CONVERSIONS, byId(12001)))
+            .extracting(PublicLocationDTO.Origin::name, PublicLocationDTO.Origin::type)
+            .containsExactly(tuple("Phường Vĩnh Tuy", "ward"), tuple("Huyện Đông Anh", "district"));
+        assertThat(PublicLocationService.origins(ALL, CONVERSIONS, byId(11960)))
+            .extracting(PublicLocationDTO.Origin::name)
+            .containsExactly("Thành phố Hà Nội");
+        assertThat(PublicLocationService.origins(ALL, CONVERSIONS, byId(800))).isEmpty();
+        // Kèm id đơn vị cũ trong bảng location (Thanh Lương 800); xã cũ chưa từng có trên website: id null
+        assertThat(PublicLocationService.origins(ALL, CONVERSIONS, byId(12000)))
+            .extracting(PublicLocationDTO.Origin::id, PublicLocationDTO.Origin::code)
+            .containsExactly(tuple(800L, "00283"), tuple(null, "00290"));
+        assertThat(PublicLocationService.origins(ALL, CONVERSIONS, byId(11960)).getFirst().id()).isEqualTo(2L);
+    }
+
+    @Test
+    void donViCuNayThuocDau() {
+        assertThat(PublicLocationService.successors(ALL, CONVERSIONS, byId(800)))
+            .extracting(PublicLocationDTO::id)
+            .containsExactly(12000L);
+        // Quận cũ → các xã mới, nơi nhận nhiều xã cũ nhất trước (Vĩnh Tuy nhận 2, Đông Anh 1)
+        assertThat(PublicLocationService.successors(ALL, CONVERSIONS, byId(30)))
+            .extracting(PublicLocationDTO::id)
+            .containsExactly(12000L, 12001L);
+        assertThat(PublicLocationService.successors(ALL, CONVERSIONS, byId(2)))
+            .extracting(PublicLocationDTO::id)
+            .containsExactly(11960L);
+        assertThat(PublicLocationService.successors(ALL, CONVERSIONS, byId(12000))).isEmpty();
+    }
+
+    @Test
+    void nutCayTachBoMoiBoCuCoCoChuyenDoi() {
+        assertThat(PublicLocationService.nodes(ALL, CONVERSIONS, "old"))
+            .extracting(PublicLocationDTO.Node::id, PublicLocationDTO.Node::code, PublicLocationDTO.Node::mapped)
+            .containsExactlyInAnyOrder(tuple(2L, "01", true), tuple(30L, "007", true), tuple(800L, "00283", true));
+        List<PublicLocationDTO.Node> moi = PublicLocationService.nodes(ALL, CONVERSIONS, "new");
+        assertThat(moi)
+            .hasSize(7)
+            .allMatch(n -> n.code() != null);
+        // Bến Tre, Vĩnh Long không có trong bảng chuyển đổi mẫu
+        assertThat(moi)
+            .filteredOn(PublicLocationDTO.Node::mapped)
+            .extracting(PublicLocationDTO.Node::id)
+            .containsExactlyInAnyOrder(11960L, 12000L, 12001L);
     }
 
     @Test

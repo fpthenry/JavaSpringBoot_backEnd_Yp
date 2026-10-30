@@ -72,10 +72,10 @@ class CategoryCriteriaTest {
 
     private static void setAllFilters(CategoryCriteria categoryCriteria) {
         categoryCriteria.id();
-        categoryCriteria.wpTermId();
+        categoryCriteria.code();
         categoryCriteria.name();
         categoryCriteria.slug();
-        categoryCriteria.icon();
+        categoryCriteria.level();
         categoryCriteria.listingCount();
         categoryCriteria.createdAt();
         categoryCriteria.updatedAt();
@@ -88,10 +88,10 @@ class CategoryCriteriaTest {
         return new Condition<>(
             criteria ->
                 condition.apply(criteria.getId()) &&
-                condition.apply(criteria.getWpTermId()) &&
+                condition.apply(criteria.getCode()) &&
                 condition.apply(criteria.getName()) &&
                 condition.apply(criteria.getSlug()) &&
-                condition.apply(criteria.getIcon()) &&
+                condition.apply(criteria.getLevel()) &&
                 condition.apply(criteria.getListingCount()) &&
                 condition.apply(criteria.getCreatedAt()) &&
                 condition.apply(criteria.getUpdatedAt()) &&
@@ -106,10 +106,10 @@ class CategoryCriteriaTest {
         return new Condition<>(
             criteria ->
                 condition.apply(criteria.getId(), copy.getId()) &&
-                condition.apply(criteria.getWpTermId(), copy.getWpTermId()) &&
+                condition.apply(criteria.getCode(), copy.getCode()) &&
                 condition.apply(criteria.getName(), copy.getName()) &&
                 condition.apply(criteria.getSlug(), copy.getSlug()) &&
-                condition.apply(criteria.getIcon(), copy.getIcon()) &&
+                condition.apply(criteria.getLevel(), copy.getLevel()) &&
                 condition.apply(criteria.getListingCount(), copy.getListingCount()) &&
                 condition.apply(criteria.getCreatedAt(), copy.getCreatedAt()) &&
                 condition.apply(criteria.getUpdatedAt(), copy.getUpdatedAt()) &&

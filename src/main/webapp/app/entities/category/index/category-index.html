@@ -104,6 +104,7 @@
         data-cy="categoryIndexSort"
       >
         <option value="name">{{ 'javaSpringBootBackEndApp.category.index.sortName' | translate }}</option>
+        <option value="code">{{ 'javaSpringBootBackEndApp.category.index.sortCode' | translate }}</option>
         <option value="count">{{ 'javaSpringBootBackEndApp.category.index.sortCount' | translate }}</option>
       </select>
     </div>
@@ -157,7 +158,12 @@
                     shortCount(item.listingCount)
                   }}</span>
                   <div class="flex-grow-1 min-w-0">
-                    <div class="fw-semibold">{{ item.name }}</div>
+                    <div class="fw-semibold">
+                      @if (item.code) {
+                        <span class="vsic-code me-1" [class.vsic-level-1]="item.level === 1">{{ item.code }}</span>
+                      }
+                      {{ item.name }}
+                    </div>
                     @if (item.parentName) {
                       <div class="small text-muted text-truncate" [title]="item.parentName">
                         {{ 'javaSpringBootBackEndApp.category.index.parent' | translate: { name: item.parentName } }}

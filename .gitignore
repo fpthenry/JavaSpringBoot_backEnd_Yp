@@ -161,3 +161,9 @@ docs/postman/
 .env
 .env.*
 !.env.example
+
+# Sửa tay: bản chép kho ảnh WordPress cũ (wp-content/uploads, ~11 GB) để đối soát/chạy thử — không commit
+/uploads/
+
+# Sửa tay: file Excel danh mục ĐVHC chính thức tải về (nguồn để cập nhật, không commit) — db-sync/dvhc/update-names-from-official.py đọc bản CSV xuất ra
+/Danh sách tất cả các cấp*.xls

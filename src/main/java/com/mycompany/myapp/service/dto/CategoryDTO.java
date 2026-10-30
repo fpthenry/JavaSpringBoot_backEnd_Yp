@@ -18,8 +18,15 @@ public class CategoryDTO implements Serializable {
 
     private Long id;
 
-    @Schema(description = "wp_terms.term_id")
-    private Long wpTermId;
+    // Sửa tay: mã ngành VSIC 2025 thay wpTermId; cấp do máy chủ suy ra từ mã
+    @Schema(description = "Mã ngành VSIC 2025: chữ cái A–V (cấp 1) hoặc 2–5 chữ số (cấp 2–5)", example = "4632")
+    @NotNull
+    @Size(max = 10)
+    @Pattern(regexp = "^([A-Z]|\\d{2,5})$", message = "Mã ngành là một chữ cái A–Z hoặc 2–5 chữ số")
+    private String code;
+
+    @Schema(description = "Cấp trong hệ thống ngành (1–5), suy ra từ mã khi lưu", accessMode = Schema.AccessMode.READ_ONLY)
+    private Integer level;
 
     @NotNull
     @Size(max = 255)
@@ -30,9 +37,6 @@ public class CategoryDTO implements Serializable {
 
     @Lob
     private String description;
-
-    @Size(max = 255)
-    private String icon;
 
     private Integer listingCount;
 
@@ -52,12 +56,20 @@ public class CategoryDTO implements Serializable {
         this.id = id;
     }
 
-    public Long getWpTermId() {
-        return wpTermId;
+    public String getCode() {
+        return code;
     }
 
-    public void setWpTermId(Long wpTermId) {
-        this.wpTermId = wpTermId;
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 
     public String getName() {
@@ -82,14 +94,6 @@ public class CategoryDTO implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public String getIcon() {
-        return icon;
-    }
-
-    public void setIcon(String icon) {
-        this.icon = icon;
     }
 
     public Integer getListingCount() {
@@ -158,11 +162,11 @@ public class CategoryDTO implements Serializable {
     public String toString() {
         return "CategoryDTO{" +
             "id=" + getId() +
-            ", wpTermId=" + getWpTermId() +
+            ", code='" + getCode() + "'" +
+            ", level=" + getLevel() +
             ", name='" + getName() + "'" +
             ", slug='" + getSlug() + "'" +
             ", description='" + getDescription() + "'" +
-            ", icon='" + getIcon() + "'" +
             ", listingCount=" + getListingCount() +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

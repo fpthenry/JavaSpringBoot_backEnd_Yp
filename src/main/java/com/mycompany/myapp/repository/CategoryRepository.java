@@ -39,12 +39,17 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
     Optional<Category> findOneWithToOneRelationships(@Param("id") Long id);
 
     /**
-     * Sửa tay: id của ngành và mọi cấp con bên dưới (cây ngành nghề sâu tối đa 4 cấp).
+     * Sửa tay: id của ngành và mọi cấp con bên dưới (VSIC 2025 sâu 5 cấp: ngành cấp 1 có con tới 4 bậc).
      */
     @Query(
         "select category.id from Category category left join category.parent parent left join parent.parent grandParent " +
-            "left join grandParent.parent greatGrandParent " +
-            "where category.id = :id or parent.id = :id or grandParent.id = :id or greatGrandParent.id = :id"
+            "left join grandParent.parent greatGrandParent left join greatGrandParent.parent greatGreatGrandParent " +
+            "where category.id = :id or parent.id = :id or grandParent.id = :id or greatGrandParent.id = :id " +
+            "or greatGreatGrandParent.id = :id"
     )
     List<Long> findSubtreeIds(@Param("id") Long id);
+
+    /** Sửa tay: ngành khác (id khác) đã dùng mã này chưa; {@code id} null khi thêm mới. */
+    @Query("select count(category) > 0 from Category category where category.code = :code and (:id is null or category.id <> :id)")
+    boolean existsOtherWithCode(@Param("code") String code, @Param("id") Long id);
 }

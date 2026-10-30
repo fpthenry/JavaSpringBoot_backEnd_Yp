@@ -87,7 +87,7 @@ public class ListingCriteria implements Serializable, Criteria {
     /** Sửa tay: lọc theo cả cây địa phương (địa phương được chọn + quận/huyện + phường/xã bên dưới). */
     private LongFilter locationTreeId;
 
-    /** Sửa tay: lọc theo cả cây ngành nghề (ngành được chọn + mọi ngành con, tối đa 4 cấp). */
+    /** Sửa tay: lọc theo cả cây ngành nghề (ngành được chọn + mọi ngành con, tối đa 5 cấp). */
     private LongFilter categoryTreeId;
 
     private Boolean distinct;

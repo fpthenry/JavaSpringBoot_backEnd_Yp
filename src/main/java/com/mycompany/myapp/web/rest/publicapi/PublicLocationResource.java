@@ -84,12 +84,41 @@ public class PublicLocationResource {
             .body(locationService.locations(letter, q, generation, level, hideEmpty, pageable));
     }
 
+    @GetMapping("/former")
+    @Operation(
+        summary = "Tìm theo tên đơn vị cũ (trước 01/7/2025), kèm đơn vị mới hiện chứa nó",
+        description = "q: tên xã, quận/huyện hoặc tỉnh cũ (khớp đầu từ, không dấu), vd \"dich vong hau\", \"quan cau giay\", " +
+            "\"ha giang\". Mỗi kết quả: tên cũ, cấp cũ (ward/district/province), huyện, tỉnh cũ, targets: đơn vị mới " +
+            "(xã cũ → xã mới, nhiều nếu bị chia; huyện cũ → các xã mới; tỉnh cũ → tỉnh mới), nhiều doanh nghiệp trước. " +
+            "Bỏ đơn vị chỉ đổi cấp mà giữ tên (tìm thường đã ra). size tối đa 50."
+    )
+    public ResponseEntity<List<PublicLocationDTO.Former>> getFormer(
+        @Parameter(description = "Tên cũ, ví dụ dich vong hau") @RequestParam(name = "q", required = false) String q,
+        @Parameter(description = "Số kết quả (mặc định 10)") @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok().cacheControl(JSON_CACHE).body(locationService.former(q, size));
+    }
+
+    @GetMapping("/{slugOrId}/origins")
+    @Operation(
+        summary = "Các đơn vị cũ đã nhập vào một đơn vị mới",
+        description = "Xã, phường mới: các xã cũ (kèm huyện, tỉnh cũ; partial = chỉ nhập một phần). Tỉnh mới: các tỉnh cũ. " +
+            "Đơn vị cũ: danh sách rỗng. 404 nếu không có."
+    )
+    public ResponseEntity<List<PublicLocationDTO.Origin>> getOrigins(@PathVariable("slugOrId") String slugOrId) {
+        return locationService
+            .origins(slugOrId)
+            .map(origins -> ResponseEntity.ok().cacheControl(JSON_CACHE).body(origins))
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{slugOrId}")
     @Operation(
         summary = "Một đơn vị hành chính theo slug hoặc id, kèm breadcrumb và đơn vị con",
         description = "Cho trang /tinh-thanh/{slug}: tên, cấp (type), isNew, số doanh nghiệp (tính cả đơn vị con), ancestors " +
             "(từ tỉnh xuống cha trực tiếp), children (con trực tiếp, sắp theo tên). Nhận cả slug cũ của website WordPress " +
-            "đã đổi khi chuẩn hóa địa giới 2025: khi đó slug trả về khác slug hỏi, FE chuyển hướng 301. 404 nếu không có."
+            "đã đổi khi chuẩn hóa địa giới 2025, và đơn vị bộ cũ (xã, quận/huyện, tỉnh trước 01/7/2025 → đơn vị mới chứa nó " +
+            "theo bảng chuyển đổi): khi đó slug trả về khác slug hỏi, FE chuyển hướng 301. 404 nếu không có."
     )
     public ResponseEntity<PublicTermDetailDTO> getLocation(@PathVariable("slugOrId") String slugOrId) {
         return locationService

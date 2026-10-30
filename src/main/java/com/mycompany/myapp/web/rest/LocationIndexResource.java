@@ -8,10 +8,13 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tech.jhipster.web.util.ResponseUtil;
 
 /**
  * Mục lục tỉnh thành theo chữ cái cho trang quản trị (đăng nhập JWT). Cùng dữ liệu và cách lọc với API công khai
@@ -26,6 +29,34 @@ public class LocationIndexResource {
 
     public LocationIndexResource(PublicLocationService locationService) {
         this.locationService = locationService;
+    }
+
+    @GetMapping("/all")
+    @Operation(
+        summary = "Mọi đơn vị hành chính của một bộ địa giới, cho cây tra cứu",
+        description = "generation: new (mặc định, từ 01/7/2025: tỉnh → phường, xã, đặc khu) hoặc old (trước 01/7/2025: tỉnh → " +
+            "quận, huyện → xã). Mỗi nút: id, mã ĐVHC, tên, cấp, id cha, số doanh nghiệp, mapped (có trong bảng chuyển đổi)."
+    )
+    public List<PublicLocationDTO.Node> getAllNodes(
+        @Parameter(description = "new hoặc old") @RequestParam(name = "generation", required = false) String generation
+    ) {
+        return locationService.nodes(generation);
+    }
+
+    @GetMapping("/origins/{slugOrId}")
+    @Operation(summary = "Đơn vị mới hình thành từ các đơn vị cũ nào (kèm id đơn vị cũ, nhập một phần hay toàn bộ)")
+    public ResponseEntity<List<PublicLocationDTO.Origin>> getOrigins(
+        @Parameter(description = "Slug hoặc id đơn vị mới") @PathVariable("slugOrId") String slugOrId
+    ) {
+        return ResponseUtil.wrapOrNotFound(locationService.origins(slugOrId));
+    }
+
+    @GetMapping("/successors/{slugOrId}")
+    @Operation(summary = "Đơn vị cũ nay thuộc đơn vị mới nào (xã cũ → xã mới, huyện cũ → các xã mới, tỉnh cũ → tỉnh mới)")
+    public ResponseEntity<List<PublicLocationDTO>> getSuccessors(
+        @Parameter(description = "Slug hoặc id đơn vị cũ") @PathVariable("slugOrId") String slugOrId
+    ) {
+        return ResponseUtil.wrapOrNotFound(locationService.successors(slugOrId));
     }
 
     @GetMapping("/letters")

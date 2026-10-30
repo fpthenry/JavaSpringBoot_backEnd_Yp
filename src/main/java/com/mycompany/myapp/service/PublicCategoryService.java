@@ -47,8 +47,21 @@ public class PublicCategoryService {
         PublicCategoryDTO::id
     );
 
+    /** Theo mã ngành VSIC (A, 01, 011, 0111...); ngành chưa có mã xếp cuối. */
+    private static final Comparator<PublicCategoryDTO> BY_CODE = Comparator.comparing(
+        PublicCategoryDTO::code,
+        Comparator.nullsLast(Comparator.<String>naturalOrder())
+    ).thenComparing(BY_NAME);
+
     static {
-        SORTS = Map.of("name", BY_NAME, "listingCount", Comparator.comparingLong(PublicCategoryDTO::listingCount).thenComparing(BY_NAME));
+        SORTS = Map.of(
+            "name",
+            BY_NAME,
+            "listingCount",
+            Comparator.comparingLong(PublicCategoryDTO::listingCount).thenComparing(BY_NAME),
+            "code",
+            BY_CODE
+        );
     }
 
     private final CategoryPublicRepository categoryPublicRepository;
@@ -86,12 +99,21 @@ public class PublicCategoryService {
     }
 
     /**
+     * Mọi ngành, xếp theo mã ngành VSIC rồi theo tên (ngành chưa có mã xếp cuối). Dùng cho trang tra cứu cây mã ngành
+     * của quản trị: dựng cây và tìm ngay trên trình duyệt (~1.600 dòng, không có mô tả).
+     */
+    public List<PublicCategoryDTO> allByCode() {
+        return loadAll().stream().sorted(BY_CODE).toList();
+    }
+
+    /**
      * Ngành nghề lọc theo chữ cái đầu và/hoặc từ khóa.
      *
      * @param letter    một chữ cái (có dấu hay không đều được, Đ = D) hoặc "#"; bỏ trống = mọi chữ. Sai thì 400.
-     * @param query     từ khóa trong tên ngành, không phân biệt dấu, hoa thường; nhiều từ thì phải có đủ.
+     * @param query     từ khóa trong tên ngành, không phân biệt dấu, hoa thường; nhiều từ thì phải có đủ. Gõ mã ngành
+     *                  (vd 4632, 463, G) thì ra ngành có mã bắt đầu bằng mã đó.
      * @param hideEmpty bỏ ngành chưa có doanh nghiệp.
-     * @param pageable  sort nhận name (mặc định, A–Z tiếng Việt) và listingCount; size tối đa {@value #MAX_PAGE_SIZE}.
+     * @param pageable  sort nhận name (mặc định, A–Z tiếng Việt), listingCount và code; size tối đa {@value #MAX_PAGE_SIZE}.
      */
     public PublicPageDTO<PublicCategoryDTO> categories(String letter, String query, boolean hideEmpty, Pageable pageable) {
         return categories(letter, query, hideEmpty, null, null, pageable);
@@ -136,13 +158,19 @@ public class PublicCategoryService {
     ) {
         String wantedLetter = StringUtils.hasText(letter) ? checkedLetter(letter) : null;
         List<String> words = VietnameseText.words(StringUtils.hasText(query) ? fold(query) : "");
+        String codePrefix = codePrefix(query);
         Comparator<PublicCategoryDTO> order = comparator(pageable.getSort());
         List<PublicCategoryDTO> matched = all
             .stream()
             .filter(c -> c.listingCount() >= minCount)
             .filter(parentFilter)
             .filter(c -> wantedLetter == null || wantedLetter.equals(c.letter()))
-            .filter(c -> words.isEmpty() || containsAll(fold(c.name()), words))
+            .filter(
+                c ->
+                    words.isEmpty() ||
+                    containsAll(fold(c.name()), words) ||
+                    (codePrefix != null && c.code() != null && c.code().startsWith(codePrefix))
+            )
             .sorted(order)
             .toList();
         int size = Math.clamp(pageable.getPageSize(), 1, MAX_PAGE_SIZE);
@@ -151,6 +179,15 @@ public class PublicCategoryService {
         int to = Math.min(from + size, matched.size());
         int totalPages = (matched.size() + size - 1) / size;
         return new PublicPageDTO<>(matched.subList(from, to), page, size, matched.size(), totalPages);
+    }
+
+    /** Từ khóa trông như mã ngành (một chữ cái, hoặc 2–5 chữ số) thì trả mã viết hoa, không thì null. */
+    static String codePrefix(String query) {
+        if (!StringUtils.hasText(query)) {
+            return null;
+        }
+        String trimmed = query.trim().toUpperCase(Locale.ROOT);
+        return trimmed.matches("[A-Z]|\\d{1,5}") ? trimmed : null;
     }
 
     /** "root" → ngành gốc; slug/id → con trực tiếp của ngành đó (không có thì 404); trống → mọi ngành. */
@@ -168,11 +205,24 @@ public class PublicCategoryService {
     }
 
     /**
-     * Chi tiết một ngành theo slug hoặc id: mô tả, breadcrumb các ngành cha, ngành con trực tiếp (sắp theo tên).
+     * Chi tiết một ngành theo slug hoặc id: mã, cấp, mô tả, breadcrumb các ngành cha, ngành con trực tiếp (sắp theo mã,
+     * ngành chưa có mã theo tên).
      */
     public Optional<PublicTermDetailDTO> category(String slugOrId) {
         List<PublicCategoryDTO> all = loadAll();
         return find(all, slugOrId).map(c -> detail(all, c, categoryPublicRepository.findDescription(c.id())));
+    }
+
+    /**
+     * Slug ngành cũ (trước khi chuyển sang VSIC 2025) → nơi chuyển hướng 301: slug ngành mới, hoặc null khi ngành cũ không
+     * có ngành tương ứng (FE chuyển về trang mục lục). Không phải slug cũ → rỗng.
+     */
+    public Optional<PublicCategoryDTO.Redirect> redirect(String oldSlug) {
+        if (!StringUtils.hasText(oldSlug)) {
+            return Optional.empty();
+        }
+        List<Object> rows = categoryPublicRepository.findRedirectSlug(oldSlug.trim());
+        return rows.isEmpty() ? Optional.empty() : Optional.of(new PublicCategoryDTO.Redirect(oldSlug.trim(), (String) rows.getFirst()));
     }
 
     static PublicTermDetailDTO detail(List<PublicCategoryDTO> all, PublicCategoryDTO category, String description) {
@@ -188,7 +238,7 @@ public class PublicCategoryService {
         List<PublicTermDetailDTO.Ref> children = all
             .stream()
             .filter(c -> category.id().equals(c.parentId()))
-            .sorted(BY_NAME)
+            .sorted(BY_CODE)
             .map(PublicCategoryService::ref)
             .toList();
         return new PublicTermDetailDTO(
@@ -200,7 +250,9 @@ public class PublicCategoryService {
             null,
             category.listingCount(),
             List.copyOf(ancestors),
-            children
+            children,
+            category.code(),
+            category.level()
         );
     }
 
@@ -225,7 +277,7 @@ public class PublicCategoryService {
     }
 
     private static PublicTermDetailDTO.Ref ref(PublicCategoryDTO c) {
-        return new PublicTermDetailDTO.Ref(c.id(), c.name(), c.slug(), c.listingCount());
+        return new PublicTermDetailDTO.Ref(c.id(), c.name(), c.slug(), c.listingCount(), c.code(), c.level());
     }
 
     /** "l", "L", "Đ" → chữ in hoa bỏ dấu; "#" giữ nguyên; còn lại 400. */
@@ -266,9 +318,11 @@ public class PublicCategoryService {
         Number listingCount = (Number) row[5];
         return new PublicCategoryDTO(
             (Long) row[0],
+            row.length > 6 ? (String) row[6] : null,
             name,
             (String) row[2],
             letterOf(name),
+            row.length > 7 ? (Integer) row[7] : null,
             (Long) row[3],
             cleanName((String) row[4]),
             listingCount == null ? 0 : listingCount.longValue()

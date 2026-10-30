@@ -5,6 +5,8 @@ import { Observable, map } from 'rxjs';
 /** Một nút cây: entity có quan hệ ManyToOne `parent` tới chính nó (Location, Category...). */
 export interface TreeItem {
   id: number;
+  /** Mã hiện trước tên (mã ngành VSIC); entity không có mã thì bỏ trống. */
+  code?: string | null;
   name?: string | null;
   parent?: Pick<TreeItem, 'id'> | null;
 }

@@ -89,10 +89,10 @@ public class CategoryQueryService extends QueryService<Category> {
                 Specification.allOf(
                     Boolean.TRUE.equals(criteria.getDistinct()) ? distinct(criteria.getDistinct()) : Specification.unrestricted(),
                     buildRangeSpecification(criteria.getId(), Category_.id),
-                    buildRangeSpecification(criteria.getWpTermId(), Category_.wpTermId),
+                    buildStringSpecification(criteria.getCode(), Category_.code),
                     buildStringSpecification(criteria.getName(), Category_.name),
                     buildStringSpecification(criteria.getSlug(), Category_.slug),
-                    buildStringSpecification(criteria.getIcon(), Category_.icon),
+                    buildRangeSpecification(criteria.getLevel(), Category_.level),
                     buildRangeSpecification(criteria.getListingCount(), Category_.listingCount),
                     buildRangeSpecification(criteria.getCreatedAt(), Category_.createdAt),
                     buildRangeSpecification(criteria.getUpdatedAt(), Category_.updatedAt),

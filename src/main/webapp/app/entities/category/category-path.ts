@@ -7,9 +7,10 @@ import { CategoryService } from './service/category.service';
 export interface CategoryRef {
   id: number;
   name: string;
+  code: string | null;
 }
 
-/** Cây ngành tối đa 4 cấp (VSIC); chặn thêm để dữ liệu lỗi có vòng lặp không gọi API mãi. */
+/** Cây ngành VSIC 2025 sâu 5 cấp; chặn thêm để dữ liệu lỗi có vòng lặp không gọi API mãi. */
 const MAX_DEPTH = 8;
 
 /**
@@ -31,7 +32,7 @@ export function loadCategoryPath(service: CategoryService, start: Pick<ICategory
       return service.find(parent.id);
     }),
     toArray(),
-    map(chain => chain.map(category => ({ id: category.id, name: category.name ?? '' })).reverse()),
+    map(chain => chain.map(category => ({ id: category.id, name: category.name ?? '', code: category.code ?? null })).reverse()),
     catchError(() => of([])),
   );
 }

@@ -12,7 +12,7 @@ import { AlertError } from 'app/shared/alert';
 import { TranslateDirective } from 'app/shared/language';
 import { CategoryIndexItem, CategoryIndexPage, CategoryIndexService, CategoryLetter } from '../service/category-index.service';
 
-export type CategoryIndexSort = 'name' | 'count';
+export type CategoryIndexSort = 'name' | 'count' | 'code';
 
 /** Số doanh nghiệp rút gọn cho ô vuông bên trái thẻ ngành: 74, 1k, 321k, 1,1tr. */
 export function shortCount(count: number): string {
@@ -26,8 +26,11 @@ export function shortCount(count: number): string {
   return `${String(Math.floor(count / 100_000) / 10).replace('.', ',')}tr`;
 }
 
+/** Tham số sort gửi API theo lựa chọn trên trang. */
+const SORT_PARAMS: Record<CategoryIndexSort, string> = { name: 'name,asc', count: 'listingCount,desc', code: 'code,asc' };
+
 /**
- * Mục lục ngành nghề: dãy nút chữ cái A–Z, ô tìm theo tên (không dấu), thẻ ngành kèm số doanh nghiệp (gồm ngành con).
+ * Mục lục ngành nghề: dãy nút chữ cái A–Z, ô tìm theo tên (không dấu) hoặc mã ngành VSIC (4632, 463, G), thẻ ngành kèm số doanh nghiệp (gồm ngành con).
  * Bấm thẻ ngành mở danh sách doanh nghiệp lọc theo cả cây ngành đó. Trạng thái lưu trên URL (letter, q, page, sort, all)
  * để quay lại, chia sẻ link được.
  */
@@ -64,7 +67,8 @@ export class CategoryIndex {
     this.letter.set(params.get('letter'));
     this.query.set(params.get('q') ?? '');
     this.hideEmpty.set(params.get('all') !== 'true');
-    this.sort.set(params.get('sort') === 'count' ? 'count' : 'name');
+    const sort = params.get('sort');
+    this.sort.set(sort === 'count' || sort === 'code' ? sort : 'name');
     this.page.set(Math.max(Number(params.get('page') ?? 1) || 1, 1));
 
     const destroyRef = inject(DestroyRef);
@@ -80,7 +84,7 @@ export class CategoryIndex {
               hideEmpty: this.hideEmpty(),
               page: this.page() - 1,
               size: CategoryIndex.PAGE_SIZE,
-              sort: this.sort() === 'count' ? 'listingCount,desc' : 'name,asc',
+              sort: SORT_PARAMS[this.sort()],
             })
             .pipe(finalize(() => this.isLoading.set(false)));
         }),
@@ -155,7 +159,7 @@ export class CategoryIndex {
         letter: this.letter(),
         q: this.query().trim() || null,
         page: this.page() > 1 ? this.page() : null,
-        sort: this.sort() === 'count' ? 'count' : null,
+        sort: this.sort() === 'name' ? null : this.sort(),
         all: this.hideEmpty() ? null : 'true',
       },
       replaceUrl: true,

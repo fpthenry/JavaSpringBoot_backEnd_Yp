@@ -28,11 +28,20 @@ public class Category implements Serializable {
     private Long id;
 
     /**
-     * wp_terms.term_id
+     * Sửa tay: mã ngành VSIC 2025 (QĐ 36/2025/QĐ-TTg): chữ cái A–V ở cấp 1, 2–5 chữ số ở cấp 2–5. Thay wp_term_id.
      */
-    @Column(name = "wp_term_id", unique = true)
-    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Long)
-    private Long wpTermId;
+    @NotNull
+    @Size(max = 10)
+    @Column(name = "code", length = 10, nullable = false, unique = true)
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword)
+    private String code;
+
+    /**
+     * Sửa tay: cấp trong hệ thống ngành (1–5), suy ra từ mã khi lưu.
+     */
+    @Column(name = "level")
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Integer)
+    private Integer level;
 
     @NotNull
     @Size(max = 255)
@@ -83,22 +92,6 @@ public class Category implements Serializable {
     )
     private String description;
 
-    @Size(max = 255)
-    @Column(name = "icon", length = 255)
-    @org.springframework.data.elasticsearch.annotations.MultiField(
-        mainField = @org.springframework.data.elasticsearch.annotations.Field(
-            type = org.springframework.data.elasticsearch.annotations.FieldType.Text
-        ),
-        otherFields = {
-            @org.springframework.data.elasticsearch.annotations.InnerField(
-                suffix = "keyword",
-                type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword,
-                ignoreAbove = 256
-            ),
-        }
-    )
-    private String icon;
-
     @Column(name = "listing_count")
     @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Integer)
     private Integer listingCount;
@@ -143,17 +136,30 @@ public class Category implements Serializable {
         this.id = id;
     }
 
-    public Long getWpTermId() {
-        return this.wpTermId;
+    public String getCode() {
+        return this.code;
     }
 
-    public Category wpTermId(Long wpTermId) {
-        this.setWpTermId(wpTermId);
+    public Category code(String code) {
+        this.setCode(code);
         return this;
     }
 
-    public void setWpTermId(Long wpTermId) {
-        this.wpTermId = wpTermId;
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public Integer getLevel() {
+        return this.level;
+    }
+
+    public Category level(Integer level) {
+        this.setLevel(level);
+        return this;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 
     public String getName() {
@@ -193,19 +199,6 @@ public class Category implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public String getIcon() {
-        return this.icon;
-    }
-
-    public Category icon(String icon) {
-        this.setIcon(icon);
-        return this;
-    }
-
-    public void setIcon(String icon) {
-        this.icon = icon;
     }
 
     public Integer getListingCount() {
@@ -293,6 +286,21 @@ public class Category implements Serializable {
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
+    /**
+     * Sửa tay: cấp của mã ngành VSIC 2025: một chữ cái (A–V) là cấp 1, còn lại bằng số chữ số (01 → 2, 011 → 3,
+     * 0111 → 4, 01110 → 5). Mã trống hoặc sai dạng trả null.
+     */
+    public static Integer levelOf(String code) {
+        if (code == null) {
+            return null;
+        }
+        String trimmed = code.trim();
+        if (trimmed.matches("[A-Za-z]")) {
+            return 1;
+        }
+        return trimmed.matches("\\d{2,5}") ? trimmed.length() : null;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -315,11 +323,11 @@ public class Category implements Serializable {
     public String toString() {
         return "Category{" +
             "id=" + getId() +
-            ", wpTermId=" + getWpTermId() +
+            ", code='" + getCode() + "'" +
+            ", level=" + getLevel() +
             ", name='" + getName() + "'" +
             ", slug='" + getSlug() + "'" +
             ", description='" + getDescription() + "'" +
-            ", icon='" + getIcon() + "'" +
             ", listingCount=" + getListingCount() +
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +

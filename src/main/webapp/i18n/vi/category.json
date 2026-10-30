@@ -13,7 +13,7 @@
       "updated": "Đã lưu ngành nghề (ID {{ param }})",
       "deleted": "Đã xóa ngành nghề (ID {{ param }})",
       "delete": {
-        "question": "Bạn có chắc là muốn xóa Category {{ id }}?"
+        "question": "Bạn có chắc là muốn xóa ngành nghề {{ id }}?"
       },
       "detail": {
         "title": "Ngành nghề",
@@ -44,20 +44,26 @@
         "noDescriptionHint": "Chưa có mô tả. Thêm mô tả giúp trang ngành dễ tìm qua Google."
       },
       "id": "ID",
-      "wpTermId": "Mã WordPress",
+      "code": "Mã ngành",
+      "level": "Cấp",
+      "levelName": {
+        "1": "Cấp 1 · chữ cái A–V",
+        "2": "Cấp 2 · 2 chữ số",
+        "3": "Cấp 3 · 3 chữ số",
+        "4": "Cấp 4 · 4 chữ số",
+        "5": "Cấp 5 · 5 chữ số"
+      },
       "name": "Tên ngành",
       "slug": "Đường dẫn (slug)",
       "description": "Mô tả",
-      "icon": "Biểu tượng",
       "listingCount": "Số doanh nghiệp",
       "createdAt": "Ngày tạo",
       "updatedAt": "Ngày cập nhật",
       "parent": "Ngành cha",
       "listing": "Doanh nghiệp",
       "help": {
-        "wpTermId": "Mã ngành bên WordPress (hệ thống cũ).",
-        "slug": "Phần cuối địa chỉ trang ngành trên website, ví dụ lap-trinh-may-vi-tinh.",
-        "generateSlug": "Tạo từ tên",
+        "slug": "Phần cuối địa chỉ trang ngành trên website: tên + mã ngành, ví dụ ban-buon-thuc-pham-4632 (không trùng vì mỗi mã là duy nhất).",
+        "generateSlug": "Tạo từ tên + mã",
         "description": "Hiện trên trang ngành, giúp khách tìm thấy qua Google.",
         "parent": "Để trống nếu là ngành gốc (cấp 1).",
         "parentPicker": "Gõ tên ngành cha để chọn…",
@@ -65,7 +71,32 @@
         "position": "Vị trí:",
         "thisCategory": "Ngành này",
         "level": "Cấp {{ level }}",
-        "listingCount": "Tính cả ngành con, hệ thống tự tính lại sau mỗi lần đồng bộ (không sửa tay)."
+        "listingCount": "Tính cả ngành con, hệ thống tự tính lại sau mỗi lần đồng bộ (không sửa tay).",
+        "code": "Theo hệ thống ngành kinh tế VSIC 2025: chữ cái A–V là ngành cấp 1; 2, 3, 4, 5 chữ số là ngành cấp 2, 3, 4, 5. Mỗi mã chỉ dùng cho một ngành.",
+        "codePattern": "Mã ngành là một chữ cái A–V (cấp 1) hoặc 2–5 chữ số.",
+        "slugNotStandard": "Slug chưa theo chuẩn tên + mã ({{ slug }}).",
+        "useStandardSlug": "Dùng slug chuẩn",
+        "parentByCode": "Mã {{ code }} thuộc ngành {{ parent }} nhưng ngành cha đang chọn khác.",
+        "parentNotFound": "Chưa có ngành mã {{ parent }} để làm ngành cha của {{ code }}: thêm ngành {{ parent }} trước.",
+        "parentOfLevel1": "Ngành cấp 1 (chữ cái) là ngành gốc, không có ngành cha.",
+        "parentOfLevel2": "Ngành {{ code }} (cấp 2) phải nằm dưới một ngành cấp 1 (chữ cái A–V).",
+        "pickParent": "Chọn ngành {{ parent }}"
+      },
+      "lookup": {
+        "title": "Tra cứu mã ngành VSIC 2025",
+        "subtitle": "Hệ thống ngành kinh tế Việt Nam 2025 (Quyết định 36/2025/QĐ-TTg). Gõ mã (G, 46, 4632) hoặc tên ngành, không cần dấu.",
+        "searchPlaceholder": "Nhập mã ngành, tên ngành để tìm kiếm...",
+        "expandAll": "Mở hết",
+        "collapseAll": "Thu gọn",
+        "detail": "Chi tiết:",
+        "noDetail": "Chưa có mô tả chi tiết.",
+        "showDetail": "Xem chi tiết",
+        "total": "{{ count }} ngành",
+        "matches": "{{ count }} ngành khớp với “{{ query }}”",
+        "noMatch": "Không có ngành nào khớp với “{{ query }}”.",
+        "withoutCode": "{{ count }} ngành chưa có mã VSIC 2025 (dữ liệu cũ, xếp cuối cây).",
+        "listings": "Xem doanh nghiệp thuộc ngành này (gồm ngành con)",
+        "indexView": "Mục lục A–Z"
       },
       "tree": {
         "title": "Cây ngành nghề",
@@ -80,11 +111,12 @@
         "subtitleAll": "Danh sách đầy đủ các ngành nghề theo bảng chữ cái",
         "subtitleLetter": "Danh sách đầy đủ các ngành nghề bắt đầu bằng chữ cái {{ letter }}",
         "all": "Tất cả",
-        "searchPlaceholder": "Tìm kiếm ngành nghề...",
+        "searchPlaceholder": "Tìm theo tên hoặc mã ngành (vd 4632)...",
         "clear": "Xóa tìm kiếm",
         "hideEmpty": "Ẩn ngành chưa có doanh nghiệp",
         "sortName": "Tên A–Z",
         "sortCount": "Nhiều doanh nghiệp nhất",
+        "sortCode": "Theo mã ngành",
         "startsWith": "Ngành nghề bắt đầu bằng chữ:",
         "allLetters": "Tất cả ngành nghề",
         "matching": "tên có \"{{ q }}\"",

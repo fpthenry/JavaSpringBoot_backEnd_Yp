@@ -1,0 +1,121 @@
+/* Sửa tay: cây tra cứu mã ngành kiểu bảng VSIC của dangkykinhdoanh.gov.vn */
+.lookup-search {
+  min-width: min(100%, 18rem);
+  flex-basis: 24rem;
+}
+
+.lookup-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  .lookup-tree {
+    margin-left: 0.75rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--bs-border-color);
+
+    @media (min-width: 768px) {
+      margin-left: 1.5rem;
+      padding-left: 1.25rem;
+    }
+  }
+}
+
+.lookup-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  background: var(--bs-body-bg);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--bs-primary-border-subtle);
+  }
+
+  &.expanded {
+    background: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary-border-subtle);
+  }
+
+  &.match {
+    box-shadow: inset 4px 0 0 var(--bs-warning);
+  }
+
+  &.level-1 .lookup-name {
+    text-transform: uppercase;
+  }
+}
+
+.lookup-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+  font-weight: 700;
+  line-height: 1;
+
+  .expanded & {
+    background: var(--bs-primary);
+    color: #fff;
+  }
+}
+
+.lookup-code {
+  flex: none;
+  min-width: 3.25rem;
+  color: var(--bs-pink, #d63384);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+
+  @media (min-width: 768px) {
+    min-width: 4.5rem;
+  }
+}
+
+.lookup-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.lookup-actions {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: default;
+}
+
+.lookup-detail {
+  margin: 0.35rem 0 0.35rem 1.5rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--bs-warning);
+  border-radius: 0.375rem;
+  background: var(--bs-warning-bg-subtle);
+  color: var(--bs-body-color);
+}
+
+.lookup-detail-text {
+  white-space: pre-line;
+}
+
+.lookup-detail-empty {
+  border-left-color: var(--bs-border-color);
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+}
+
+.lookup-show-detail {
+  margin-left: 1.5rem;
+}

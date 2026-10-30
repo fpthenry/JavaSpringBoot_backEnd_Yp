@@ -90,6 +90,62 @@ class PublicCategoryServiceTest {
     }
 
     @Test
+    void timTheoMaNganhVsicVaSapTheoMa() {
+        List<PublicCategoryDTO> vsic = List.of(
+            PublicCategoryService.toDto(new Object[] { 11L, "Bán buôn thịt và các sản phẩm từ thịt", "s11", 10L, "x", 5L, "46321", 5 }),
+            PublicCategoryService.toDto(new Object[] { 10L, "Bán buôn thực phẩm", "s10", 9L, "x", 9L, "4632", 4 }),
+            PublicCategoryService.toDto(new Object[] { 12L, "Bán lẻ lương thực", "s12", null, null, 1L, "4721", 4 }),
+            PublicCategoryService.toDto(new Object[] { 13L, "Ngành cũ chưa có mã", "s13", null, null, 1L, null, null })
+        );
+        PageRequest byCode = PageRequest.of(0, 20, Sort.by("code"));
+        assertThat(PublicCategoryService.filter(vsic, null, " 4632 ", false, byCode).items())
+            .extracting(PublicCategoryDTO::code)
+            .containsExactly("4632", "46321");
+        assertThat(PublicCategoryService.filter(vsic, null, null, false, byCode).items())
+            .extracting(PublicCategoryDTO::id)
+            .containsExactly(10L, 11L, 12L, 13L);
+        assertThat(vsic.getFirst().level()).isEqualTo(5);
+        assertThat(PublicCategoryService.codePrefix("g")).isEqualTo("G");
+        assertThat(PublicCategoryService.codePrefix("bán buôn")).isNull();
+    }
+
+    @Test
+    void chiTietNganhVsicCoMaCapVaNganhConSapTheoMa() {
+        List<PublicCategoryDTO> vsic = List.of(
+            PublicCategoryService.toDto(new Object[] { 1L, "BÁN BUÔN VÀ BÁN LẺ", "g", null, null, 9L, "G", 1 }),
+            PublicCategoryService.toDto(new Object[] { 3L, "Bán lẻ", "s47", 1L, "x", 2L, "47", 2 }),
+            PublicCategoryService.toDto(new Object[] { 2L, "Bán buôn", "s46", 1L, "x", 7L, "46", 2 })
+        );
+        PublicTermDetailDTO section = PublicCategoryService.detail(vsic, vsic.getFirst(), "Ngành này gồm:");
+        assertThat(section.code()).isEqualTo("G");
+        assertThat(section.level()).isEqualTo(1);
+        assertThat(section.children()).extracting(PublicTermDetailDTO.Ref::code).containsExactly("46", "47");
+        assertThat(PublicCategoryService.detail(vsic, vsic.get(1), null).ancestors())
+            .extracting(PublicTermDetailDTO.Ref::code, PublicTermDetailDTO.Ref::level)
+            .containsExactly(org.assertj.core.groups.Tuple.tuple("G", 1));
+    }
+
+    @Test
+    void slugCuChuyenHuongSangNganhMoiHoacMucLuc() {
+        com.mycompany.myapp.repository.CategoryPublicRepository repository = org.mockito.Mockito.mock(
+            com.mycompany.myapp.repository.CategoryPublicRepository.class
+        );
+        org.mockito.Mockito.when(repository.findRedirectSlug("ban-buon-thuc-pham-cu")).thenReturn(
+            new java.util.ArrayList<>(List.of("ban-buon-thuc-pham-4632"))
+        );
+        org.mockito.Mockito.when(repository.findRedirectSlug("chua-phan-loai")).thenReturn(java.util.Collections.singletonList(null));
+        org.mockito.Mockito.when(repository.findRedirectSlug("khong-co")).thenReturn(List.of());
+        PublicCategoryService service = new PublicCategoryService(repository);
+
+        assertThat(service.redirect(" ban-buon-thuc-pham-cu ")).contains(
+            new PublicCategoryDTO.Redirect("ban-buon-thuc-pham-cu", "ban-buon-thuc-pham-4632")
+        );
+        assertThat(service.redirect("chua-phan-loai")).contains(new PublicCategoryDTO.Redirect("chua-phan-loai", null));
+        assertThat(service.redirect("khong-co")).isEmpty();
+        assertThat(service.redirect(" ")).isEmpty();
+    }
+
+    @Test
     void thamSoSaiThi400() {
         assertThatThrownBy(() -> PublicCategoryService.filter(ALL, "LA", null, false, PageRequest.of(0, 20))).isInstanceOf(
             ResponseStatusException.class

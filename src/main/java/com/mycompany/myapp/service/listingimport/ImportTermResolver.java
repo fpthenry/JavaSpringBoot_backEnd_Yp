@@ -15,7 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * bảng chuyển đổi địa giới 10.571 dòng), tra trong bộ nhớ.
  *
  * <ul>
- *   <li>Ngành: mã VSIC (đuôi slug, vd. {@code ...-4690}), slug, hoặc tên (không phân biệt dấu, hoa thường).</li>
+ *   <li>Ngành: mã VSIC 2025 (cột {@code code}, vd. 4690), slug, hoặc tên (không phân biệt dấu, hoa thường).</li>
  *   <li>Tỉnh: tên ("Hà Nội", "TP. Hồ Chí Minh", "Tỉnh Bắc Ninh"), mã (01, 79), slug. Ưu tiên bộ 34 tỉnh mới
  *       (từ 01/7/2025, slug đuôi {@code -2025}); không có thì bộ 63 tỉnh cũ.</li>
  *   <li>Phường/xã: tên đầy đủ ("Phường Ba Đình") rồi tên rút gọn ("Ba Đình"), hoặc mã ("00004"); chỉ tìm TRONG tỉnh của
@@ -53,16 +53,16 @@ public final class ImportTermResolver {
 
     public ImportTermResolver(DataSource dataSource) {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        jdbc.query("select id, slug, name from category", rs -> {
+        // Mã ngành lấy từ cột code (không đoán từ đuôi slug: slug ngành riêng cũ như "tai-chinh-cho-thue-1010" trùng mã thật)
+        jdbc.query("select id, code, slug, name from category", rs -> {
             long id = rs.getLong("id");
+            String code = rs.getString("code");
+            if (code != null) {
+                categoryByKey.put("code:" + code, id);
+            }
             String slug = rs.getString("slug");
             if (slug != null) {
                 categoryByKey.putIfAbsent("slug:" + slug, id);
-                int dash = slug.lastIndexOf('-');
-                String code = dash >= 0 ? slug.substring(dash + 1) : "";
-                if (code.matches("\\d{2,6}")) {
-                    categoryByKey.putIfAbsent("code:" + code, id);
-                }
             }
             categoryByKey.putIfAbsent("name:" + ListingImportNormalizer.folded(rs.getString("name")), id);
         });

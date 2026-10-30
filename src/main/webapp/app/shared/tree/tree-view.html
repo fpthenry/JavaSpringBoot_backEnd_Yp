@@ -31,7 +31,12 @@
         </button>
       }
 
-      <a [routerLink]="[entityRoute(), node.item.id, 'view']">{{ node.item.name }}</a>
+      <a [routerLink]="[entityRoute(), node.item.id, 'view']">
+        @if (node.item.code) {
+          <span class="vsic-code me-1">{{ node.item.code }}</span>
+        }
+        {{ node.item.name }}
+      </a>
 
       @if (itemLabel()(node.item); as label) {
         <small class="text-secondary">{{ label | translate }}</small>

@@ -55,11 +55,11 @@ export class ListingUpdate extends EditPage implements OnInit {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   editForm: ListingFormGroup = this.listingFormService.createListingFormGroup();
 
-  /** Gõ tìm ngành: tìm không dấu trong tên, hiện ngành cha để phân biệt ngành trùng tên. */
+  /** Gõ tìm ngành theo tên (không dấu) hoặc mã VSIC; nhãn là mã ngành, dòng phụ là ngành cha để phân biệt ngành trùng tên. */
   searchCategories = (term: string): Observable<PickerOption[]> =>
     this.categoryIndexService
       .search({ q: term, size: 20 })
-      .pipe(map(page => page.items.map(item => ({ id: item.id, name: item.name, hint: item.parentName }))));
+      .pipe(map(page => page.items.map(item => ({ id: item.id, name: item.name, hint: item.parentName, badge: item.code }))));
 
   /** Gõ tìm địa phương trong cả bộ mới và cũ; dòng phụ là quận/tỉnh, đơn vị cũ có nhãn "Cũ". */
   searchLocations = (term: string): Observable<PickerOption[]> =>

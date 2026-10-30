@@ -12,14 +12,14 @@ const service = (tree: Record<number, ICategory>): CategoryService =>
 describe('loadCategoryPath', () => {
   it('returns root → start, including start', async () => {
     const tree: Record<number, ICategory> = {
-      1: { id: 1, name: 'A', parent: null },
-      2: { id: 2, name: 'B', parent: { id: 1 } },
+      1: { id: 1, code: 'G', name: 'A', parent: null },
+      2: { id: 2, code: '46', name: 'B', parent: { id: 1 } },
       3: { id: 3, name: 'C', parent: { id: 2 } },
     };
     expect(await firstValueFrom(loadCategoryPath(service(tree), { id: 3 }))).toEqual([
-      { id: 1, name: 'A' },
-      { id: 2, name: 'B' },
-      { id: 3, name: 'C' },
+      { id: 1, name: 'A', code: 'G' },
+      { id: 2, name: 'B', code: '46' },
+      { id: 3, name: 'C', code: null },
     ]);
     expect(await firstValueFrom(loadCategoryPath(service(tree), null))).toEqual([]);
   });

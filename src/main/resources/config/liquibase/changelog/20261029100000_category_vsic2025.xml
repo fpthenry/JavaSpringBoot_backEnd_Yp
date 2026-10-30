@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay: ngành nghề theo hệ thống ngành kinh tế VSIC 2025 (QĐ 36/2025/QĐ-TTg).
+
+        code   mã ngành: chữ cái A–V (cấp 1) hoặc 2–5 chữ số (cấp 2–5), không trùng (MySQL cho nhiều NULL:
+               ngành cũ chưa có mã vẫn nằm được tới khi chuyển dữ liệu).
+        level  cấp 1–5, máy chủ suy ra từ mã khi lưu (Category.levelOf).
+        icon   bỏ: không ngành nào dùng.
+
+        wp_term_id CHƯA bỏ ở đây: bước chuyển dữ liệu cần nó để lập bảng slug cũ → slug mới (301) và cho
+        ops/wp-migrate/wp-sync-listings.sql; entity không còn đọc cột này nữa.
+    -->
+    <changeSet id="20261029100000-1" author="dev">
+        <addColumn tableName="category">
+            <column name="code" type="varchar(10)" remarks="Mã ngành VSIC 2025: A–V (cấp 1) hoặc 2–5 chữ số (cấp 2–5)" afterColumn="id"/>
+            <column name="level" type="integer" remarks="Cấp trong hệ thống ngành (1–5), suy ra từ mã" afterColumn="code"/>
+        </addColumn>
+        <addUniqueConstraint tableName="category" columnNames="code" constraintName="ux_category__code"/>
+        <dropColumn tableName="category" columnName="icon"/>
+        <rollback>
+            <addColumn tableName="category">
+                <column name="icon" type="varchar(255)"/>
+            </addColumn>
+            <dropUniqueConstraint tableName="category" constraintName="ux_category__code"/>
+            <dropColumn tableName="category" columnName="level"/>
+            <dropColumn tableName="category" columnName="code"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+        Sau khi chuyển dữ liệu sang VSIC 2025 (ops/vsic/migrate_vsic2025.sql) mọi ngành đều có mã: mã thành bắt buộc.
+        Còn ngành chưa có mã thì bỏ qua và thử lại lần khởi động sau (onFail CONTINUE), không làm hỏng khởi động.
+    -->
+    <changeSet id="20261029100000-2" author="dev">
+        <preConditions onFail="CONTINUE" onFailMessage="Còn ngành chưa có mã VSIC: chưa đặt category.code NOT NULL">
+            <sqlCheck expectedResult="0">select count(*) from category where code is null</sqlCheck>
+        </preConditions>
+        <addNotNullConstraint tableName="category" columnName="code" columnDataType="varchar(10)"/>
+        <rollback>
+            <dropNotNullConstraint tableName="category" columnName="code" columnDataType="varchar(10)"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

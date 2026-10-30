@@ -30,7 +30,8 @@ import { CategoryService } from '../service/category.service';
 export const RECENT_LISTINGS = 5;
 
 /**
- * Sửa tay: trang xem ngành nghề, bố cục gọn: đầu trang (đường dẫn trong cây, tên, một dòng cấp · số doanh nghiệp · số ngành
+ * Sửa tay: trang xem ngành nghề VSIC 2025: mã ngành trên tiêu đề, đường dẫn cây, ngành con (xếp theo mã); cấp lấy từ
+ * cột level (máy chủ suy từ mã). Bố cục gọn: đầu trang (đường dẫn trong cây, tên, một dòng cấp · số doanh nghiệp · số ngành
  * con, nút Xem doanh nghiệp / Sửa, thao tác ít dùng trong menu ⋯), mô tả, ngành con dạng danh sách 2 cột (10 dòng đầu,
  * "Xem thêm"), doanh nghiệp mới cập nhật (lọc theo cả cây ngành trên Elasticsearch), cột phải gom thông tin. Phím E để sửa.
  * Chưa xóa được khi còn ngành con.
@@ -69,7 +70,7 @@ export class CategoryDetail {
   readonly recentTotal = signal<number | null>(null);
 
   readonly name = computed(() => decodeEntities(this.category()?.name));
-  readonly level = computed(() => this.ancestors().length + 1);
+  readonly level = computed(() => this.category()?.level ?? this.ancestors().length + 1);
   readonly childCount = computed(() => this.children()?.length ?? null);
   readonly visibleChildren = computed(() => {
     const list = this.children() ?? [];
@@ -147,7 +148,7 @@ export class CategoryDetail {
 
   protected loadRelated(category: ICategory): void {
     loadCategoryPath(this.categoryService, category.parent).subscribe(path => this.ancestors.set(path));
-    this.categoryService.query({ 'parentId.equals': category.id, size: 500, sort: ['name,asc'] }).subscribe({
+    this.categoryService.query({ 'parentId.equals': category.id, size: 500, sort: ['code,asc', 'name,asc'] }).subscribe({
       next: response => this.children.set(response.body ?? []),
       error: () => this.children.set([]),
     });

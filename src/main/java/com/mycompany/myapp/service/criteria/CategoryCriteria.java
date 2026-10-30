@@ -26,13 +26,13 @@ public class CategoryCriteria implements Serializable, Criteria {
 
     private LongFilter id;
 
-    private LongFilter wpTermId;
+    private StringFilter code;
 
     private StringFilter name;
 
     private StringFilter slug;
 
-    private StringFilter icon;
+    private IntegerFilter level;
 
     private IntegerFilter listingCount;
 
@@ -50,10 +50,10 @@ public class CategoryCriteria implements Serializable, Criteria {
 
     public CategoryCriteria(CategoryCriteria other) {
         this.id = other.optionalId().map(LongFilter::copy).orElse(null);
-        this.wpTermId = other.optionalWpTermId().map(LongFilter::copy).orElse(null);
+        this.code = other.optionalCode().map(StringFilter::copy).orElse(null);
         this.name = other.optionalName().map(StringFilter::copy).orElse(null);
         this.slug = other.optionalSlug().map(StringFilter::copy).orElse(null);
-        this.icon = other.optionalIcon().map(StringFilter::copy).orElse(null);
+        this.level = other.optionalLevel().map(IntegerFilter::copy).orElse(null);
         this.listingCount = other.optionalListingCount().map(IntegerFilter::copy).orElse(null);
         this.createdAt = other.optionalCreatedAt().map(InstantFilter::copy).orElse(null);
         this.updatedAt = other.optionalUpdatedAt().map(InstantFilter::copy).orElse(null);
@@ -86,23 +86,23 @@ public class CategoryCriteria implements Serializable, Criteria {
         this.id = id;
     }
 
-    public LongFilter getWpTermId() {
-        return wpTermId;
+    public StringFilter getCode() {
+        return code;
     }
 
-    public Optional<LongFilter> optionalWpTermId() {
-        return Optional.ofNullable(wpTermId);
+    public Optional<StringFilter> optionalCode() {
+        return Optional.ofNullable(code);
     }
 
-    public LongFilter wpTermId() {
-        if (wpTermId == null) {
-            setWpTermId(new LongFilter());
+    public StringFilter code() {
+        if (code == null) {
+            setCode(new StringFilter());
         }
-        return wpTermId;
+        return code;
     }
 
-    public void setWpTermId(LongFilter wpTermId) {
-        this.wpTermId = wpTermId;
+    public void setCode(StringFilter code) {
+        this.code = code;
     }
 
     public StringFilter getName() {
@@ -143,23 +143,23 @@ public class CategoryCriteria implements Serializable, Criteria {
         this.slug = slug;
     }
 
-    public StringFilter getIcon() {
-        return icon;
+    public IntegerFilter getLevel() {
+        return level;
     }
 
-    public Optional<StringFilter> optionalIcon() {
-        return Optional.ofNullable(icon);
+    public Optional<IntegerFilter> optionalLevel() {
+        return Optional.ofNullable(level);
     }
 
-    public StringFilter icon() {
-        if (icon == null) {
-            setIcon(new StringFilter());
+    public IntegerFilter level() {
+        if (level == null) {
+            setLevel(new IntegerFilter());
         }
-        return icon;
+        return level;
     }
 
-    public void setIcon(StringFilter icon) {
-        this.icon = icon;
+    public void setLevel(IntegerFilter level) {
+        this.level = level;
     }
 
     public IntegerFilter getListingCount() {
@@ -287,10 +287,10 @@ public class CategoryCriteria implements Serializable, Criteria {
         final CategoryCriteria that = (CategoryCriteria) o;
         return (
             Objects.equals(id, that.id) &&
-            Objects.equals(wpTermId, that.wpTermId) &&
+            Objects.equals(code, that.code) &&
             Objects.equals(name, that.name) &&
             Objects.equals(slug, that.slug) &&
-            Objects.equals(icon, that.icon) &&
+            Objects.equals(level, that.level) &&
             Objects.equals(listingCount, that.listingCount) &&
             Objects.equals(createdAt, that.createdAt) &&
             Objects.equals(updatedAt, that.updatedAt) &&
@@ -302,7 +302,7 @@ public class CategoryCriteria implements Serializable, Criteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, wpTermId, name, slug, icon, listingCount, createdAt, updatedAt, parentId, listingId, distinct);
+        return Objects.hash(id, code, name, slug, level, listingCount, createdAt, updatedAt, parentId, listingId, distinct);
     }
 
     // prettier-ignore
@@ -310,10 +310,10 @@ public class CategoryCriteria implements Serializable, Criteria {
     public String toString() {
         return "CategoryCriteria{" +
             optionalId().map(f -> "id=" + f + ", ").orElse("") +
-            optionalWpTermId().map(f -> "wpTermId=" + f + ", ").orElse("") +
+            optionalCode().map(f -> "code=" + f + ", ").orElse("") +
             optionalName().map(f -> "name=" + f + ", ").orElse("") +
             optionalSlug().map(f -> "slug=" + f + ", ").orElse("") +
-            optionalIcon().map(f -> "icon=" + f + ", ").orElse("") +
+            optionalLevel().map(f -> "level=" + f + ", ").orElse("") +
             optionalListingCount().map(f -> "listingCount=" + f + ", ").orElse("") +
             optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
             optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +

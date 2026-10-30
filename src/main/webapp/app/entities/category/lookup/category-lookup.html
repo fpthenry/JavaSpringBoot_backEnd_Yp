@@ -1,0 +1,156 @@
+<div class="vsic-lookup">
+  <h2 id="page-heading" data-cy="CategoryLookupHeading">
+    <span jhiTranslate="javaSpringBootBackEndApp.category.lookup.title">Tra cứu mã ngành VSIC 2025</span>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button class="btn btn-info" (click)="load()" [disabled]="isLoading()">
+        <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+        <span jhiTranslate="javaSpringBootBackEndApp.category.home.refreshListLabel">Làm mới</span>
+      </button>
+      <a class="btn btn-outline-secondary" routerLink="/category/index">
+        <fa-icon icon="search" />
+        <span jhiTranslate="javaSpringBootBackEndApp.category.lookup.indexView">Mục lục A–Z</span>
+      </a>
+      <a class="btn btn-primary" routerLink="/category">
+        <fa-icon icon="list" />
+        <span jhiTranslate="javaSpringBootBackEndApp.category.tree.listView">Dạng bảng</span>
+      </a>
+    </div>
+  </h2>
+
+  <p class="text-secondary mb-3" jhiTranslate="javaSpringBootBackEndApp.category.lookup.subtitle">
+    Hệ thống ngành kinh tế Việt Nam 2025 (Quyết định 36/2025/QĐ-TTg)
+  </p>
+
+  <jhi-alert-error />
+
+  <!-- Ô tìm và Mở hết / Thu gọn -->
+  <div class="d-flex flex-wrap gap-2 pb-3 mb-3 border-bottom">
+    <div class="input-group flex-grow-1 lookup-search">
+      <span class="input-group-text"><fa-icon icon="search" /></span>
+      <input
+        #searchBox
+        type="search"
+        class="form-control form-control-lg"
+        data-cy="lookupSearch"
+        [placeholder]="'javaSpringBootBackEndApp.category.lookup.searchPlaceholder' | translate"
+        [value]="query()"
+        (input)="onSearchInput(searchBox.value)"
+        (keydown.enter)="setQuery(searchBox.value)"
+      />
+    </div>
+    <button type="button" class="btn btn-primary fw-semibold" data-cy="expandAll" (click)="expandAll()">
+      [+] <span jhiTranslate="javaSpringBootBackEndApp.category.lookup.expandAll">Mở hết</span>
+    </button>
+    <button type="button" class="btn btn-secondary fw-semibold" data-cy="collapseAll" (click)="collapseAll()">
+      [−] <span jhiTranslate="javaSpringBootBackEndApp.category.lookup.collapseAll">Thu gọn</span>
+    </button>
+  </div>
+
+  @if (search(); as found) {
+    @if (found.matches.size > 0) {
+      <p class="small text-secondary" data-cy="lookupMatches">
+        {{ 'javaSpringBootBackEndApp.category.lookup.matches' | translate: { count: found.matches.size, query: query() } }}
+      </p>
+    } @else {
+      <div class="alert alert-warning" data-cy="lookupNoMatch">
+        {{ 'javaSpringBootBackEndApp.category.lookup.noMatch' | translate: { query: query() } }}
+      </div>
+    }
+  } @else if (!isLoading()) {
+    <p class="small text-secondary">
+      {{ 'javaSpringBootBackEndApp.category.lookup.total' | translate: { count: tree().byId.size } }}
+    </p>
+  }
+
+  @if (tree().withoutCode > 0) {
+    <div class="alert alert-info small py-2" data-cy="lookupWithoutCode">
+      {{ 'javaSpringBootBackEndApp.category.lookup.withoutCode' | translate: { count: tree().withoutCode } }}
+    </div>
+  }
+
+  @if (isLoading() && tree().byId.size === 0) {
+    <div class="text-center text-secondary py-5"><fa-icon icon="sync" animation="spin" size="2x" /></div>
+  }
+
+  <ul class="lookup-tree" data-cy="lookupTree">
+    @for (node of roots(); track node.item.id) {
+      <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: node }" />
+    }
+  </ul>
+</div>
+
+<ng-template #nodeTemplate let-node>
+  <li>
+    <div
+      class="lookup-row"
+      [class.expanded]="isExpanded(node)"
+      [class.match]="isMatch(node)"
+      [class.level-1]="node.item.level === 1"
+      (click)="toggle(node)"
+    >
+      <button
+        type="button"
+        class="lookup-toggle"
+        [attr.aria-expanded]="isExpanded(node)"
+        [attr.aria-label]="node.item.code ?? node.item.name"
+        (click)="$event.stopPropagation(); toggle(node)"
+      >
+        {{ isExpanded(node) ? '−' : '+' }}
+      </button>
+      <span class="lookup-code">{{ node.item.code }}</span>
+      <span class="lookup-name">{{ node.item.name }}</span>
+
+      <span class="lookup-actions" (click)="$event.stopPropagation()">
+        @if (node.item.listingCount > 0) {
+          <a
+            class="badge rounded-pill text-bg-light text-decoration-none"
+            routerLink="/listing"
+            [queryParams]="listingQueryParams(node)"
+            [title]="'javaSpringBootBackEndApp.category.lookup.listings' | translate"
+          >
+            <fa-icon icon="building" /> {{ node.item.listingCount }}
+          </a>
+        }
+        <a class="btn btn-link btn-sm p-0" [routerLink]="['/category', node.item.id, 'view']" [title]="'entity.action.view' | translate"
+          ><fa-icon icon="eye"
+        /></a>
+        <a class="btn btn-link btn-sm p-0" [routerLink]="['/category', node.item.id, 'edit']" [title]="'entity.action.edit' | translate"
+          ><fa-icon icon="pencil-alt"
+        /></a>
+      </span>
+    </div>
+
+    @if (isExpanded(node)) {
+      @if (hasDetail(node)) {
+        @let text = detail(node);
+        @if (text === undefined) {
+          <div class="lookup-detail text-secondary"><fa-icon icon="sync" animation="spin" /></div>
+        } @else if (text) {
+          <div class="lookup-detail" data-cy="lookupDetail">
+            <strong jhiTranslate="javaSpringBootBackEndApp.category.lookup.detail">Chi tiết:</strong>
+            <div class="lookup-detail-text">{{ text }}</div>
+          </div>
+        } @else if (node.children.length === 0) {
+          <div class="lookup-detail lookup-detail-empty" jhiTranslate="javaSpringBootBackEndApp.category.lookup.noDetail">
+            Chưa có mô tả chi tiết.
+          </div>
+        }
+      } @else {
+        <button type="button" class="btn btn-link btn-sm lookup-show-detail" (click)="loadDetail(node)">
+          <span jhiTranslate="javaSpringBootBackEndApp.category.lookup.showDetail">Xem chi tiết</span>
+        </button>
+      }
+
+      @if (visible(node.children); as children) {
+        @if (children.length > 0) {
+          <ul class="lookup-tree">
+            @for (child of children; track child.item.id) {
+              <ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: child }" />
+            }
+          </ul>
+        }
+      }
+    }
+  </li>
+</ng-template>

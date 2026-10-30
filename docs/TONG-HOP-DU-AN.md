@@ -422,7 +422,7 @@ Vì vậy dự án thêm 2 filter **theo cây**: `locationTreeId` và `categoryT
 |---|---|---|
 | Thực thể → **Tỉnh thành** → Đơn vị hành chính | `/location/tree` | Cây tỉnh → quận/huyện → phường/xã, tải dần từng cấp |
 | Thực thể → Tỉnh thành → Tỉnh thành / Quận huyện / Phường xã | `/location?filter[type.equals]=province` (`district`, `ward`) | Trang danh sách Location có sẵn, lọc theo cấp |
-| Thực thể → **Ngành nghề** → Cây ngành nghề | `/category/tree` | Cây ngành nghề tối đa 4 cấp |
+| Thực thể → **Ngành nghề** → Tra cứu mã ngành (VSIC) | `/category/tree` | Cây mã ngành VSIC 2025 (5 cấp): tìm theo mã/tên, Mở hết/Thu gọn, phần "Chi tiết" của từng ngành |
 | Thực thể → Ngành nghề → Danh sách ngành nghề | `/category` | Trang danh sách có sẵn |
 | Trang **Listing** | `/listing` | 2 dãy ô chọn: địa phương và ngành nghề, kết hợp được |
 
@@ -580,7 +580,7 @@ Backend: kiểm tra thủ công bằng API ở [mục 7.3](#73-api), so với SQ
 
 > Làm ngày 2026-10-08. Giao diện theo trang **Mục lục ngành nghề** của FE cũ: dãy nút chữ cái, ô tìm theo tên, thẻ ngành kèm số doanh nghiệp.
 
-**Mở:** menu **Thực thể → Ngành nghề → Mục lục A–Z**, hoặc `/category/index`. Trang **Cây ngành nghề** và **Danh sách ngành nghề** có nút chuyển qua lại.
+**Mở:** menu **Thực thể → Ngành nghề → Mục lục A–Z**, hoặc `/category/index`. Trang **Tra cứu mã ngành** và **Danh sách ngành nghề** có nút chuyển qua lại.
 
 | Vùng | Chức năng |
 |---|---|
@@ -684,7 +684,7 @@ Sau khi sửa: mỗi tỉnh cũ về đúng một tỉnh mới, và mọi cặp 
 
 #### Bước 1: bảng chuyển đổi và sửa bảng location
 
-**Bảng `location_conversion`** (changelog viết tay [`20261008100000_location_conversion.xml`](../src/main/resources/config/liquibase/changelog/20261008100000_location_conversion.xml), dữ liệu [`data/location_conversion.csv`](../src/main/resources/config/liquibase/data/location_conversion.csv)): mỗi dòng có tỉnh mới, xã mới, xã cũ (NULL với dòng cấp huyện), huyện cũ, tỉnh cũ (mã và tên), `note`, `partial_merge` (nhập một phần). Có index theo mã xã cũ, mã xã mới, mã huyện cũ. Changeset nạp dữ liệu có `runOnChange`: sửa CSV thì lần khởi động sau tự xóa và nạp lại.
+**Bảng `location_conversion`** (changelog viết tay [`20261008100000_location_conversion.xml`](../src/main/resources/config/liquibase/changelog/20261008100000_location_conversion.xml), dữ liệu [`data/location_conversion.csv`](../src/main/resources/config/liquibase/data/location_conversion.csv)): mỗi dòng có tỉnh mới, xã mới, xã cũ (NULL với dòng cấp huyện), huyện cũ, tỉnh cũ (mã và tên), `note`, `partial_merge` (nhập một phần). Có index theo mã xã cũ, mã xã mới, mã huyện cũ. Changeset nạp dữ liệu có `runOnChange`, **nhưng Liquibase 5 không tính nội dung CSV vào checksum của `loadData`**: sửa CSV thì phải xóa dòng `20261008100000-2` trong `DATABASECHANGELOG` rồi khởi động lại (changeset tự xóa và nạp lại bảng), hoặc sửa thẳng bảng cho khớp CSV (kiểm tra 2026-10-30).
 
 **Cập nhật khi có file Excel mới:**
 
@@ -2086,11 +2086,11 @@ Lưu ý:
 |---|---|---|
 | `service/mapper/LocationMapper.java`, `CategoryMapper.java` | `toDto` và `partialUpdate` bỏ qua `listings` (`@Mapping(target = "listings", ignore = true)`) | JHipster 9.3.0 **luôn** sinh chiều ngược của ManyToMany, kể cả khi JDL khai báo một chiều. Nếu map `listings`, mỗi địa phương hoặc ngành tải hàng trăm nghìn listing, và `/api/locations` bị treo. |
 | `service/criteria/ListingCriteria.java` | Thêm filter `locationTreeId`, `categoryTreeId` | Lọc listing theo cả cây. Mỗi listing chỉ gắn vào **một** cấp địa phương (tỉnh 1,46 triệu, phường/xã 319 nghìn, quận/huyện 23 nghìn) và gần như chỉ gắn vào **ngành lá** (24,4/25,2 triệu liên kết), nên lọc theo một nút phải gồm cả cây con. |
-| `repository/LocationRepository.java`, `CategoryRepository.java` | `findSubtreeIds(id)` | Lấy id của nút và mọi cấp con (địa phương 3 cấp, ngành nghề 4 cấp) |
+| `repository/LocationRepository.java`, `CategoryRepository.java` | `findSubtreeIds(id)` | Lấy id của nút và mọi cấp con (địa phương 3 cấp, ngành nghề 5 cấp theo VSIC 2025) |
 | `service/ListingQueryService.java` | `linkedToAny()` dùng `EXISTS` trên bảng nối; `findInTree()`: với tập ≥ 100 nghìn dòng thì lấy trang bằng `semijoin=off` | Địa phương: TP.HCM ~1,1 s, Hà Nội ~0,65 s. Ngành nghề: nhóm < 100 nghìn listing 0,3–0,5 s, nhóm VSIC lớn **chậm** (xem mục 14) |
 | `shared/tree/*` | Dùng chung: `createTreeSource()`, `jhi-tree-view` (cây tải dần, link "Xem doanh nghiệp"), `jhi-tree-filter` (dãy ô chọn theo số cấp thực tế, đồng bộ với URL `filter[...]`) | Dùng cho cả địa phương và ngành nghề |
 | `entities/listing/list/listing.html`, `listing.ts`, `listing.spec.ts` | 2 bộ lọc `jhi-tree-filter` (địa phương, ngành nghề); trong spec thay bằng stub | |
-| `entities/location/tree/*`, `entities/category/tree/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Cây ngành nghề) | |
+| `entities/location/tree/*`, `entities/category/lookup/*` | Trang `/location/tree` (Đơn vị hành chính), `/category/tree` (Tra cứu mã ngành VSIC, thay trang cây cũ `entities/category/tree/*` từ 2026-10-29) | |
 | `entities/location/location.routes.ts`, `entities/category/category.routes.ts` | Route `tree`; cả hai thêm route `index` (Mục lục A–Z, [mục 7.9](#79-mục-lục-ngành-nghề-az-trang-quản-trị), [mục 7.11](#711-mục-lục-tỉnh-thành-az-trang-quản-trị)) | |
 | `layouts/navbar/navbar.html`, `navbar.ts` | Các nhóm menu: **Tỉnh thành** (Đơn vị hành chính, Tỉnh thành, Quận huyện, Phường xã), **Ngành nghề** (Cây ngành nghề, Danh sách), **Blogs** (Bài viết, Danh mục bài viết, Thẻ), **Banner quảng cáo** (Vị trí banner, Ảnh banner); icon `newspaper`, `folder-tree`, `tags` | Sinh lại entity thì JHipster thêm lại mục menu rời (tên tiếng Anh) ở cuối danh sách; xóa và đưa vào nhóm |
 | `config/font-awesome-icons.ts` | Icon `map`, `sitemap`, `briefcase`, `circle`, `chevron-*`, `location-dot`, `spinner`, `arrow-down-a-z`, `table-cells-large` | |
@@ -2124,6 +2124,7 @@ Lưu ý:
 | `config/elasticsearch/blogpost-settings.json`, `repository/search/BlogPostSearchFields.java`, `BlogPostSearchFilter.java`, `VietnameseText.java`, `BlogPostSearchFieldsTest.java`, `VietnameseTextTest.java` (file mới) | Analyzer, chuẩn hóa tiếng Việt, điền field tìm kiếm, điều kiện tìm | File viết tay |
 | `src/test/java/.../config/ElasticsearchTestContainer.java` | `ES_JAVA_OPTS=-Xms512m -Xmx512m` | ES test mặc định lấy heap 2 GB, không khởi động kịp khi ES dev đang chạy ([mục 13](#13-lỗi-đã-gặp-và-cách-xử-lý)) |
 | `i18n/{vi,en}/global.json`, `location.json`, `category.json` | Key menu, `entity.tree.*`, `location.tree.*`, `location.filter.*`, `category.tree.*`, `category.filter.*` | |
+| `domain/Category.java`, `service/dto/CategoryDTO.java`, `service/criteria/CategoryCriteria.java`, `CategoryQueryService.java`, `service/impl/CategoryServiceImpl.java`, `web/rest/CategoryResource.java`, `repository/CategoryRepository.java`, `CategoryMapper.java`, `ListingMapper.java` (`toDtoCategoryName` kèm `code`); `changelog/20261029100000_category_vsic2025.xml`; `entities/category/*` (model, form, danh sách, xem, cây, mục lục, `category-code.ts` mới), `shared/tree/*` (mã trước tên), `entities/listing/*` (thẻ ngành có mã), `i18n/{vi,en}/category.json`, `global.json` (`error.codeexists`), `global.scss` (`.vsic-code`) | Ngành nghề VSIC 2025: thêm `code`, `level`; bỏ `wpTermId`, `icon`; kiểm tra trùng mã; cấp suy từ mã; giao diện theo mã ngành | Sửa tay, không sinh lại Category ([mục 18.9, bước 2](#chuyển-ngành-nghề-sang-vsic-2025--bước-2-cấu-trúc-bảng-và-giao-diện-quản-trị-2026-10-29)) |
 
 ---
 
@@ -2162,6 +2163,7 @@ Lưu ý:
 | Tiếng Việt bị lỗi (`Ð?a phuong`) khi gửi JSON bằng `curl -d "..."` trong Git Bash | Git Bash chuyển tham số dòng lệnh sang code page Windows | Gửi bằng file (`curl --data-binary @file.json`) hoặc script Node/PowerShell `-Encoding utf8` |
 | `./mvnw` báo BUILD SUCCESS nhưng app dừng ngay khi khởi động: `java.lang.ClassFormatError: Extra bytes at the end of class file com/mycompany/myapp/domain/BlogCategory` (2026-10-26) | File `.class` trong `target/classes` bị ghi dở: extension Java của VS Code và Maven cùng biên dịch vào một thư mục một lúc. Code không lỗi | `./mvnw clean compile -Dskip.npm -Dskip.installnodenpm` rồi chạy lại `./mvnw` (build lại cả giao diện Angular). Tránh chạy Maven khi VS Code đang "Building workspace" |
 | Không khởi động được: "Port 8081 was already in use" | Một tiến trình Java backend khác (chạy nền từ trước) vẫn giữ cổng | Tìm tiến trình giữ cổng 8081 (`Get-NetTCPConnection -LocalPort 8081`), tắt rồi chạy lại |
+| Chạy `./mvnw compile` khi backend dev đang chạy: backend tự khởi động lại và **chạy luôn changelog Liquibase mới** (2026-10-29) | DevTools theo dõi `target/classes`; Maven ghi class mới vào đó | Biết trước điều này: changelog chỉ được thêm vào `master.xml` khi đã chắc chắn; muốn tránh thì dừng backend trước khi build. `./mvnw compile` còn build lại cả giao diện (thêm `-Dskip.npm` để chỉ dịch Java) |
 
 ---
 
@@ -2193,6 +2195,7 @@ Lưu ý:
 | 23 | **Giao diện quản trị bước 2–4** (bước 1 xong 2026-10-12): áp dụng form chia nhóm, ô tự xuống dòng, chọn bằng gõ tìm, nhãn tiếng Việt cho các entity còn lại; trang chi tiết; quản trị người dùng | [Mục 16.3](#163-các-bước-tiếp-theo). Lưu ý các entity còn lại cũng dùng `<select>` 20 dòng đầu để chọn cha |
 | 21 | ~~Bộ lọc danh mục, thẻ trên trang danh sách bài viết (quản trị)~~ ✅ Xong 2026-10-12 | Tab trạng thái, lọc danh mục/thẻ trên Elasticsearch ([mục 16.2](#162-bước-1-xong-2026-10-12)) |
 | 24 | **Nhập doanh nghiệp: tìm trùng theo số điện thoại** (mục A, hoãn theo yêu cầu 2026-10-27: làm **sau khi đã nhập dữ liệu thật** rồi xem kết quả trùng thực tế) | Xem [mục 17.6](#176-việc-hoãn-tìm-trùng-theo-số-điện-thoại-mục-a) |
+| 25 | **Ngành nghề VSIC 2025, phần cuối** (bước 1–3 xong 2026-10-29; FE `/nganh-nghe` và 301 slug cũ xong 2026-10-30) | Sửa `ops/wp-migrate/wp-sync-listings.sql` (đang dùng `wp_term_id`) rồi bỏ cột `wp_term_id`; xóa schema `backup_vsic_20261029` khi đã ổn; làm lại sitemap FE (`lib/seo/sitemap.ts` còn liệt kê trang chữ cái `/nganh-nghe/A`, nay đã chuyển hướng) khi xong hết chức năng ([mục 18.9](#189-mã-ngành-nghề-đối-chiếu-với-vsic-2025-2026-10-29)) |
 
 ---
 
@@ -2835,3 +2838,377 @@ Script tự kéo code mới nhất từ nhánh đang checkout, build, thay bản
 - **Chuyển hướng 301 không phụ thuộc nginx.** Trong `src/middleware.ts`, ở production đích chuyển hướng là `NEXT_PUBLIC_SITE_URL`, nên dù nginx thiếu `Host` cũng không còn chuyển về localhost. Các trang tự chuyển hướng bằng `permanentRedirect()` thì dùng đường dẫn tương đối, nên vốn đã không phụ thuộc tên miền.
 - **Link chết đã bỏ.** Đã bỏ 6 link "Xem chi tiết khu vực trên yp.vn" ở trang Thành viên ALSMA, vì chúng trỏ tới trang WordPress `/…_ct/` đã không còn (lỗi 404).
 - **Chữ "yp.vn" trong nội dung** (chân trang, Giới thiệu, Đăng ký, mô tả) là tên thương hiệu, giữ nguyên.
+
+### 18.8 Chuyển ảnh và dữ liệu còn thiếu từ WordPress cũ (2026-10-28)
+
+**Mục tiêu.** Dùng lại toàn bộ ảnh của WordPress cũ (máy chủ `192.168.2.200`). Bổ sung vào backend mới mọi doanh nghiệp và bài viết còn thiếu hoặc đã được sửa sau lần chép trước.
+
+**Đối soát lần 1: bản dump `D:\var_www_server_200\backup_ypvn_25_db_20260622_154838.sql` (22/06/2026) với CSDL app.**
+
+- **Cách làm:** trích bằng script Python đọc tuần tự, khoảng 1 phút; không nạp cả 4,4 GB vào MySQL vì ổ C chỉ còn khoảng 14 GB và ổ D đầy. Kết quả nạp vào schema riêng `wp_extract` trên MySQL dev. Schema này **không đụng** tới `javaspringbootbackend` hay `jhipster_vnyp`.
+- **Nơi WordPress lưu ảnh doanh nghiệp:**
+  - logo: meta `_thumbnail_id`, trỏ tới một bản ghi ảnh (attachment);
+  - thư viện ảnh: nhiều dòng meta `webbupointfinder_item_images`, mỗi dòng một id ảnh;
+  - đường dẫn file của mỗi ảnh: meta `_wp_attached_file`, ví dụ `2018/05/logo3004.png`.
+
+| Hạng mục | WordPress (22/06) | App | Chênh lệch |
+|---|---|---|---|
+| Doanh nghiệp đang hiển thị | 1.855.611 | 1.855.619 | Thiếu 1 doanh nghiệp tạo ngày 29/05/2026 (DINAMO, wp 14347268). App có 8 bản nháp trùng với WordPress. Doanh nghiệp wp 14108323 đã bị xóa (vào thùng rác) trên WordPress nhưng app vẫn hiển thị. |
+| Doanh nghiệp sửa trên WordPress sau khi chép | 8 | – | Sửa trong khoảng 04–06/2026; app vẫn giữ bản cũ. |
+| Logo | 6.292 | 6.290 có link | 1 logo WordPress mất file. Doanh nghiệp wp 12728584 còn lưu id ảnh `6245233` thay vì link; file là `2021/11/Precision-mold-thumb-min.png`. |
+| Thư viện ảnh | 1.607 doanh nghiệp, 12.769 ảnh | Đủ | 12 ảnh mất file ngay trên WordPress |
+| Bài viết | 2.339 | 2.433 (+2 nháp) | App **mới hơn** dump: blog tới 05/10/2026. Chênh lệch "sửa sau" chỉ do app lưu giờ UTC (lệch 7 tiếng). |
+| File ảnh doanh nghiệp đang được dùng | 18.987 file | | Cả thư viện WordPress có 29.835 file gốc, chưa tính các bản thu nhỏ WordPress tự sinh. |
+
+- **Kết luận:**
+  - Ảnh và dữ liệu đã chép **gần như đủ** so với bản dump 22/06.
+  - Doanh nghiệp trong app chỉ mới tới **06/04/2026**, trong khi WordPress vẫn được cập nhật sau đó. Cần xuất bản mới nhất **từ máy chủ cũ** để đối soát lần 2.
+
+**Lấy dữ liệu mới nhất.** Dùng script [`ops/wp-migrate/wp-export.sh`](../ops/wp-migrate/wp-export.sh). Script **chỉ đọc**: chỉ chạy SELECT và đo thư mục, không sửa gì trên máy chủ cũ. Chạy trên máy cũ bằng quyền root:
+
+```bash
+bash wp-export.sh                    # mặc định CSDL ypvn_25_db; xuất đầy đủ doanh nghiệp/bài viết tạo hoặc sửa từ 2026-03-01
+scp root@192.168.2.200:/root/yp-export-*.tar.gz ~/Downloads/    # chạy trên máy dev (Git Bash)
+```
+
+File nén gồm:
+
+| File | Nội dung |
+|---|---|
+| `info.txt` | Số lượng theo loại/trạng thái, CSDL mà từng `wp-config.php` dùng, dung lượng đĩa |
+| `uploads-inventory.txt` | Dung lượng và số file của kho ảnh, theo từng năm |
+| `uploads-files.tsv.gz` | Danh sách file ảnh, để đối chiếu sau khi chép |
+| `posts.tsv.gz`, `meta.tsv.gz` | Tóm tắt toàn bộ doanh nghiệp, bài viết, ảnh, dùng cho đối soát |
+| `recent-*.tsv.gz` | Dữ liệu đầy đủ (bài, meta, ngành nghề, địa phương) của doanh nghiệp/bài viết mới hoặc sửa từ mốc ngày |
+
+**Ảnh: giữ nguyên đường dẫn.**
+- Chép cả thư mục `wp-content/uploads` sang máy chủ mới, rồi cho nginx phục vụ `/wp-content/uploads/` (mục 18.6, bước 1).
+- Cách này **không phải sửa link nào trong CSDL**: bài viết dùng cả các bản thu nhỏ như `-300x200.jpg`, nên phải chép cả thư mục, không chỉ 18.987 file đang dùng.
+- Chép thẳng từ máy cũ sang máy mới bằng `rsync`. Không đi qua máy dev, vì máy dev không đủ chỗ.
+
+**Đối soát lần 2 và đồng bộ: dump mới `C:UsersADMINDocuments	uannayp_vn_oldypvn_25_db_20261028_1132.sql` (28/10/2026, 4,4 GB).** Thay cho `wp-export.sh` (không cần chạy nữa).
+
+- **Nạp vào MySQL dev, schema `ypvn_25_db`** (chỉ đọc khi đồng bộ). Lần nạp bằng Workbench bị ngắt giữa chừng (container MySQL nhận lệnh dừng khi đang ghi `wp_posts`): `wp_postmeta` đã đủ, `wp_posts` thiếu, các bảng sau chưa có. Nạp nốt **chỉ các bảng cần** bằng script lọc theo bảng (7 phút): `wp_posts`, `wp_term_relationships`, `wp_term_taxonomy`, `wp_terms`, `wp_termmeta`, `wp_users`, `wp_usermeta`; bỏ các bảng thống kê `wp_rank_math_*` (~1 GB). Trước khi nạp tăng tạm `innodb_buffer_pool_size` 3 GB, `innodb_redo_log_capacity` 2 GB, `innodb_flush_log_at_trx_commit=2` (`SET GLOBAL`, xong trả lại 128 MB / 100 MB / 1); để mặc định thì nạp mất hàng giờ.
+- **Thời gian:** `listing.modified_at` = `post_modified` (giờ Việt Nam); `blog_post.published_at` = `post_date_gmt` (UTC).
+
+| Hạng mục | WordPress (28/10) | App trước đồng bộ | Xử lý |
+|---|---|---|---|
+| Doanh nghiệp đang xuất bản | 1.855.703 (tạo tới 08/07/2026, sửa tới 19/10/2026) | 1.855.619 | **Thêm 93** (tạo 28/03–08/07/2026). Không trùng mã số thuế với app. |
+| Sửa trên WordPress sau app | 17 | Không ai sửa tay trên app (`updated_at` đều là đợt chép 29/06) | **Ghi đè theo WordPress** |
+| WordPress đã xóa hẳn | 1 (wp 14108323, app id 1668722, Trần Tâm) | Đang hiện | **Ẩn** (`status = 'draft'`), không xóa |
+| Logo khác WordPress | 3 (wp 12728584 còn lưu id ảnh; wp 13087183, 13127934 WordPress đã đổi logo) | | Lấy theo WordPress |
+| Thư viện ảnh khác WordPress | 1 (wp 12728584 còn lưu id ảnh) | | Lấy theo WordPress (4 ảnh) |
+| Bài viết | 2.481 xuất bản (tới 26/10/2026) | 2.435 | **Thiếu 48** (17/08–26/10/2026): chạy đồng bộ bài viết có sẵn (mục 11.2), không cần script |
+
+**Script đồng bộ doanh nghiệp** [`ops/wp-migrate/wp-sync-listings.sql`](../ops/wp-migrate/wp-sync-listings.sql): đọc `ypvn_25_db`, ghi `javaspringbootbackend` trong một transaction, **chạy lại được** (lần sau chỉ xử lý phần còn chênh). Trước khi ghi sao lưu dòng bị sửa vào `wp_extract.bak_listing`, `bak_rel_category`, `bak_rel_location` (cột `backup_at`).
+
+```bash
+docker exec -i javaspringbootbackend-mysql-1 mysql -uroot --default-character-set=utf8mb4 < ops/wp-migrate/wp-sync-listings.sql
+```
+
+- **Ánh xạ** (giống dữ liệu đang có): `post_title` → `name`, `post_name` → `slug`, `post_content` → `description`, `post_date` → `published_at`, `post_modified` → `modified_at`; meta `api_id`, `webbupointfinder_item_{name_en, name_alias, telephone→phone, mobile, email, website, taxcode, representative, capital, begin→founded_year, type→business_type, status→business_status, managed→managed_by, featuredmarker→is_featured}`, `webbupointfinder_items_address` → `address`, `new_location` → `location_json`; logo/thư viện ảnh → link `https://yp.vn/wp-content/uploads/<_wp_attached_file>`, thư viện dạng `[{"image_url","caption"}]` (caption = chú thích ảnh WordPress); ngành `pointfinderltypes` → `category.wp_term_id`; địa phương `pointfinderlocations` → `location.wp_term_id`. Doanh nghiệp thêm mới: `source = 'wordpress'`, `source_ref` = wp_id.
+- **Doanh nghiệp mới không có `new_location`** (cả 93; chỉ 2 có ngành, 1 có địa phương trên WordPress): tách địa chỉ dạng mới "…, <Phường/Xã/Đặc khu>, <TP/Tỉnh>, Việt Nam" → tìm tỉnh mới (slug `-2025`, "TP X" = "Thành phố X") rồi xã mới trong tỉnh đó (`parent_id` = id tỉnh mới), chỉ nhận khi khớp đúng một. Ghi `location_json` cùng cấu trúc `new_location`; tọa độ lấy từ `webbupointfinder_items_location`, **giữ nguyên chữ số**, chỉ đổi "," → ":". Kết quả: 93/93 có xã mới + tỉnh mới, 3 có tọa độ.
+- **Doanh nghiệp cập nhật:** ngành thay theo WordPress (khi WordPress có ngành); liên kết địa phương gắn lại từ WordPress; `location_json` chỉ thay khi WordPress có `new_location`; địa chỉ đổi thì `address_new = NULL`.
+
+**Kết quả 2026-10-28:** thêm 93, cập nhật 17, sửa 3 logo + 1 thư viện ảnh, ẩn 1. App 1.855.712 doanh nghiệp = 1.855.703 đang hiện (**khớp WordPress**) + 9 nháp. Đối soát lại: còn thiếu 0, còn cũ hơn WordPress 0.
+
+**Việc còn lại (cần backend đang chạy, tài khoản admin, Swagger):**
+
+1. `POST /api/admin/administrative-units/link-listings?dryRun=false`: gắn đơn vị mới/cũ từ `location_json` cho doanh nghiệp vừa thêm/cập nhật.
+2. `POST /api/admin/administrative-units/new-addresses?dryRun=false&overwrite=false`: tạo `address_new` (doanh nghiệp có địa chỉ đổi).
+3. `POST /api/admin/wordpress/sync-posts`: lấy 48 bài viết còn thiếu (đọc REST API `yp.com.vn`, tự reindex bài viết).
+4. `POST /api/admin/elasticsearch/reindex?entities=listing`: doanh nghiệp mới/sửa mới tìm được trên ES.
+
+**Đã chạy 4 bước trên (2026-10-29, máy dev):** link-listings ghi 202 liên kết (104 xã mới, 5 tỉnh mới, 69 huyện cũ, 24 tỉnh cũ); new-addresses ghi 2 dòng (93 doanh nghiệp mới vốn đã là địa chỉ mới); sync-posts thêm 52 bài, cập nhật 2.433 (app 2.487 bài = 2.485 WordPress + 2 chỉ có ở app); reindex listing 1.855.712 tài liệu trong 13,5 phút.
+
+- **Tìm kiếm chậm sau reindex + nạp dump (đo 2026-10-29):** ES đã khớp MySQL (7/7 index). Lần tìm đầu mỗi từ khóa 0,3–2,2 s vì bộ đệm nguội: ES vừa khởi động lại, index mới 27 segment; MySQL dev chỉ 128 MB buffer pool, bị dữ liệu dump 9,5 GB đẩy ra. Đã `POST listing/_forcemerge?max_num_segments=1` (159 s, 1,9 GB → 1 segment) và `SET GLOBAL innodb_buffer_pool_size = 1G` (+ `--innodb-buffer-pool-size=1G` trong `src/main/docker/mysql.yml`, có hiệu lực khi tạo lại container) → từ khóa mới ~0,2 s, lặp lại 0,05–0,1 s (ES `took` 4–77 ms). Sau mỗi lần reindex listing nên force merge. Production đã đặt 2G trong `ops/docker-compose.yml`.
+- ⚠️ **Trong lúc reindex listing, mọi trang ngành nghề/tìm kiếm trả 0 doanh nghiệp** (job xóa index, tắt refresh tới khi ghi xong). Trên production chạy reindex ngoài giờ cao điểm và không tắt backend giữa chừng.
+
+**Kho ảnh chép về máy dev** (`uploads/` ở gốc repo, đã thêm vào `.gitignore`; 221.909 file, 9,9 GB; chưa có 2025/10 → 2026 vì đang chép). Đối chiếu với mọi link ảnh trong WordPress và app (bỏ qua 2026):
+
+| Nguồn link | Số file | Không thấy trong bản chép |
+|---|---|---|
+| Logo doanh nghiệp (app) | 6.270 | 12: **9 do trùng tên khác hoa/thường**, 1 khác chuẩn Unicode, 2 không có |
+| Thư viện ảnh doanh nghiệp (app) | 12.724 | 33: 32 khác chuẩn Unicode của tên file, 1 không có |
+| Ảnh đại diện bài viết (app, `yp.com.vn`) | 1.998 | 72: 69 thuộc 2025/09–12 (chưa chép xong) |
+| Banner (app) | 43 | 24 (2024/12, 2025/01): cần xem trên máy cũ |
+| Toàn bộ thư viện WordPress | 29.889 | 469 (410 không có, 17 hoa/thường, 42 Unicode) |
+
+- ⚠️ **Windows không phân biệt hoa/thường**: trên Linux `logo-2.png` và `Logo-2.png` là 2 file, chép sang Windows chỉ còn 1. Bản chép trên máy dev **chỉ dùng để kiểm tra**; máy chủ thật phải chép **Linux → Linux** bằng `rsync` (mục 18.6) thì không mất file.
+- 8.930 file 0 byte chủ yếu là `*.webp.deleted` do plugin ShortPixel/WebP để lại, không có link nào trỏ tới.
+- **Kiểm tra lại sau khi chép thêm 2026** (225.470 file, 10,2 GB): **2026 đủ** (0 file thiếu, 4.386 file, 335 MB). Vẫn thiếu **2025/09 (chỉ có 39 file) và 2025/10–12** → 69 ảnh đại diện bài viết + 246 file thư viện WordPress; cần chép tiếp các tháng này. Các số khác không đổi.
+- **Không đưa ảnh vào CSDL (BLOB):** ~11 GB, ~220 nghìn file sẽ làm CSDL phình gấp 2–3 lần, sao lưu/khôi phục chậm hàng giờ (như lần nạp dump này), mỗi ảnh phải đi qua Java thay vì nginx trả thẳng file, không dùng được CDN. Giữ file trên đĩa (hoặc kho đối tượng S3/MinIO về sau), CSDL chỉ lưu đường dẫn như hiện nay. Banner upload trong trang quản trị (`gallery_image.image`, vài chục ảnh) lưu trong CSDL là chấp nhận được. Nếu cần trang "kho ảnh" trong quản trị: thêm bảng chỉ mục file (đường dẫn, kích thước, kiểu, nơi dùng), không chứa nội dung file.
+
+### 18.9 Mã ngành nghề: đối chiếu với VSIC 2025 (2026-10-29)
+
+**Nguồn chuẩn hiện hành:** Hệ thống ngành kinh tế Việt Nam 2025 (**VSIC 2025**), ban hành kèm **Quyết định 36/2025/QĐ-TTg** ngày 29/9/2025, thay VSIC 2018 (QĐ 27/2018). Danh mục lấy từ https://dangkykinhdoanh.gov.vn/vn/Pages/NganhNghe.aspx (cây mã ngành ngay trong HTML trang) và file "Bảng so sánh VSIC 2018 - 2025" (.docx) trên cùng trang.
+
+**File:** `ops/vsic/VSIC2025-nganh-kinh-te.xlsx` (5 sheet: Hướng dẫn, VSIC 2025, Chuyển đổi 2018-2025, Tra mã 2018→2025, Ngành hệ thống hiện tại). Tạo lại bằng 3 script trong `ops/vsic/` (chỉ thư viện chuẩn Python):
+
+```bash
+curl -sL -o page.html https://dangkykinhdoanh.gov.vn/vn/Pages/NganhNghe.aspx
+curl -sL -o vsic2018_2025.docx "https://dangkykinhdoanh.gov.vn/Images/editor/files/7_10_Bang%20so%20sanh%20VSIC%202018%20-%202025(2).docx"
+python -I parse_tree.py page.html vsic2025.json
+# app_cat.tsv: id, wp_term_id, parent_wp, parent_id, name, slug, code (industry_code WordPress), so_dn — xuất từ MySQL
+python -I build_xlsx.py vsic2025.json vsic2018_2025.docx app_cat.tsv VSIC2025-nganh-kinh-te.xlsx
+```
+
+- VSIC 2025: **1.606 mã** (cấp 1: 22, cấp 2: 87, cấp 3: 259, cấp 4: 495, cấp 5: 743; 982 mã có mô tả chi tiết), khớp dòng tổng của bảng chuyển đổi. Cấp 1 đổi chữ cái từ J trở đi (J cũ tách thành J + K; K→L, L→M, …, U→V).
+- **Ngành nghề trong hệ thống** (bảng `category`, 2.394 ngành, khớp 100% WordPress mới nhất: không thiếu/thừa, slug và cây cha–con giống hệt; 1 ngành khác tên: id 12 "QUẢNG CÁO &amp; TRUYỀN THÔNG" ↔ WordPress "QUẢNG CÁO VÀ TRUYỀN THÔNG"). Mã ngành chỉ nằm ở WordPress (`wp_termmeta.industry_code`), **bảng `category` không có cột mã**; slug của 1.612 ngành có mã = tên + mã (VSIC 2018).
+
+| Trạng thái so với VSIC 2025 | Số ngành |
+|---|---|
+| Giữ mã, giữ tên | 1.045 |
+| Giữ mã, tên hiện tại khác tên VSIC 2025 | 220 |
+| Đổi mã | 169 |
+| Tách thành nhiều mã | 10 |
+| Bỏ trong VSIC 2025 (xem ghi chú) | 104 (4 có gợi ý theo tên) |
+| Mã cũ VSIC 2007 (vd 2212, 3510, 4920, 8520), không còn dùng | 57 (36 có gợi ý theo tên) |
+| Không có trong 2018, có trong 2025 | 7 |
+| Ngành riêng của YP, không theo VSIC (slug đuôi là term_id WordPress hoặc không có số) | 782 |
+
+- **`wp_term_id`** (category, location, blog_category, tag): khóa nối với WordPress cũ, không dùng để hiển thị hay làm URL. Dùng ở: đồng bộ bài viết (`WordPressPostSyncService` theo `wpTermId`), slug địa phương cũ → mới (`PublicLocationService`), script `ops/wp-migrate/wp-sync-listings.sql` (ngành/địa phương của doanh nghiệp WordPress). FE dùng `id` backend. Giữ cột này (truy vết, chạy lại đồng bộ); bỏ WordPress rồi cũng không ảnh hưởng.
+- ⚠️ **Lỗi tra mã khi nhập doanh nghiệp:** `ImportTermResolver` lấy mã ngành từ đuôi slug (`-\d{2,6}`). 782 ngành riêng có đuôi là term_id WordPress, **21 ngành có đuôi 4–5 số trùng mã VSIC thật** (vd `tai-chinh-cho-thue-1010` id 496 ↔ 1010 "Chế biến, bảo quản thịt…" id 1253; bảng đọc không ORDER BY, `putIfAbsent` nên mã 1010 có thể trỏ nhầm). Đuôi 3 số trùng (vd `khach-san-601` ↔ 601 "Hoạt động phát thanh") không ảnh hưởng nhập vì nhập chỉ nhận mã 4–5 số. Cách sửa đề xuất: thêm cột mã ngành vào `category` (lấy từ `industry_code` WordPress), tra theo cột này thay vì đuôi slug.
+
+#### Chuyển ngành nghề sang VSIC 2025 — bước 1: bảng ghép (2026-10-29)
+
+Quyết định của người dùng: cây ngành = đúng VSIC 2025 (mã, tên, mô tả, cấp như danh mục chính thức); slug = tên + mã; bỏ trường WordPress không dùng (`wp_term_id`, `icon`); 782 ngành riêng ghép sang mã VSIC; mã 2018 bị tách/gộp đổi theo cấp 5 (nhiều đích thì gắn tất cả); slug cũ chuyển hướng 301 sang slug mới.
+
+- Doanh nghiệp đang gắn ngành chủ yếu ở **cấp 4** (24,4 triệu/25,2 triệu liên kết), như mã ngành trên giấy đăng ký kinh doanh → giữ quy ước: mã cũ cấp k → mã 2025 cùng cấp k.
+- `ops/vsic/code_map.py`: tra mã cũ → 2025 theo bảng chuyển đổi (cùng dòng → theo các mã cấp 5 con → theo ghi chú "gộp… thành / chuyển đến / chuyển xuống mã…"). Bảng chuyển đổi .docx ghi 0722/07221/07229, danh mục trên trang là 0729/07291/07299 (cùng tên) → lấy theo danh mục.
+- `ops/vsic/manual_map.txt`: 895 ngành ghép theo nghĩa tên ngành (782 ngành riêng + 113 mã cũ không có đích, phần lớn mã VSIC 2007 hoặc 2018 bị bỏ như 4791, 9511, 4781…): 860 → mã cấp 4, 17 → mã cấp 3 (tên chung, vd "Vận tải bằng xe buýt" → 492), **18 bỏ liên kết** (CHƯA PHÂN LOẠI, Doanh nghiệp mới cập nhật, DOANH NGHIỆP GIẢI THỂ, 13 nhóm cấp 1 riêng…). Ngành tên nước (NHẬT BẢN, PHÁP…) là nhà hàng ẩm thực nước ngoài → 5610. Doanh nghiệp của ngành riêng không có mã VSIC nào khác nên không học được từ dữ liệu, phải ghép theo tên.
+- `ops/vsic/final_map.py` gộp hai nguồn → sheet **"Bảng ghép (duyệt)"** trong `VSIC2025-nganh-kinh-te.xlsx`.
+- Kết quả tính trước: 25.373.957 liên kết mới (cấp 4: 24,97 triệu; cấp 3: 322 nghìn; cấp 5: 78 nghìn) cho 1.534.977 doanh nghiệp, dùng 1.023 mã VSIC 2025; **86.218 doanh nghiệp không còn ngành** (gần như toàn bộ là "CHƯA PHÂN LOẠI" 87.643). 20 ngành ra nhiều mã (vd 4530 → 4610, 4662, 4782).
+- Bảng trung gian trong schema `wp_extract`: `vsic25`, `code_map`, `final_map`, `new_link`.
+
+#### Chuyển ngành nghề sang VSIC 2025 — bước 2: cấu trúc bảng và giao diện quản trị (2026-10-29)
+
+Sửa tay (không chạy generator: các trang Ngành nghề đã sửa tay nhiều, sinh lại sẽ mất). `.jhipster/Category.json` và `yp-schema.jdl` đã cập nhật cho khớp.
+
+**CSDL** — changelog viết tay [`20261029100000_category_vsic2025.xml`](../src/main/resources/config/liquibase/changelog/20261029100000_category_vsic2025.xml):
+
+| Cột | Thay đổi |
+|---|---|
+| `code` varchar(10), UNIQUE `ux_category__code` | Mới. Mã ngành VSIC 2025: chữ cái A–V (cấp 1) hoặc 2–5 chữ số (cấp 2–5). Còn cho NULL tới khi chuyển dữ liệu (MySQL cho nhiều NULL trong cột UNIQUE). |
+| `level` int | Mới. Cấp 1–5, **máy chủ tự suy từ mã** khi lưu (`Category.levelOf`: chữ cái → 1, n chữ số → n), không nhận cấp gửi lên. |
+| `icon` | Bỏ (không ngành nào dùng). |
+| `wp_term_id` | **Chưa bỏ khỏi bảng**, entity/API/giao diện không còn dùng. Bước 3 cần nó để lập bảng slug cũ → slug mới (301) và cho `ops/wp-migrate/wp-sync-listings.sql`; bỏ cột ở bước 3. |
+
+**Backend**
+
+- `CategoryDTO.code`: bắt buộc, `^([A-Z]|\d{2,5})$`; trùng mã → 400 `error.codeexists` (kiểm tra trước khi ghi, `CategoryRepository.existsOtherWithCode`). Mã được viết hoa, bỏ khoảng trắng khi lưu.
+- Lọc `/api/categories?code.equals=4632`, `level.equals=4`; sắp `sort=code,asc`. ES index `category` có `code` (keyword), `level`.
+- `findSubtreeIds` (lọc doanh nghiệp theo cây trên MySQL) sâu **5 cấp** (trước 4).
+- API mục lục (`/api/category-index`, `/api/public/v1/categories`): mỗi ngành thêm `code`, `level`; `q` là mã (vd `4632`, `463`, `G`) thì ra các ngành có mã bắt đầu bằng mã đó; thêm `sort=code`. FE Next.js không cần sửa (chỉ thêm trường).
+- Thẻ ngành trong doanh nghiệp (`ListingDTO.categories`) và ngành cha (`CategoryDTO.parent`) kèm `code`.
+- Nhập doanh nghiệp (`ImportTermResolver`): tra mã ngành theo **cột `code`**, bỏ cách đoán từ đuôi slug → hết lỗi 21 ngành riêng có đuôi slug trùng mã thật ([mục 18.9](#189-mã-ngành-nghề-đối-chiếu-với-vsic-2025-2026-10-29)). Trước khi chuyển dữ liệu (bước 3) chưa ngành nào có mã nên dòng nhập chỉ khớp ngành theo slug/tên.
+
+**Giao diện quản trị** (`entities/category/*`, hàm dùng chung [`category-code.ts`](../src/main/webapp/app/entities/category/category-code.ts)):
+
+| Trang | Thay đổi |
+|---|---|
+| Danh sách `/category` | Cột **Mã ngành**, Tên (slug dòng dưới), **Cấp**, Ngành cha (mã + tên), Số doanh nghiệp; nút lọc **Cấp 1…5**; mặc định xếp theo mã; nút "Dạng cây". Bỏ cột Mã WordPress, Biểu tượng, Mô tả. |
+| Xem | Mã ngành trên tiêu đề, đường dẫn cây và danh sách ngành con (xếp theo mã); khối Thông tin có Mã ngành (nút chép), Cấp; bỏ Mã WordPress. |
+| Thêm / Sửa | Ô **Mã ngành** (tự viết hoa, báo sai dạng), cấp hiện ngay theo mã. Slug = **tên + mã** (`ban-buon-thuc-pham-4632`): thêm mới thì tự điền cho tới khi sửa tay; sửa ngành có slug khác chuẩn thì gợi ý "Dùng slug chuẩn". Ngành cha: cảnh báo khi không khớp mã (4632 phải nằm dưới 463; cấp 1 không có cha; cấp 2 nằm dưới ngành chữ cái) và nút **Chọn ngành 463**. Bỏ khối Thông tin kỹ thuật (Mã WordPress, Biểu tượng). |
+| Cây `/category/tree`, bộ lọc ngành ở trang Doanh nghiệp | Mã trước tên, mỗi cấp xếp theo mã. |
+| Mục lục A–Z | Mã trên thẻ ngành, tìm theo mã, sắp "Theo mã ngành". |
+| Doanh nghiệp (xem, sửa) | Thẻ ngành có mã; ô gõ tìm ngành hiện mã cạnh tên. |
+
+**Test:** Java 20 test đơn vị (`CategoryTest` có `levelOf`, `PublicCategoryServiceTest` có tìm theo mã, sắp theo mã) + 58 test tích hợp `CategoryResourceIT` (thêm: mã bắt buộc, trùng mã → `codeexists`, mã sai dạng → 400); giao diện 232 spec (ngành nghề, doanh nghiệp, cây) qua, `eslint`, `tsc` sạch.
+
+Lưu ý: **dữ liệu ngành chưa đổi** (2.394 ngành cũ, `code` còn trống) nên tới bước 3 các trang trên chưa có mã để hiện; sửa một ngành cũ lúc này sẽ bắt nhập mã.
+
+**Bước tiếp theo:** bước 3 chuyển dữ liệu (sao lưu, chạy thử rồi mới ghi): nạp 1.606 ngành VSIC 2025, gắn lại doanh nghiệp theo `wp_extract.final_map`, bảng slug cũ → mới, bỏ ngành cũ và cột `wp_term_id`, tính lại số doanh nghiệp. Bước 4: chuyển hướng 301 slug cũ (API + FE), sửa `ops/wp-migrate/wp-sync-listings.sql`, reindex `category` và `listing`.
+
+#### Trang tra cứu mã ngành VSIC dạng cây (2026-10-29)
+
+Thay trang **Cây ngành nghề** cũ (cây tải dần dùng chung với Đơn vị hành chính) bằng trang tra cứu theo kiểu bảng VSIC của dangkykinhdoanh.gov.vn. Vẫn ở `/category/tree` (menu **Ngành nghề → Tra cứu mã ngành (VSIC)**, link cũ không đổi).
+
+- **Ô tìm**: gõ một chữ cái hoặc chữ số (`G`, `46`, `4632`) là tìm theo đầu mã; gõ chữ là tìm trong tên, không cần dấu, phải có đủ mọi từ. Kết quả hiện ngành khớp (viền vàng bên trái) kèm các ngành cha. Ngành con của ngành khớp vẫn mở xem được. Tìm theo mã chỉ mở tới ngành khớp trên cùng. Gõ đúng nguyên mã thì mở luôn ngành đó và hiện phần Chi tiết.
+- **Mở hết / Thu gọn**: mở mọi ngành có con (đang tìm thì chỉ các ngành còn hiện), hoặc đóng hết.
+- **Mỗi dòng**: nút +/−, mã (màu hồng đậm), tên. Bên phải có số doanh nghiệp (bấm ra trang Doanh nghiệp lọc theo cả cây ngành), nút xem, nút sửa. Bấm vào dòng để mở hoặc đóng.
+- **Chi tiết**: mở một ngành thì tải mô tả ngành (cột `description`; sau bước 3 là phần "Chi tiết: Ngành này gồm… / Loại trừ…" của VSIC) và hiện trong khung vàng, giữ xuống dòng. Mở bằng "Mở hết" thì không tải hàng loạt, có nút "Xem chi tiết" cho từng ngành.
+- Tải cả cây **một lần** (~1.600 ngành, không kèm mô tả) rồi dựng cây và tìm trên trình duyệt ([`vsic-tree.ts`](../src/main/webapp/app/entities/category/lookup/vsic-tree.ts)). Ngành chưa có mã (dữ liệu cũ) xếp cuối, có dòng báo số lượng.
+
+**API mới** (quản trị, cần đăng nhập, `CategoryIndexResource`):
+
+| API | Trả về |
+|---|---|
+| `GET /api/category-index/all` | Mọi ngành (id, code, name, slug, level, parentId, parentName, listingCount), xếp theo mã rồi tên (`PublicCategoryService.allByCode`) |
+| `GET /api/category-index/detail/{slugOrId}` | Chi tiết một ngành: `description`, `ancestors`, `children` (như API công khai `/api/public/v1/categories/{slug}`); không có → 404 |
+
+**Test:** 10 spec mới (`vsic-tree.spec.ts`, `category-lookup.spec.ts`); cả giao diện 821 spec qua; `eslint`, `tsc` sạch; `PublicCategoryServiceTest` qua. Đã gọi thử hai API trên backend dev.
+
+Từ bước 3 (dưới đây) trang hiện đúng cây A → 01 → 011 → 0111 → 01110 và phần Chi tiết của VSIC; mô tả có dòng trống giữa các ý được gọn lại khi hiển thị.
+
+#### Chuyển ngành nghề sang VSIC 2025 — bước 3: chuyển dữ liệu (2026-10-29)
+
+Đã chạy trên MySQL dev. Script: [`ops/vsic/migrate_sql.py`](../ops/vsic/migrate_sql.py) sinh dữ liệu 1.606 ngành và bảng slug cũ → mới; [`ops/vsic/migrate_vsic2025.sql`](../ops/vsic/migrate_vsic2025.sql) chuyển (chạy một lần; lần hai dừng ngay ở bước sao lưu). Chạy thử trước: mọi ngành có cha, không trùng mã, cả 2.394 ngành cũ đều có trong bảng ghép, mọi mã đích có trong VSIC 2025.
+
+| Bước | Kết quả |
+|---|---|
+| Sao lưu | Schema **`backup_vsic_20261029`**: `category` (2.394 ngành cũ, còn `wp_term_id`), `rel_listing__category` (bảng nối cũ nguyên vẹn, 25.184.300 dòng), `vsic_new` (dữ liệu nạp), `category_redirect` |
+| Nạp VSIC 2025 | 1.606 ngành (id 2449–4054): cấp 1: 22, cấp 2: 87, cấp 3: 259, cấp 4: 495, cấp 5: 743; mô tả = phần "Chi tiết" của VSIC; slug = tên + mã (`khai-thac-xu-ly-va-cung-cap-nuoc-36000`). 1.053 slug trùng y slug ngành cũ nên link cũ vẫn đúng |
+| Gắn lại doanh nghiệp | Theo `wp_extract.final_map` (sheet "Bảng ghép (duyệt)"): 25.373.957 liên kết; 1.534.977 doanh nghiệp có ngành (trước 1.621.195). **86.218 doanh nghiệp không còn ngành**: trước chỉ gắn các ngành không phải ngành nghề (18 ngành, như "CHƯA PHÂN LOẠI"), bỏ liên kết theo quyết định ở bước 1 |
+| Tráo bảng nối | Dựng `rel_listing__category_vsic` rồi `RENAME` (bảng cũ chuyển sang schema sao lưu, bỏ khóa ngoại), thêm lại 2 khóa ngoại cho bảng mới |
+| Slug cũ → mới | `backup_vsic_20261029.category_redirect` (old_id, old_slug, old_name, new_codes, new_code, new_category_id, new_slug): 2.376 ngành có đích; 18 ngành không có đích → chuyển về `/nganh-nghe`. Ngành ghép nhiều mã lấy mã cha chung sâu nhất (cấp ≥ 2), không có thì mã đầu |
+| Xóa ngành cũ | Xóa đúng 2.394 id đã sao lưu |
+| `code` bắt buộc | Changeset `20261029100000-2` (`addNotNullConstraint`, điều kiện trước: không còn ngành thiếu mã, chưa đạt thì `onFail=CONTINUE`, thử lại lần khởi động sau); entity `Category.code` thêm `@NotNull` |
+| Số doanh nghiệp | `POST /api/admin/categories/listing-counts`: đọc 25.373.957 liên kết trong 1,5 phút, 1.339/1.606 ngành có doanh nghiệp; job tự reindex `category` |
+| Elasticsearch | Reindex `listing` (field `categoryIds` theo ngành mới) |
+
+Thời gian: dựng bảng nối mới khoảng 20 phút (đã đặt `innodb_redo_log_capacity` 2 GB lúc chạy). Câu `COUNT(DISTINCT …)` trên 25 triệu dòng để chạy thử mất hơn 30 phút nên đã bỏ; dùng `TABLE_ROWS` hoặc đếm sau khi chạy.
+
+**Khôi phục nếu cần** (dừng backend trước): xóa ngành VSIC và bảng nối mới, đưa bảng cũ về:
+
+```sql
+USE javaspringbootbackend;
+SET foreign_key_checks = 0;
+DROP TABLE rel_listing__category;
+RENAME TABLE backup_vsic_20261029.rel_listing__category TO rel_listing__category;
+ALTER TABLE rel_listing__category
+  ADD CONSTRAINT fk_rel_listing__category__category_id FOREIGN KEY (category_id) REFERENCES category (id),
+  ADD CONSTRAINT fk_rel_listing__category__listing_id FOREIGN KEY (listing_id) REFERENCES listing (id);
+ALTER TABLE category MODIFY code VARCHAR(10) NULL;
+DELETE FROM category;  -- chỉ khi khôi phục: bảng lúc này chỉ có ngành VSIC
+INSERT INTO category SELECT * FROM backup_vsic_20261029.category;
+SET foreign_key_checks = 1;
+```
+
+Sau đó xóa dòng `20261029100000-2` trong `DATABASECHANGELOG`, tính lại số doanh nghiệp và reindex `category`, `listing`. Sửa bảng ghép một số ngành thì không cần khôi phục: gắn thêm hoặc bỏ liên kết theo `backup_vsic_20261029.rel_listing__category` của ngành cũ đó.
+
+**Còn lại (bước 4):** chuyển hướng 301 slug cũ (API + middleware FE Next.js) từ `category_redirect`, đưa bảng này vào schema app bằng Liquibase; sửa `ops/wp-migrate/wp-sync-listings.sql` (đang dùng `wp_term_id`) rồi bỏ cột `wp_term_id`; kiểm tra các trang `/nganh-nghe` của FE với ngành mới; xóa schema `backup_vsic_20261029` khi đã ổn.
+
+#### Ngành nghề VSIC 2025 — FE `/nganh-nghe` và chuyển hướng slug cũ (2026-10-30)
+
+**Backend (API công khai, cần `X-API-Key`)**
+
+| API | Thay đổi |
+|---|---|
+| `GET /api/public/v1/categories/all` | Mới. Mọi ngành (id, code, name, slug, level, parentId, parentName, listingCount), xếp theo mã; FE dựng cây và tìm ngay trên trình duyệt |
+| `GET /api/public/v1/categories/{slugOrId}` | Thêm `code`, `level`; `ancestors`, `children` cũng có `code`, `level`; ngành con xếp theo mã. `description` là phần "Chi tiết" của VSIC |
+| `GET /api/public/v1/categories/redirects/{oldSlug}` | Mới. Slug cũ → `{oldSlug, targetSlug}`; `targetSlug` null = về `/nganh-nghe`; 404 = không phải slug cũ |
+
+Bảng **`category_slug_redirect`** (changelog `20261030090000`, PK `old_slug`, `category_id` → `category`, xóa ngành thì thành NULL): nạp bằng [`ops/vsic/fill_slug_redirect.sql`](../ops/vsic/fill_slug_redirect.sql) từ `backup_vsic_20261029.category_redirect`, bỏ các slug cũ trùng y slug mới. Dev: **1.341 slug cũ**, 18 slug về mục lục. Triển khai production: bảng đi theo bản sao CSDL dev; nếu CSDL production dựng lại từ đầu thì chạy lại file SQL này sau bước 3.
+
+**FE Next.js (`d:
+extyp-v2`)**
+
+| Trang / file | Thay đổi |
+|---|---|
+| `/nganh-nghe` ([`IndustryExplorer.tsx`](file:///d:/nextyp-v2/src/components/industry/IndustryExplorer.tsx), thay `PageClient.tsx`) | Máy chủ tải sẵn cả danh mục (HTML có đủ ngành cấp 1, cây của mục đang mở). Ô tìm lớn: gõ mã (`4632`, `46`, `G`) hoặc tên không dấu → gợi ý ngay (mã, tên tô đậm đoạn khớp, đường dẫn `G › 46 › 463`, số doanh nghiệp), ↑ ↓ Enter; Enter không chọn → danh sách mọi ngành khớp, mỗi dòng có nút "xem vị trí trong cây". Cột trái 22 ngành cấp 1 A–V, bên phải cây của mục đang chọn (mở từng cấp, Mở hết / Thu gọn, link "Xem doanh nghiệp ngành G"). Ngành nhiều doanh nghiệp. URL `?q=`, `?muc=G` (F5, chia sẻ đúng chỗ) |
+| `/nganh-nghe/{ngành}` ([`IndustryOverview.tsx`](file:///d:/nextyp-v2/src/components/industry/IndustryOverview.tsx)) | Khối đầu: mã ngành, cấp, đường dẫn ngành cha có mã, **Chi tiết ngành** (4 dòng đầu, "Xem đầy đủ"), **Ngành chi tiết** (ngành con kèm số doanh nghiệp, giữ tỉnh đang lọc). H1 có mã. Dãy chữ cái đầu trang thay bằng ô tìm ngành. Thanh bên: mã ngành, ô lọc tỉnh không dấu. Điện thoại: nội dung lên trước, danh sách tỉnh xuống dưới |
+| `<title>` trang ngành | "Bán buôn thực phẩm - Mã ngành 4632" (người dùng hay tìm "mã ngành …"); `/nganh-nghe`: "Tra cứu mã ngành nghề kinh doanh VSIC 2025" |
+| Slug cũ | `/nganh-nghe/{slug cũ}` (cả `/tinh-thanh/{tỉnh}`, `?page=`) → chuyển hướng vĩnh viễn (Next trả 308, Google coi như 301) sang ngành mới; ngành cũ không có ngành tương ứng → `/nganh-nghe` |
+| [`lib/industry/vsic.ts`](file:///d:/nextyp-v2/src/lib/industry/vsic.ts), [`load.ts`](file:///d:/nextyp-v2/src/lib/industry/load.ts) | Dựng cây, tìm (mã ngắn trước; tên: đúng cụm trước, nhiều doanh nghiệp trước), tô đậm; tải `/categories/all` giữ 10 phút |
+
+Lưu ý: CSS chung của FE có `.line-clamp-2 { height: 50px }` (cho thẻ doanh nghiệp) nên thành phần mới dùng `line-clamp-[2]`. Đã kiểm tra bằng ảnh chụp desktop và điện thoại (không tràn ngang), `tsc` sạch ở các file mới; test backend `PublicCategoryServiceTest` 11/11.
+
+Sự cố: sau khi máy tắt đột ngột (đêm 29/10), file FE `src/lib/seo/industry-page.ts` đang sửa dở thành toàn byte 0; đã khôi phục từ git rồi sửa lại. Đã quét các file đang sửa của cả hai dự án, không còn file nào bị.
+
+#### Bỏ tìm ngành nghề theo chữ cái đầu tên (2026-10-30)
+
+Ngành VSIC dồn vào vài chữ cái (H 431 ngành, chủ yếu "Hoạt động…"; S 401, chủ yếu "Sản xuất…"; B 208 — ba chữ chiếm 65%), nhiều chữ gần như rỗng (I 4, R 2, Y 1), dãy nút còn cố định từ WordPress (thiếu A, E, U; thừa W). Đã có ô tìm theo mã/tên không dấu và cây A–V nên bỏ hẳn ở FE:
+
+| Chỗ | Thay đổi |
+|---|---|
+| `components/alphabetFilter/` (`AlphabetFilterCategory`, `AlphabetFilterWrapper`), `app/nganh-nghe/[slug]/SearchCategoryByLetter.tsx` | Xóa |
+| `/nganh-nghe/A`, `/nganh-nghe/h`… | Chuyển hướng vĩnh viễn (308) về `/nganh-nghe` |
+| `lib/seo/industry-page.ts`, `lib/api/industry.ts`, `lib/api/backend-adapter.ts` | Bỏ `loadIndustryLetters`, `letterMetadata`, `fetchAllIndustryByLetter` (và tham số `letter`) |
+| Trang chủ | Khối "Tìm kiếm nhanh theo chữ cái" → "Tìm doanh nghiệp theo ngành nghề" (ô tìm ngành + link tra cứu VSIC) |
+| Trang ngành, `/nganh-nghe`, Bảng giá dịch vụ | Bỏ dãy chữ cái |
+| Breadcrumb "Ngành nghề" | Trỏ `/nganh-nghe` (trước trỏ `/nganh-nghe/{chữ đầu tên ngành}`) |
+
+Giữ nguyên: dãy chữ cái ở trang Tỉnh thành (lọc địa phương, `AlphabetFilterLocation`); API backend `/categories/letters` (sitemap FE và mục lục A–Z ở trang quản trị còn dùng). Sitemap làm lại sau.
+
+#### Cập nhật theo danh mục ĐVHC chính thức 30/10/2026
+
+File **`Danh sách tất cả các cấp ___30_10_2026.xls`** (gốc dự án, chưa commit): 1 sheet, 34 tỉnh (mỗi tỉnh 2 dòng: dòng đầu cột "Mã TP" trống là **tên hiện hành + nghị quyết mới nhất**, dòng sau là tên năm 2025), 3.321 xã (2.599 xã, 709 phường, 13 đặc khu), cột Nghị định/Nghị quyết, 47 tên tiếng Anh. File `.xls` cũ: xuất CSV UTF-8 bằng Excel (COM, `SaveAs` định dạng 62) rồi mới đọc được.
+
+**Đối chiếu bộ mới trong `location`:** đủ 34 tỉnh, 3.321 xã, **đúng mã, đúng tỉnh cha, không thừa thiếu**. Khác do các nghị quyết năm 2026 chưa cập nhật:
+
+| Thay đổi | Đơn vị | Căn cứ |
+|---|---|---|
+| Tỉnh → thành phố | Quảng Ninh (22), Bắc Ninh (24), Đồng Nai (75) | NQ 36/2026/QH16, 39/2026/QH16 (24/08/2026); 30/2026/QH16 (24/04/2026) |
+| Xã → phường (Bắc Ninh) | Bố Hạ, Lạng Giang, Kép, Lục Nam, Hiệp Hoà, Yên Phong, Phù Lãng, Chi Lăng, Tiên Du, Gia Bình, Nhân Thắng, Lương Tài | NQ 388/NQ-UBTVQH16 (04/08/2026) |
+| Xã → phường (Đồng Nai) | Lộc Ninh, Tân Khai, Đồng Phú, Tân Phú, Trị An, Trảng Bom, Dầu Giây, Long Thành, Xuân Lộc, Nhơn Trạch | NQ 237/NQ-UBTVQH16 (14/04/2026) |
+| Kiểu đặt dấu theo danh mục | 9 xã (Thuận Hoà, Chiêm Hoá, Hoà An, Thái Hoà, Sơn Thuỷ, Giao Hoà, Định Hóa ×2, Hiệp Hoà) | |
+
+Giữ khác có chủ ý: 7 tên nháy thẳng `'` (danh mục dùng `’`: "Ea H’Leo", "B’Lao"…), "xã Bắc Sơn" (danh mục viết thường) giữ "Xã Bắc Sơn".
+
+**Cách cập nhật** (lần sau có danh mục mới làm lại y như vậy):
+
+1. [`db-sync/dvhc/update-names-from-official.py`](../db-sync/dvhc/update-names-from-official.py) `<danh mục .csv> src/main/resources/config/liquibase/data/location_conversion.csv`: sửa tên tỉnh mới, xã mới trong bảng chuyển đổi theo mã (nháy thẳng, tiền tố viết hoa). Lần này: 3 tỉnh, 32 xã (768 dòng CSV vì mỗi xã mới gồm nhiều xã cũ).
+2. Nạp lại bảng `location_conversion` (xem lưu ý Liquibase ở trên; lần này sửa thẳng bảng theo mã).
+3. `POST /api/admin/administrative-units/fix-locations?dryRun=true`, xem, rồi `dryRun=false`. Lần này: 34 dòng (3 tỉnh đổi tên, 31 xã đổi tên, 22 xã đổi slug `xa-bo-ha-07294-2025` → `phuong-bo-ha-07294-2025`); slug tỉnh giữ nguyên (`tinh-bac-ninh-24-2025`, như `tp-hai-phong-31-2025`) để link trang tỉnh không đổi. Chạy lại: 0 thay đổi.
+4. [`db-sync/dvhc/update-address-new-2026.sql`](../db-sync/dvhc/update-address-new-2026.sql): sửa `listing.address_new` — tên xã cũ → mới cho doanh nghiệp đang gắn đúng xã đó (10.858), "Tỉnh Bắc Ninh/Đồng Nai/Quảng Ninh" ở cuối địa chỉ → "Thành phố …" (24.061 / 66.271 / 21.830). `location_json` (dữ liệu gốc) không sửa.
+5. Reindex Elasticsearch `location`, `listing`. Backend giữ danh sách địa phương trong bộ nhớ 10 phút (`PublicLocationService.CACHE_TTL`), FE cache 5 phút: tên mới hiện sau tối đa ~15 phút.
+
+**Sao lưu:** schema `backup_dvhc_20261030`: `location` (3.355 dòng bộ mới trước khi sửa), `listing_address_new` (112.372 dòng `id, address_new` trước khi sửa). CSV bảng chuyển đổi trước khi sửa: xem git.
+
+**Link xã đổi tên:** `PublicLocationService.findNewByCode`: slug bộ mới không còn (`xa-bo-ha-07294-2025`) → đơn vị bộ mới cùng mã → FE chuyển hướng vĩnh viễn sang slug mới. Áp cho mọi lần đổi tên sau này, không cần bảng alias. Test `PublicLocationServiceTest` 10/10, `LocationFixPlannerTest` 6/6.
+
+#### Giao diện tỉnh thành theo 2 cấp tỉnh – xã, tra theo tên cũ (2026-10-30)
+
+FE chỉ còn dùng bộ mới (34 tỉnh, 3.321 phường, xã, đặc khu; không còn cấp huyện). Đơn vị cũ vẫn giữ trong DB để tra cứu và chuyển hướng.
+
+**Backend (`PublicLocationService`, `/api/public/v1/locations`):**
+
+| API | Việc |
+|---|---|
+| `GET /former?q=&size=` | Tìm theo tên **đơn vị cũ** (xã, quận/huyện, tỉnh trước 01/7/2025) trong `location_conversion`, kèm đơn vị mới hiện chứa nó (`targets`). Huyện cũ → các xã mới, nơi nhận nhiều xã cũ nhất trước. Bỏ đơn vị chỉ đổi cấp mà giữ tên riêng (Huyện Đông Anh → Xã Đông Anh: tìm thường đã ra). Tối đa 50. |
+| `GET /{slug}/origins` | Đơn vị cũ đã nhập vào một đơn vị mới: xã mới ← các xã cũ (`partial` = nhập một phần), tỉnh mới ← các tỉnh cũ. |
+| `GET /{slug}` (sửa) | Slug **đơn vị cũ** → trả đơn vị mới chứa nó (`newUnitOf`), FE chuyển hướng 301/308: xã cũ → xã mới; quận/huyện, tỉnh cũ → tỉnh mới; xã không có trong bảng → theo huyện, tỉnh chứa nó. Xã cũ bị chia: xã mới cùng tên riêng, không có thì nơi có **nhiều doanh nghiệp của xã cũ nhất** (đếm `rel_listing__location` gắn cả hai), vd Phường Dịch Vọng Hậu → Phường Cầu Giấy (1.184 DN) chứ không phải Nghĩa Đô (61). |
+
+Bảng chuyển đổi (~10.600 dòng) giữ trong bộ nhớ, đọc lại sau 10 phút như danh sách địa phương. Test `PublicLocationServiceTest` 13/13.
+
+**FE (`d:\nextyp-v2`):**
+
+| Chỗ | Thay đổi |
+|---|---|
+| `/tinh-thanh` (`components/location/LocationExplorer.tsx`) | Hero + ô tìm + gợi ý + số liệu (34 / 3.321 / số DN). Cây 2 cấp: 34 tỉnh bên trái (lọc không dấu, A–Z / nhiều DN, nhóm "Thành phố trực thuộc TW" 9 / "Tỉnh" 25, kèm mã), phường xã của tỉnh đang chọn bên phải (`?tinh=`, mặc định tỉnh nhiều DN nhất, dựng sẵn ở máy chủ). Tên tỉnh là link thật (Google đi theo), bấm thường chỉ chọn tại chỗ. `?q=`: danh sách đủ khu vực khớp + "theo tên cũ — nay thuộc" (chip link từng đơn vị mới). |
+| `components/location/LocationSearchBox.tsx` | Viết lại: gợi ý tức thì 2 nhóm (khu vực hiện hành; tên cũ trước 01/07/2025), ↑ ↓ Enter Esc, tô đậm đoạn khớp. Chỉ tìm bộ mới (trước tìm cả quận/huyện cũ, `generation=all`). |
+| `components/location/AreaGrid.tsx` | Lưới phường, xã, đặc khu: tab theo loại kèm số, lọc tên không dấu, sắp A–Z / nhiều DN, "chỉ nơi có doanh nghiệp"; nơi chưa có DN hiện mờ. Chưa lọc thì mọi link vẫn trong HTML. |
+| `/tinh-thanh/[slug]` (`components/location/LocationOverview.tsx`) | Đầu trang: loại (Phường/Xã/Đặc khu/Tỉnh/Thành phố trực thuộc TW), mã ĐVHC, thuộc tỉnh nào, số DN; xã: "hình thành từ 01/07/2025 trên cơ sở N đơn vị cũ" (một phần, quận/huyện cũ); tỉnh: các tỉnh cũ hợp nhất + `AreaGrid` đủ phường xã (trước chỉ hiện nơi có DN, dạng chip ở cuối trang). Thanh bên 34 tỉnh có ô lọc. |
+| `lib/location/units.ts`, `lib/location/load.ts` | Hàm thuần: loại đơn vị theo tiền tố, mã ở cuối slug, khớp đầu từ không dấu, đếm theo loại; tải tỉnh + phường xã + đơn vị cũ. |
+| `lib/seo/location-page.ts` | Thêm `origins`; `children` giữ đủ (không lọc nơi 0 DN). |
+
+Link cũ đã kiểm: `/tinh-thanh/quan-cau-giay-005` → `thanh-pho-ha-noi-01-2025`; `phuong-truc-bach-00004` → `phuong-ba-dinh-00004-2025`; `thanh-pho-thu-duc-769` → `tp-ho-chi-minh-79-2025`; `/nganh-nghe/{ngành}/tinh-thanh/phuong-dich-vong-hau-00167` → `…/phuong-cau-giay-00166-2025`.
+
+Còn lại: trang `SearchLocation.tsx` (giao diện WordPress cũ, chỉ dùng khi `NEXT_PUBLIC_API_SOURCE_TERMS≠new`) và `AlphabetFilterLocation` chưa xóa; sitemap làm lại sau.
+
+#### Trang quản trị: tra cứu đơn vị hành chính, bộ mới / bộ cũ tách riêng (2026-10-30)
+
+Menu Thực thể → Tỉnh thành → **Tra cứu đơn vị hành chính** (`/location/tree`, component `entities/location/lookup/LocationLookup`; trang cây chung `tree/` cũ đã xóa). Cùng kiểu với tra cứu mã ngành VSIC (mục trên).
+
+| Phần | Nội dung |
+|---|---|
+| 2 tab | **Địa giới mới** (từ 01/07/2025: 34 tỉnh, thành phố → 3.321 phường, xã, đặc khu) và **Địa giới cũ** (trước 01/07/2025: 63 tỉnh → quận, huyện, thị xã → phường, xã, thị trấn). `?generation=old`. Mỗi bộ tải 1 lần (`GET /api/location-index/all?generation=new|old`, ~3.400 / ~12.000 nút), tìm ngay trên trình duyệt. |
+| Số liệu | Đếm theo loại (Thành phố, Tỉnh, Quận, Huyện, Thị xã, Phường, Xã, Thị trấn, Đặc khu), số nơi có doanh nghiệp (bấm để lọc), số đơn vị **chưa có trong bảng chuyển đổi** (bấm để lọc, chỉ bộ cũ: 19 quận/huyện, 1.150 xã — thường đã giải thể/sáp nhập trước 2025 hoặc dữ liệu WordPress). |
+| Tìm | Tên không dấu, khớp đầu từ ("dich vong"); hoặc mã ĐVHC (01, 005, 00167) theo đầu mã. Khớp đúng nguyên mã thì mở luôn đơn vị đó. Không ra kết quả → nút "Tìm trong địa giới cũ/mới". `?q=`. |
+| Cây | Mã (theo thứ tự chính thức, hoặc sắp theo tên A–Z), tên, số đơn vị con, nhãn loại, số doanh nghiệp (link danh sách doanh nghiệp lọc theo cây), xem / sửa. Mở hết / Thu gọn. |
+| Cũ ↔ mới | Mở một đơn vị **mới**: "Hình thành từ N đơn vị cũ" (mã, tên, *một phần*, quận/huyện, tỉnh cũ; tỉnh mới: "Hợp nhất từ N tỉnh cũ") — `GET /api/location-index/origins/{id}`. Mở một đơn vị **cũ**: "Nay thuộc" / "Bị chia cho N đơn vị mới" (kèm số doanh nghiệp) — `GET /api/location-index/successors/{id}`. Bấm một mục → nhảy sang tab kia, mở sẵn tới đúng đơn vị và tô nổi. |
+
+Backend: `PublicLocationService.nodes` (DTO gọn `PublicLocationDTO.Node`: id, mã, tên, cấp, cha, số DN, `mapped`), `successors`; `Origin` thêm `id` (đơn vị cũ trong bảng `location`, null nếu không có) và `code` — API công khai `/locations/{slug}/origins` cũng trả thêm 2 trường này. Test: `PublicLocationServiceTest` 15/15, `location-lookup-tree.spec.ts` 5/5.
+
+#### FE: menu, trang tỉnh thành / ngành nghề rộng hết màn hình, đầu trang màu vàng (2026-10-30)
+
+| Chỗ | Thay đổi |
+|---|---|
+| `components/Header.tsx` | Menu chính: Giới Thiệu (menu con có thêm **Ngành Nghề**, **Tỉnh Thành** ngay sau "Về Chúng Tôi"), Sự kiện, **Doanh Nghiệp** (`/listing`), **Đăng Ký** (trước "Đăng Ký Trang Vàng"), Liên Hệ. Đang ở trang con (vd `/tinh-thanh/...`) thì mục cha "Giới Thiệu" sáng lên (`isItemActive`). Màn 1024–1279px: ẩn icon, chữ 14px. |
+| `components/MainContainer.tsx` (mới, dùng trong `app/layout.tsx`) | Khung nội dung mặc định vẫn `max-w-[1280px]`; riêng trang tổng `/tinh-thanh`, `/nganh-nghe`, `/listing` không bó khung để **dải vàng đầu trang tràn hết chiều ngang**; nội dung bên dưới tự thu về giữa `max-w-[1280px]`. Trang chi tiết giữ khung cũ. |
+| `components/common/YellowHero.tsx` (mới) | Đầu trang `/tinh-thanh`, `/nganh-nghe`: dải **vàng Trang Vàng** (gradient quanh `#FEDB00`, không họa tiết) tràn mép, thấp gọn (`py-6 md:py-8`), tiêu đề xanh đậm như logo, dòng nhỏ cam, ô số liệu trắng mờ; `HeroChip` cho nút gợi ý. `/listing`: khối tìm kiếm `SearchListing` thành dải cùng kiểu (bỏ bo góc), nằm trên cùng; breadcrumb, băng ngành và kết quả bên dưới trong khung 1280px. |
+| Breadcrumb | Bỏ khung `max-w-7xl` bên trong (vốn không tác dụng trong khung 1280px). Đã thử cho cả nội dung tràn ngang ở màn rộng: khó nhìn, bỏ — chỉ đầu trang tràn ngang. |
+
+Chỉnh tiếp (2026-10-30): chữ ở `/tinh-thanh`, `/nganh-nghe` tăng một bậc (11→12, 12→14, 14→16px…) trong `YellowHero`, `LocationExplorer`, `AreaGrid` (cả trang tỉnh chi tiết), `IndustryExplorer` — trước nhỏ hơn phần còn lại của website. Dải tìm kiếm vàng ở `/listing` cao thêm (`py-7 sm:py-10`).
+
+#### FE: thống nhất font chữ Inter, chữ trang chủ to hơn (2026-10-30)
+
+- **Một font cho toàn site: Inter** (next/font, subset vietnamese, `--font-inter`), đặt ở `body` trong `app/globals.css`. Bỏ Roboto Condensed (trước là font thân trang: chữ hẹp, cỡ 12–14px khó đọc) khỏi `app/layout.tsx`; các luật font riêng cho `.header`, `.yp-listing`, `.yp-search` gộp vào `body` (giữ class để chỗ khác vẫn dùng được).
+- **Trang chủ** (`PostGridHome`, `ArticleLayout`, `PostTabs`, `CategoriesGrid`, `FooterIntro`): chữ nhỏ tăng một bậc (12→14px, 14→15px); tiêu đề giữ nguyên. Khối "Doanh Nghiệp Nổi Bật" trên điện thoại: ẩn dòng mô tả, tiêu đề/nút gọn hơn cho khỏi bẻ dòng.
+- Inter rộng hơn Roboto Condensed: đã xem lại trang chủ, `/tinh-thanh`, `/nganh-nghe/{slug}`, `/listing/{slug}` (desktop + điện thoại), không tràn ngang.
+
+#### FE: đồng bộ ô tìm kiếm, làm lại header (2026-10-30)
+
+- **Ô tìm** `LocationSearchBox`, `IndustrySearchBox` (cả cỡ lớn ở `/tinh-thanh`, `/nganh-nghe` và cỡ nhỏ "Tìm ngành khác" ở trang ngành): cùng giao diện thanh tìm kiếm trang Doanh nghiệp (`SearchListing`) — thanh trắng bo góc, viền mảnh, đổ bóng; icon kính lúp xanh `#2733b2`; nút "Tìm kiếm" xanh `#2733b2` có icon (cỡ nhỏ: "Tìm"). Chỉ đổi markup/class, logic gợi ý, phím tắt, gửi tìm giữ nguyên. Nút gợi ý dưới ô: "Phổ biến:" + nút bo tròn trắng như trang Doanh nghiệp (`HeroChip`).
+- **Header** (`components/Header.tsx`): chữ menu 15–16px đậm, màu xanh đậm như logo, bỏ icon ở desktop; rê chuột / đang mở → nút bo tròn nền trắng; **Đăng Ký** ở cuối menu (`cta`): viền xanh mảnh, nền trắng mờ, cùng cỡ chữ các mục khác, rê chuột mới tô xanh (bản nền xanh đặc có icon trước đó trông quá to, đã bỏ); bảng menu con bo góc lớn, bóng rõ; logo 54px, thanh trên cao hơn chút, bóng nhẹ + viền mảnh. Điện thoại: chữ 16px đậm, Đăng Ký cùng kiểu viền xanh ở cuối danh sách. Thứ tự: Giới Thiệu · Sự kiện · Doanh Nghiệp · Liên Hệ · [Đăng Ký]. Đủ chỗ ở 1024px.

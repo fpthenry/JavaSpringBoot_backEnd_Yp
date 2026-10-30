@@ -85,6 +85,9 @@ TODO            text
 *.class         binary
 *.jar           binary
 *.war           binary
+# Sửa tay: bảng tính (ops/vsic/*.xlsx) là file nhị phân, không đổi ký tự xuống dòng
+*.xlsx          binary
+*.xls           binary
 
 ## LINTERS
 .csslintrc      text

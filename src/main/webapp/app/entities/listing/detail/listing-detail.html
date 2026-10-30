@@ -354,7 +354,11 @@
                 [routerLink]="['/listing']"
                 [queryParams]="categoryQueryParams(category.id)"
                 [title]="'javaSpringBootBackEndApp.listing.detail.sameCategory' | translate"
-                >{{ decode(category.name) }}</a
+              >
+                @if (category.code) {
+                  <span class="font-monospace fw-semibold me-1">{{ category.code }}</span>
+                }
+                {{ decode(category.name) }}</a
               >
             } @empty {
               <div class="empty-hint">

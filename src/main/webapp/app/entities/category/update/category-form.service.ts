@@ -4,6 +4,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import dayjs from 'dayjs/esm';
 
 import { DATE_TIME_FORMAT } from 'app/config';
+import { VSIC_CODE_PATTERN } from '../category-code';
 import { ICategory, NewCategory } from '../category.model';
 
 /**
@@ -33,11 +34,11 @@ type CategoryFormDefaults = Pick<NewCategory, 'id' | 'createdAt' | 'updatedAt' |
 
 type CategoryFormGroupContent = {
   id: FormControl<CategoryFormRawValue['id'] | NewCategory['id']>;
-  wpTermId: FormControl<CategoryFormRawValue['wpTermId']>;
+  code: FormControl<CategoryFormRawValue['code']>;
+  level: FormControl<CategoryFormRawValue['level']>;
   name: FormControl<CategoryFormRawValue['name']>;
   slug: FormControl<CategoryFormRawValue['slug']>;
   description: FormControl<CategoryFormRawValue['description']>;
-  icon: FormControl<CategoryFormRawValue['icon']>;
   listingCount: FormControl<CategoryFormRawValue['listingCount']>;
   createdAt: FormControl<CategoryFormRawValue['createdAt']>;
   updatedAt: FormControl<CategoryFormRawValue['updatedAt']>;
@@ -63,7 +64,11 @@ export class CategoryFormService {
           validators: [Validators.required],
         },
       ),
-      wpTermId: new FormControl(categoryRawValue.wpTermId),
+      // Sửa tay: mã ngành VSIC 2025 bắt buộc, đúng dạng; cấp chỉ để hiện (máy chủ tự suy từ mã)
+      code: new FormControl(categoryRawValue.code, {
+        validators: [Validators.required, Validators.maxLength(10), Validators.pattern(VSIC_CODE_PATTERN)],
+      }),
+      level: new FormControl({ value: categoryRawValue.level, disabled: true }),
       name: new FormControl(categoryRawValue.name, {
         validators: [Validators.required, Validators.maxLength(255)],
       }),
@@ -71,9 +76,6 @@ export class CategoryFormService {
         validators: [Validators.maxLength(255)],
       }),
       description: new FormControl(categoryRawValue.description),
-      icon: new FormControl(categoryRawValue.icon, {
-        validators: [Validators.maxLength(255)],
-      }),
       listingCount: new FormControl(categoryRawValue.listingCount),
       createdAt: new FormControl(categoryRawValue.createdAt),
       updatedAt: new FormControl(categoryRawValue.updatedAt),
@@ -91,6 +93,7 @@ export class CategoryFormService {
     form.reset({
       ...categoryRawValue,
       id: { value: categoryRawValue.id, disabled: true },
+      level: { value: categoryRawValue.level, disabled: true },
     });
   }
 

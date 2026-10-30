@@ -35,5 +35,7 @@
     <include file="config/liquibase/changelog/20261005075252_updated_entity_constraints_BlogPost.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261026090000_listing_import.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20261027100000_disable_default_user.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261029100000_category_vsic2025.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261030090000_category_slug_redirect.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 </databaseChangeLog>

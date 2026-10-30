@@ -20,11 +20,11 @@ describe('Category Form Service', () => {
         expect(formGroup.controls).toEqual(
           expect.objectContaining({
             id: expect.any(Object),
-            wpTermId: expect.any(Object),
+            code: expect.any(Object),
+            level: expect.any(Object),
             name: expect.any(Object),
             slug: expect.any(Object),
             description: expect.any(Object),
-            icon: expect.any(Object),
             listingCount: expect.any(Object),
             createdAt: expect.any(Object),
             updatedAt: expect.any(Object),
@@ -40,11 +40,11 @@ describe('Category Form Service', () => {
         expect(formGroup.controls).toEqual(
           expect.objectContaining({
             id: expect.any(Object),
-            wpTermId: expect.any(Object),
+            code: expect.any(Object),
+            level: expect.any(Object),
             name: expect.any(Object),
             slug: expect.any(Object),
             description: expect.any(Object),
-            icon: expect.any(Object),
             listingCount: expect.any(Object),
             createdAt: expect.any(Object),
             updatedAt: expect.any(Object),

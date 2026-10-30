@@ -47,11 +47,11 @@ public class CategoryAsserts {
     public static void assertCategoryUpdatableFieldsEquals(Category expected, Category actual) {
         assertThat(actual)
             .as("Verify Category relevant properties")
-            .satisfies(a -> assertThat(a.getWpTermId()).as("check wpTermId").isEqualTo(expected.getWpTermId()))
+            .satisfies(a -> assertThat(a.getCode()).as("check code").isEqualTo(expected.getCode()))
+            .satisfies(a -> assertThat(a.getLevel()).as("check level").isEqualTo(expected.getLevel()))
             .satisfies(a -> assertThat(a.getName()).as("check name").isEqualTo(expected.getName()))
             .satisfies(a -> assertThat(a.getSlug()).as("check slug").isEqualTo(expected.getSlug()))
             .satisfies(a -> assertThat(a.getDescription()).as("check description").isEqualTo(expected.getDescription()))
-            .satisfies(a -> assertThat(a.getIcon()).as("check icon").isEqualTo(expected.getIcon()))
             .satisfies(a -> assertThat(a.getListingCount()).as("check listingCount").isEqualTo(expected.getListingCount()))
             .satisfies(a -> assertThat(a.getCreatedAt()).as("check createdAt").isEqualTo(expected.getCreatedAt()))
             .satisfies(a -> assertThat(a.getUpdatedAt()).as("check updatedAt").isEqualTo(expected.getUpdatedAt()));

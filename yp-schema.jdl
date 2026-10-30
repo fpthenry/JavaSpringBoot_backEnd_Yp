@@ -91,14 +91,15 @@ entity Listing(listing) {
 // 2. TAXONOMY
 // =====================================================
 
-/** Ngành nghề (bảng category) */
+/** Ngành nghề (bảng category), theo hệ thống ngành kinh tế VSIC 2025 */
 entity Category(category) {
-    /** wp_terms.term_id */
-    wpTermId Long unique
+    /** Mã ngành VSIC 2025: A–V (cấp 1) hoặc 2–5 chữ số (cấp 2–5) */
+    code String required unique maxlength(10)
+    /** Cấp trong hệ thống ngành (1–5), suy ra từ mã */
+    level Integer
     name String required maxlength(255)
     slug String maxlength(255)
     description TextBlob
-    icon String maxlength(255)
     listingCount Integer
     createdAt Instant
     updatedAt Instant

@@ -3,15 +3,21 @@
     "changelogDate": "20261001032528"
   },
   "applications": ["*"],
-  "documentation": "Ngành nghề (bảng category)",
+  "documentation": "Ngành nghề (bảng category), theo hệ thống ngành kinh tế VSIC 2025",
   "dto": "mapstruct",
   "entityTableName": "category",
   "fields": [
     {
-      "documentation": "wp_terms.term_id",
-      "fieldName": "wpTermId",
-      "fieldType": "Long",
-      "fieldValidateRules": ["unique"]
+      "documentation": "Mã ngành VSIC 2025: A–V (cấp 1) hoặc 2–5 chữ số (cấp 2–5)",
+      "fieldName": "code",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "unique", "maxlength"],
+      "fieldValidateRulesMaxlength": "10"
+    },
+    {
+      "documentation": "Cấp trong hệ thống ngành (1–5), suy ra từ mã",
+      "fieldName": "level",
+      "fieldType": "Integer"
     },
     {
       "fieldName": "name",
@@ -28,12 +34,6 @@
     {
       "fieldName": "description",
       "fieldType": "TextBlob"
-    },
-    {
-      "fieldName": "icon",
-      "fieldType": "String",
-      "fieldValidateRules": ["maxlength"],
-      "fieldValidateRulesMaxlength": "255"
     },
     {
       "fieldName": "listingCount",

@@ -12,20 +12,20 @@ public class CategoryTestSamples {
     private static final AtomicInteger intCount = new AtomicInteger(random.nextInt() + 2 * Short.MAX_VALUE);
 
     public static Category getCategorySample1() {
-        return new Category().id(1L).wpTermId(1L).name("name1").slug("slug1").icon("icon1").listingCount(1);
+        return new Category().id(1L).code("code1").level(1).name("name1").slug("slug1").listingCount(1);
     }
 
     public static Category getCategorySample2() {
-        return new Category().id(2L).wpTermId(2L).name("name2").slug("slug2").icon("icon2").listingCount(2);
+        return new Category().id(2L).code("code2").level(2).name("name2").slug("slug2").listingCount(2);
     }
 
     public static Category getCategoryRandomSampleGenerator() {
         return new Category()
             .id(longCount.incrementAndGet())
-            .wpTermId(longCount.incrementAndGet())
+            .code(UUID.randomUUID().toString())
+            .level(intCount.incrementAndGet())
             .name(UUID.randomUUID().toString())
             .slug(UUID.randomUUID().toString())
-            .icon(UUID.randomUUID().toString())
             .listingCount(intCount.incrementAndGet());
     }
 }

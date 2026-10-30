@@ -53,9 +53,10 @@ import tools.jackson.databind.ObjectMapper;
 @WithMockUser(authorities = AuthoritiesConstants.ADMIN) // Sửa tay: API dữ liệu chỉ cho ROLE_ADMIN
 class CategoryResourceIT {
 
-    private static final Long DEFAULT_WP_TERM_ID = 1L;
-    private static final Long UPDATED_WP_TERM_ID = 2L;
-    private static final Long SMALLER_WP_TERM_ID = 1L - 1L;
+    // Sửa tay: cấp do máy chủ suy ra từ mã (4632 → 4, 46321 → 5), hai hằng số phải khớp nhau
+    private static final Integer DEFAULT_LEVEL = 4;
+    private static final Integer UPDATED_LEVEL = 5;
+    private static final Integer SMALLER_LEVEL = 4 - 1;
 
     private static final String DEFAULT_NAME = "AAAAAAAAAA";
     private static final String UPDATED_NAME = "BBBBBBBBBB";
@@ -66,8 +67,8 @@ class CategoryResourceIT {
     private static final String DEFAULT_DESCRIPTION = "AAAAAAAAAA";
     private static final String UPDATED_DESCRIPTION = "BBBBBBBBBB";
 
-    private static final String DEFAULT_ICON = "AAAAAAAAAA";
-    private static final String UPDATED_ICON = "BBBBBBBBBB";
+    private static final String DEFAULT_CODE = "4632";
+    private static final String UPDATED_CODE = "46321";
 
     private static final Integer DEFAULT_LISTING_COUNT = 1;
     private static final Integer UPDATED_LISTING_COUNT = 2;
@@ -122,11 +123,11 @@ class CategoryResourceIT {
      */
     public static Category createEntity() {
         return new Category()
-            .wpTermId(DEFAULT_WP_TERM_ID)
+            .level(DEFAULT_LEVEL)
             .name(DEFAULT_NAME)
             .slug(DEFAULT_SLUG)
             .description(DEFAULT_DESCRIPTION)
-            .icon(DEFAULT_ICON)
+            .code(DEFAULT_CODE)
             .listingCount(DEFAULT_LISTING_COUNT)
             .createdAt(DEFAULT_CREATED_AT)
             .updatedAt(DEFAULT_UPDATED_AT);
@@ -140,11 +141,11 @@ class CategoryResourceIT {
      */
     public static Category createUpdatedEntity() {
         return new Category()
-            .wpTermId(UPDATED_WP_TERM_ID)
+            .level(UPDATED_LEVEL)
             .name(UPDATED_NAME)
             .slug(UPDATED_SLUG)
             .description(UPDATED_DESCRIPTION)
-            .icon(UPDATED_ICON)
+            .code(UPDATED_CODE)
             .listingCount(UPDATED_LISTING_COUNT)
             .createdAt(UPDATED_CREATED_AT)
             .updatedAt(UPDATED_UPDATED_AT);
@@ -219,6 +220,55 @@ class CategoryResourceIT {
 
     @Test
     @Transactional
+    void checkCodeIsRequired() throws Exception {
+        long databaseSizeBeforeTest = getRepositoryCount();
+        // set the field null
+        category.setCode(null);
+
+        // Create the Category, which fails.
+        CategoryDTO categoryDTO = categoryMapper.toDto(category);
+
+        restCategoryMockMvc
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(categoryDTO)))
+            .andExpect(status().isBadRequest());
+
+        assertSameRepositoryCount(databaseSizeBeforeTest);
+    }
+
+    /** Sửa tay: mã ngành VSIC không trùng (400 codeexists), sai dạng thì 400; cấp do máy chủ suy ra từ mã. */
+    @Test
+    @Transactional
+    void createCategoryWithDuplicateOrInvalidCode() throws Exception {
+        insertedCategory = categoryRepository.saveAndFlush(category);
+        long databaseSizeBeforeTest = getRepositoryCount();
+
+        CategoryDTO duplicate = categoryMapper.toDto(createUpdatedEntity().code(DEFAULT_CODE));
+        restCategoryMockMvc
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(duplicate)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("error.codeexists"));
+
+        CategoryDTO invalid = categoryMapper.toDto(createUpdatedEntity().code("4632A"));
+        restCategoryMockMvc
+            .perform(post(ENTITY_API_URL).contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsBytes(invalid)))
+            .andExpect(status().isBadRequest());
+
+        assertSameRepositoryCount(databaseSizeBeforeTest);
+    }
+
+    @Test
+    void levelOfCode() {
+        assertThat(Category.levelOf("G")).isEqualTo(1);
+        assertThat(Category.levelOf("46")).isEqualTo(2);
+        assertThat(Category.levelOf("463")).isEqualTo(3);
+        assertThat(Category.levelOf("4632")).isEqualTo(4);
+        assertThat(Category.levelOf("46321")).isEqualTo(5);
+        assertThat(Category.levelOf("463210")).isNull();
+        assertThat(Category.levelOf(null)).isNull();
+    }
+
+    @Test
+    @Transactional
     void checkNameIsRequired() throws Exception {
         long databaseSizeBeforeTest = getRepositoryCount();
         int searchDatabaseSizeBefore = IterableUtil.sizeOf(categorySearchRepository.findAll());
@@ -250,11 +300,11 @@ class CategoryResourceIT {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.[*].id").value(hasItem(category.getId().intValue())))
-            .andExpect(jsonPath("$.[*].wpTermId").value(hasItem(DEFAULT_WP_TERM_ID.intValue())))
+            .andExpect(jsonPath("$.[*].level").value(hasItem(DEFAULT_LEVEL.intValue())))
             .andExpect(jsonPath("$.[*].name").value(hasItem(DEFAULT_NAME)))
             .andExpect(jsonPath("$.[*].slug").value(hasItem(DEFAULT_SLUG)))
             .andExpect(jsonPath("$.[*].description").value(hasItem(DEFAULT_DESCRIPTION)))
-            .andExpect(jsonPath("$.[*].icon").value(hasItem(DEFAULT_ICON)))
+            .andExpect(jsonPath("$.[*].code").value(hasItem(DEFAULT_CODE)))
             .andExpect(jsonPath("$.[*].listingCount").value(hasItem(DEFAULT_LISTING_COUNT)))
             .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
             .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));
@@ -289,11 +339,11 @@ class CategoryResourceIT {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(category.getId().intValue()))
-            .andExpect(jsonPath("$.wpTermId").value(DEFAULT_WP_TERM_ID.intValue()))
+            .andExpect(jsonPath("$.level").value(DEFAULT_LEVEL.intValue()))
             .andExpect(jsonPath("$.name").value(DEFAULT_NAME))
             .andExpect(jsonPath("$.slug").value(DEFAULT_SLUG))
             .andExpect(jsonPath("$.description").value(DEFAULT_DESCRIPTION))
-            .andExpect(jsonPath("$.icon").value(DEFAULT_ICON))
+            .andExpect(jsonPath("$.code").value(DEFAULT_CODE))
             .andExpect(jsonPath("$.listingCount").value(DEFAULT_LISTING_COUNT))
             .andExpect(jsonPath("$.createdAt").value(DEFAULT_CREATED_AT.toString()))
             .andExpect(jsonPath("$.updatedAt").value(DEFAULT_UPDATED_AT.toString()));
@@ -316,72 +366,72 @@ class CategoryResourceIT {
 
     @Test
     @Transactional
-    void getAllCategoriesByWpTermIdIsEqualToSomething() throws Exception {
+    void getAllCategoriesByLevelIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where wpTermId equals to
-        defaultCategoryFiltering("wpTermId.equals=" + DEFAULT_WP_TERM_ID, "wpTermId.equals=" + UPDATED_WP_TERM_ID);
+        // Get all the categoryList where level equals to
+        defaultCategoryFiltering("level.equals=" + DEFAULT_LEVEL, "level.equals=" + UPDATED_LEVEL);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByWpTermIdIsInShouldWork() throws Exception {
+    void getAllCategoriesByLevelIsInShouldWork() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where wpTermId in
-        defaultCategoryFiltering("wpTermId.in=" + DEFAULT_WP_TERM_ID + "," + UPDATED_WP_TERM_ID, "wpTermId.in=" + UPDATED_WP_TERM_ID);
+        // Get all the categoryList where level in
+        defaultCategoryFiltering("level.in=" + DEFAULT_LEVEL + "," + UPDATED_LEVEL, "level.in=" + UPDATED_LEVEL);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByWpTermIdIsNullOrNotNull() throws Exception {
+    void getAllCategoriesByLevelIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where wpTermId is not null
-        defaultCategoryFiltering("wpTermId.specified=true", "wpTermId.specified=false");
+        // Get all the categoryList where level is not null
+        defaultCategoryFiltering("level.specified=true", "level.specified=false");
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByWpTermIdIsGreaterThanOrEqualToSomething() throws Exception {
+    void getAllCategoriesByLevelIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where wpTermId is greater than or equal to
-        defaultCategoryFiltering("wpTermId.greaterThanOrEqual=" + DEFAULT_WP_TERM_ID, "wpTermId.greaterThanOrEqual=" + UPDATED_WP_TERM_ID);
+        // Get all the categoryList where level is greater than or equal to
+        defaultCategoryFiltering("level.greaterThanOrEqual=" + DEFAULT_LEVEL, "level.greaterThanOrEqual=" + UPDATED_LEVEL);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByWpTermIdIsLessThanOrEqualToSomething() throws Exception {
+    void getAllCategoriesByLevelIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where wpTermId is less than or equal to
-        defaultCategoryFiltering("wpTermId.lessThanOrEqual=" + DEFAULT_WP_TERM_ID, "wpTermId.lessThanOrEqual=" + SMALLER_WP_TERM_ID);
+        // Get all the categoryList where level is less than or equal to
+        defaultCategoryFiltering("level.lessThanOrEqual=" + DEFAULT_LEVEL, "level.lessThanOrEqual=" + SMALLER_LEVEL);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByWpTermIdIsLessThanSomething() throws Exception {
+    void getAllCategoriesByLevelIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where wpTermId is less than
-        defaultCategoryFiltering("wpTermId.lessThan=" + UPDATED_WP_TERM_ID, "wpTermId.lessThan=" + DEFAULT_WP_TERM_ID);
+        // Get all the categoryList where level is less than
+        defaultCategoryFiltering("level.lessThan=" + UPDATED_LEVEL, "level.lessThan=" + DEFAULT_LEVEL);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByWpTermIdIsGreaterThanSomething() throws Exception {
+    void getAllCategoriesByLevelIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where wpTermId is greater than
-        defaultCategoryFiltering("wpTermId.greaterThan=" + SMALLER_WP_TERM_ID, "wpTermId.greaterThan=" + DEFAULT_WP_TERM_ID);
+        // Get all the categoryList where level is greater than
+        defaultCategoryFiltering("level.greaterThan=" + SMALLER_LEVEL, "level.greaterThan=" + DEFAULT_LEVEL);
     }
 
     @Test
@@ -486,52 +536,52 @@ class CategoryResourceIT {
 
     @Test
     @Transactional
-    void getAllCategoriesByIconIsEqualToSomething() throws Exception {
+    void getAllCategoriesByCodeIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where icon equals to
-        defaultCategoryFiltering("icon.equals=" + DEFAULT_ICON, "icon.equals=" + UPDATED_ICON);
+        // Get all the categoryList where code equals to
+        defaultCategoryFiltering("code.equals=" + DEFAULT_CODE, "code.equals=" + UPDATED_CODE);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByIconIsInShouldWork() throws Exception {
+    void getAllCategoriesByCodeIsInShouldWork() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where icon in
-        defaultCategoryFiltering("icon.in=" + DEFAULT_ICON + "," + UPDATED_ICON, "icon.in=" + UPDATED_ICON);
+        // Get all the categoryList where code in
+        defaultCategoryFiltering("code.in=" + DEFAULT_CODE + "," + UPDATED_CODE, "code.in=" + UPDATED_CODE);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByIconIsNullOrNotNull() throws Exception {
+    void getAllCategoriesByCodeIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where icon is not null
-        defaultCategoryFiltering("icon.specified=true", "icon.specified=false");
+        // Get all the categoryList where code is not null
+        defaultCategoryFiltering("code.specified=true", "code.specified=false");
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByIconContainsSomething() throws Exception {
+    void getAllCategoriesByCodeContainsSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where icon contains
-        defaultCategoryFiltering("icon.contains=" + DEFAULT_ICON, "icon.contains=" + UPDATED_ICON);
+        // Get all the categoryList where code contains
+        defaultCategoryFiltering("code.contains=" + DEFAULT_CODE, "code.contains=" + UPDATED_CODE);
     }
 
     @Test
     @Transactional
-    void getAllCategoriesByIconNotContainsSomething() throws Exception {
+    void getAllCategoriesByCodeNotContainsSomething() throws Exception {
         // Initialize the database
         insertedCategory = categoryRepository.saveAndFlush(category);
 
-        // Get all the categoryList where icon does not contain
-        defaultCategoryFiltering("icon.doesNotContain=" + UPDATED_ICON, "icon.doesNotContain=" + DEFAULT_ICON);
+        // Get all the categoryList where code does not contain
+        defaultCategoryFiltering("code.doesNotContain=" + UPDATED_CODE, "code.doesNotContain=" + DEFAULT_CODE);
     }
 
     @Test
@@ -679,7 +729,8 @@ class CategoryResourceIT {
         Category parent;
         if (TestUtil.findAll(em, Category.class).isEmpty()) {
             categoryRepository.saveAndFlush(category);
-            parent = CategoryResourceIT.createEntity();
+            // Sửa tay: mã ngành không được trùng với ngành đang test
+            parent = CategoryResourceIT.createEntity().code("46").level(2);
         } else {
             parent = TestUtil.findAll(em, Category.class).get(0);
         }
@@ -731,11 +782,11 @@ class CategoryResourceIT {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.[*].id").value(hasItem(category.getId().intValue())))
-            .andExpect(jsonPath("$.[*].wpTermId").value(hasItem(DEFAULT_WP_TERM_ID.intValue())))
+            .andExpect(jsonPath("$.[*].level").value(hasItem(DEFAULT_LEVEL.intValue())))
             .andExpect(jsonPath("$.[*].name").value(hasItem(DEFAULT_NAME)))
             .andExpect(jsonPath("$.[*].slug").value(hasItem(DEFAULT_SLUG)))
             .andExpect(jsonPath("$.[*].description").value(hasItem(DEFAULT_DESCRIPTION)))
-            .andExpect(jsonPath("$.[*].icon").value(hasItem(DEFAULT_ICON)))
+            .andExpect(jsonPath("$.[*].code").value(hasItem(DEFAULT_CODE)))
             .andExpect(jsonPath("$.[*].listingCount").value(hasItem(DEFAULT_LISTING_COUNT)))
             .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
             .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));
@@ -789,11 +840,11 @@ class CategoryResourceIT {
         // Disconnect from session so that the updates on updatedCategory are not directly saved in db
         em.detach(updatedCategory);
         updatedCategory
-            .wpTermId(UPDATED_WP_TERM_ID)
+            .level(UPDATED_LEVEL)
             .name(UPDATED_NAME)
             .slug(UPDATED_SLUG)
             .description(UPDATED_DESCRIPTION)
-            .icon(UPDATED_ICON)
+            .code(UPDATED_CODE)
             .listingCount(UPDATED_LISTING_COUNT)
             .createdAt(UPDATED_CREATED_AT)
             .updatedAt(UPDATED_UPDATED_AT);
@@ -907,11 +958,11 @@ class CategoryResourceIT {
         partialUpdatedCategory.setId(category.getId());
 
         partialUpdatedCategory
-            .wpTermId(UPDATED_WP_TERM_ID)
+            .level(UPDATED_LEVEL)
             .name(UPDATED_NAME)
             .slug(UPDATED_SLUG)
             .description(UPDATED_DESCRIPTION)
-            .icon(UPDATED_ICON)
+            .code(UPDATED_CODE)
             .updatedAt(UPDATED_UPDATED_AT);
 
         restCategoryMockMvc
@@ -941,11 +992,11 @@ class CategoryResourceIT {
         partialUpdatedCategory.setId(category.getId());
 
         partialUpdatedCategory
-            .wpTermId(UPDATED_WP_TERM_ID)
+            .level(UPDATED_LEVEL)
             .name(UPDATED_NAME)
             .slug(UPDATED_SLUG)
             .description(UPDATED_DESCRIPTION)
-            .icon(UPDATED_ICON)
+            .code(UPDATED_CODE)
             .listingCount(UPDATED_LISTING_COUNT)
             .createdAt(UPDATED_CREATED_AT)
             .updatedAt(UPDATED_UPDATED_AT);
@@ -1071,11 +1122,11 @@ class CategoryResourceIT {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.[*].id").value(hasItem(category.getId().intValue())))
-            .andExpect(jsonPath("$.[*].wpTermId").value(hasItem(DEFAULT_WP_TERM_ID.intValue())))
+            .andExpect(jsonPath("$.[*].level").value(hasItem(DEFAULT_LEVEL.intValue())))
             .andExpect(jsonPath("$.[*].name").value(hasItem(DEFAULT_NAME)))
             .andExpect(jsonPath("$.[*].slug").value(hasItem(DEFAULT_SLUG)))
             .andExpect(jsonPath("$.[*].description").value(hasItem(DEFAULT_DESCRIPTION.toString())))
-            .andExpect(jsonPath("$.[*].icon").value(hasItem(DEFAULT_ICON)))
+            .andExpect(jsonPath("$.[*].code").value(hasItem(DEFAULT_CODE)))
             .andExpect(jsonPath("$.[*].listingCount").value(hasItem(DEFAULT_LISTING_COUNT)))
             .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
             .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())));

@@ -37,7 +37,7 @@ export interface IListing {
   createdAt?: dayjs.Dayjs | null;
   updatedAt?: dayjs.Dayjs | null;
   esIndexed?: boolean | null;
-  categories?: Pick<ICategory, 'id' | 'name'>[] | null;
+  categories?: Pick<ICategory, 'id' | 'name' | 'code'>[] | null;
   locations?: Pick<ILocation, 'id' | 'name'>[] | null;
 }
 

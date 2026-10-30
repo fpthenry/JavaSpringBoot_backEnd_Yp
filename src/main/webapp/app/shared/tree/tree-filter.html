@@ -9,7 +9,7 @@
       >
         <option [ngValue]="null">{{ placeholder($index) | translate }}</option>
         @for (option of level.options; track option.id) {
-          <option [ngValue]="option.id">{{ option.name }}</option>
+          <option [ngValue]="option.id">{{ option.code ? option.code + ' · ' : '' }}{{ option.name }}</option>
         }
       </select>
     </div>

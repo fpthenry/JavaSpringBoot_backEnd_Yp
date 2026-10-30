@@ -11,13 +11,15 @@ const categoryRoute: Routes = [
     path: '',
     loadComponent: () => import('./list/category').then(m => m.Category),
     data: {
-      defaultSort: `id,${ASC}`,
+      // Sửa tay: xếp theo mã ngành VSIC (A, 01, 011, 0111, 01110...)
+      defaultSort: `code,${ASC}`,
     },
     canActivate: [userRouteAccessService],
   },
   {
+    // Sửa tay: trang tra cứu mã ngành VSIC dạng cây (giữ đường dẫn /category/tree cho menu, link cũ)
     path: 'tree',
-    loadComponent: () => import('./tree/category-tree').then(m => m.CategoryTree),
+    loadComponent: () => import('./lookup/category-lookup').then(m => m.CategoryLookup),
     canActivate: [userRouteAccessService],
   },
   {

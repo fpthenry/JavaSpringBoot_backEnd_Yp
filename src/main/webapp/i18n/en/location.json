@@ -79,6 +79,37 @@
         "viewListings": "View businesses here (including sub-units)",
         "notFound": "No locations found",
         "treeView": "Tree view"
+      },
+      "lookup": {
+        "title": "Administrative unit lookup",
+        "subtitle": "New units (since 01/07/2025, 2 levels) and old units (3 levels) are kept apart. Type a name (accents optional) or a unit code; expand a unit to see what it was formed from / where it belongs now.",
+        "tabNew": "New units",
+        "tabNewHint": "Since 01/07/2025 · province → ward, commune, special zone",
+        "tabOld": "Old units",
+        "tabOldHint": "Before 01/07/2025 · province → district → ward, commune",
+        "searchPlaceholder": "Name (accents optional) or administrative code...",
+        "sort": "Sort",
+        "sortCode": "By code",
+        "sortName": "By name A–Z",
+        "expandAll": "Expand all",
+        "collapseAll": "Collapse",
+        "filterListings": "With businesses",
+        "filterUnmapped": "Not in conversion table",
+        "unmapped": "Not converted",
+        "unmappedHint": "Old units missing from the 2025 conversion table: usually merged or dissolved before 2025, or legacy WordPress data. Website links redirect by the containing district or province.",
+        "matches": "{{ count }} units match “{{ query }}”",
+        "noMatch": "No unit matches “{{ query }}” in this set.",
+        "tryOld": "Search old units",
+        "tryNew": "Search new units",
+        "listings": "Businesses here",
+        "origins": "Formed from {{ count }} old units:",
+        "originsProvince": "Merged from {{ count }} old provinces:",
+        "partial": "partly",
+        "notInTable": "Not in the location table",
+        "noOrigins": "Not in the conversion table.",
+        "successors": "Now part of ({{ count }}):",
+        "split": "Split into {{ count }} new units:",
+        "noSuccessors": "Not in the 2025 conversion table (website redirects by the containing district or province)."
       }
     }
   }

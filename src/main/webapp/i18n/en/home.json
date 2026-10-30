@@ -25,7 +25,7 @@
       "title": "Browse",
       "categoryIndex": "Industry index A–Z",
       "locationIndex": "Location index A–Z",
-      "categoryTree": "Industry tree",
+      "categoryTree": "Industry code lookup (VSIC)",
       "locationTree": "Administrative units",
       "api": "API documentation"
     }

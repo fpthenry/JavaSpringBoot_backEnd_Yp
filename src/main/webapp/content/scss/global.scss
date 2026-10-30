@@ -671,6 +671,28 @@ a.tree-path-node:hover {
   color: var(--bs-secondary-color);
 }
 
+/* Mã ngành VSIC 2025 (G, 46, 463, 4632, 46321) đứng trước tên ngành: chữ đều, nền nhạt */
+.vsic-code {
+  display: inline-block;
+  min-width: 2.25em;
+  padding: 0.05em 0.4em;
+  border-radius: 0.3rem;
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  color: var(--bs-primary-text-emphasis);
+  font-family: var(--bs-font-monospace);
+  font-size: 0.85em;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: 0.08em;
+  white-space: nowrap;
+}
+
+/* Cấp 1 (chữ cái) nổi hơn: đầu nhóm ngành */
+.vsic-code.vsic-level-1 {
+  background: var(--bs-primary);
+  color: #fff;
+}
+
 /* Trang xem dùng chung (doanh nghiệp, ngành nghề…): khối đầu trang, gợi ý trống, danh sách thông tin, thanh dưới trên điện thoại */
 
 /* ---------- Khối đầu trang ---------- */

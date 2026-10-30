@@ -42,7 +42,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDTO save(CategoryDTO categoryDTO) {
         LOG.debug("Request to save Category : {}", categoryDTO);
-        Category category = categoryMapper.toEntity(categoryDTO);
+        Category category = withLevel(categoryMapper.toEntity(categoryDTO));
         category = categoryRepository.save(category);
         categorySearchRepository.index(category);
         return categoryMapper.toDto(category);
@@ -51,7 +51,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDTO update(CategoryDTO categoryDTO) {
         LOG.debug("Request to update Category : {}", categoryDTO);
-        Category category = categoryMapper.toEntity(categoryDTO);
+        Category category = withLevel(categoryMapper.toEntity(categoryDTO));
         category = categoryRepository.save(category);
         categorySearchRepository.index(category);
         return categoryMapper.toDto(category);
@@ -66,7 +66,7 @@ public class CategoryServiceImpl implements CategoryService {
             .map(existingCategory -> {
                 categoryMapper.partialUpdate(existingCategory, categoryDTO);
 
-                return existingCategory;
+                return withLevel(existingCategory);
             })
             .map(categoryRepository::save)
             .map(savedCategory -> {
@@ -74,6 +74,15 @@ public class CategoryServiceImpl implements CategoryService {
                 return savedCategory;
             })
             .map(categoryMapper::toDto);
+    }
+
+    /** Sửa tay: mã ngành viết hoa, bỏ khoảng trắng; cấp luôn suy ra từ mã (không nhận cấp gửi lên). */
+    private static Category withLevel(Category category) {
+        if (category.getCode() != null) {
+            category.setCode(category.getCode().trim().toUpperCase(java.util.Locale.ROOT));
+        }
+        category.setLevel(Category.levelOf(category.getCode()));
+        return category;
     }
 
     public Page<CategoryDTO> findAllWithEagerRelationships(Pageable pageable) {

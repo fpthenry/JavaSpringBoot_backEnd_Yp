@@ -77,11 +77,36 @@ public class PublicCategoryResource {
             .body(categoryService.categories(letter, q, hideEmpty, minCount, parent, pageable));
     }
 
+    @GetMapping("/all")
+    @Operation(
+        summary = "Mọi ngành nghề (cây VSIC 2025), xếp theo mã",
+        description = "Cho trang tra cứu ngành nghề của FE: dựng cây A–V → 2, 3, 4, 5 chữ số và gợi ý khi gõ, không cần gọi " +
+            "lại. Mỗi ngành: id, code, name, slug, level, parentId, parentName, listingCount (tính cả ngành con); không kèm mô " +
+            "tả (lấy ở /{slugOrId}). Khoảng 1.600 dòng."
+    )
+    public ResponseEntity<List<PublicCategoryDTO>> getAllCategories() {
+        return ResponseEntity.ok().cacheControl(JSON_CACHE).body(categoryService.allByCode());
+    }
+
+    @GetMapping("/redirects/{oldSlug}")
+    @Operation(
+        summary = "Slug ngành cũ (trước VSIC 2025) → slug mới, cho chuyển hướng 301",
+        description = "FE gọi khi /{slugOrId} trả 404: có dòng thì chuyển hướng 301 tới /nganh-nghe/{targetSlug}, targetSlug " +
+            "null thì về /nganh-nghe. 404: không phải slug cũ."
+    )
+    public ResponseEntity<PublicCategoryDTO.Redirect> getRedirect(@PathVariable("oldSlug") String oldSlug) {
+        return categoryService
+            .redirect(oldSlug)
+            .map(redirect -> ResponseEntity.ok().cacheControl(JSON_CACHE).body(redirect))
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{slugOrId}")
     @Operation(
         summary = "Một ngành nghề theo slug hoặc id, kèm breadcrumb và ngành con",
-        description = "Cho trang /nganh-nghe/{slug}: tên, mô tả, số doanh nghiệp (tính cả ngành con), ancestors (từ gốc " +
-            "xuống cha trực tiếp), children (con trực tiếp, sắp theo tên). 404 nếu không có."
+        description = "Cho trang /nganh-nghe/{slug}: mã ngành, cấp, tên, mô tả (phần \"Chi tiết\" của VSIC), số doanh nghiệp " +
+            "(tính cả ngành con), ancestors (từ gốc xuống cha trực tiếp), children (con trực tiếp, sắp theo mã); ancestors và " +
+            "children có code, level. 404 nếu không có."
     )
     public ResponseEntity<PublicTermDetailDTO> getCategory(@PathVariable("slugOrId") String slugOrId) {
         return categoryService

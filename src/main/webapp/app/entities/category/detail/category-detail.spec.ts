@@ -19,8 +19,17 @@ import { CategoryService } from '../service/category.service';
 import { CategoryDetail } from './category-detail';
 
 const TREE: Record<number, ICategory> = {
-  1: { id: 1, name: 'SẢN XUẤT', parent: null },
-  4: { id: 4, name: 'BAO BÌ &amp; GIẤY', slug: 'bao-bi-103', description: '', listingCount: 6625, parent: { id: 1, name: 'SẢN XUẤT' } },
+  1: { id: 1, code: 'C', level: 1, name: 'SẢN XUẤT', parent: null },
+  4: {
+    id: 4,
+    code: '17',
+    level: 2,
+    name: 'BAO BÌ &amp; GIẤY',
+    slug: 'bao-bi-va-giay-17',
+    description: '',
+    listingCount: 6625,
+    parent: { id: 1, name: 'SẢN XUẤT', code: 'C' },
+  },
 };
 
 describe('Category Management Detail Component', () => {
@@ -81,9 +90,9 @@ describe('Category Management Detail Component', () => {
   it('shows the tree path, level, children and recent businesses', () => {
     show(TREE[4]);
     expect(comp.name()).toBe('BAO BÌ & GIẤY');
-    expect(comp.ancestors()).toEqual([{ id: 1, name: 'SẢN XUẤT' }]);
+    expect(comp.ancestors()).toEqual([{ id: 1, name: 'SẢN XUẤT', code: 'C' }]);
     expect(comp.level()).toBe(2);
-    expect(categoryService.query).toHaveBeenCalledWith({ 'parentId.equals': 4, size: 500, sort: ['name,asc'] });
+    expect(categoryService.query).toHaveBeenCalledWith({ 'parentId.equals': 4, size: 500, sort: ['code,asc', 'name,asc'] });
     expect(comp.childCount()).toBe(1);
     expect(listingService.query).toHaveBeenCalledWith({ 'categoryTreeId.equals': 4, page: 0, size: 5, sort: ['updatedAt,desc'] });
     expect(comp.recentListings()?.map(listing => listing.name)).toEqual(['CÔNG TY BAO BÌ A']);

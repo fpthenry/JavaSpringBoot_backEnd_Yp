@@ -51,7 +51,10 @@ public class OpenApiDocsConfiguration {
 
     private static final Map<String, String> TAG_DESCRIPTIONS = Map.ofEntries(
         Map.entry("listing-resource", "Doanh nghiệp (1,86 triệu). Lọc theo cây địa phương/ngành nghề bằng locationTreeId, categoryTreeId."),
-        Map.entry("category-resource", "Ngành nghề, dạng cây tối đa 4 cấp (nhóm Yellow Pages và hệ thống ngành VSIC)."),
+        Map.entry(
+            "category-resource",
+            "Ngành nghề theo hệ thống ngành kinh tế VSIC 2025, dạng cây 5 cấp; mã ngành (code) không trùng, cấp (level) suy ra từ mã."
+        ),
         Map.entry("location-resource", "Địa phương, dạng cây: tỉnh/thành -> quận/huyện -> phường/xã."),
         Map.entry("blog-post-resource", "Bài viết tin tức."),
         Map.entry("tag-resource", "Thẻ bài viết."),
@@ -98,7 +101,7 @@ public class OpenApiDocsConfiguration {
             "Khác locationId.equals (chỉ khớp đúng địa phương được gắn). Ví dụ Hà Nội mới (id 11960), Hà Nội cũ (id 2). " +
             "Chỉ dùng bộ lọc cây thì chạy trên Elasticsearch (dưới 0,3 s); kèm filter khác thì chạy MySQL, có thể chậm.",
         "categoryTreeId",
-        "Lọc doanh nghiệp thuộc ngành này hoặc bất kỳ ngành con nào (tối đa 4 cấp). " +
+        "Lọc doanh nghiệp thuộc ngành này hoặc bất kỳ ngành con nào (tối đa 5 cấp). " +
             "Khác categoryId.equals (chỉ khớp đúng ngành được gắn). Chỉ dùng bộ lọc cây thì chạy trên Elasticsearch; " +
             "kèm filter khác thì chạy MySQL, nhóm ngành VSIC lớn có thể mất vài chục giây."
     );

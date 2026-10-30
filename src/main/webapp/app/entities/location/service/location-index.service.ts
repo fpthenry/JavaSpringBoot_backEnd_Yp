@@ -62,6 +62,28 @@ export interface LocationIndexQuery extends LocationIndexFilter {
   sort?: string;
 }
 
+/** Một nút cây tra cứu (/all): id, mã ĐVHC, cấp, cha, số doanh nghiệp, có trong bảng chuyển đổi hay không. */
+export interface LocationNodeItem {
+  id: number;
+  code: string;
+  name: string;
+  type: LocationLevel;
+  parentId: number | null;
+  listingCount: number;
+  mapped: boolean;
+}
+
+/** Đơn vị cũ đã nhập vào một đơn vị mới; id null: chưa có trong bảng location. */
+export interface LocationOrigin {
+  id: number | null;
+  code: string;
+  name: string;
+  type: LocationLevel;
+  parentName: string | null;
+  provinceName: string | null;
+  partial: boolean;
+}
+
 /** Mục lục tỉnh thành theo chữ cái (API quản trị /api/location-index). */
 @Service()
 export class LocationIndexService {
@@ -74,6 +96,21 @@ export class LocationIndexService {
 
   search(query: LocationIndexQuery): Observable<LocationIndexPage> {
     return this.http.get<LocationIndexPage>(this.resourceUrl, { params: toParams(query) });
+  }
+
+  /** Cả một bộ địa giới cho cây tra cứu: new (tỉnh → xã) hoặc old (tỉnh → huyện → xã). */
+  all(generation: Exclude<LocationGeneration, 'all'>): Observable<LocationNodeItem[]> {
+    return this.http.get<LocationNodeItem[]>(`${this.resourceUrl}/all`, { params: toParams({ generation }) });
+  }
+
+  /** Đơn vị mới hình thành từ các đơn vị cũ nào. */
+  origins(id: number): Observable<LocationOrigin[]> {
+    return this.http.get<LocationOrigin[]>(`${this.resourceUrl}/origins/${id}`);
+  }
+
+  /** Đơn vị cũ nay thuộc các đơn vị mới nào. */
+  successors(id: number): Observable<LocationIndexItem[]> {
+    return this.http.get<LocationIndexItem[]>(`${this.resourceUrl}/successors/${id}`);
   }
 }
 

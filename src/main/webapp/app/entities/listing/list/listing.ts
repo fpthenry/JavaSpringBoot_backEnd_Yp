@@ -18,6 +18,7 @@ import { Filter, FilterOptions, IFilterOption, IFilterOptions } from 'app/shared
 import { TranslateDirective } from 'app/shared/language';
 import { ItemCount } from 'app/shared/pagination';
 import { SortByDirective, SortDirective, SortService, type SortState, sortStateSignal } from 'app/shared/sort';
+import { VSIC_TREE_SORT } from 'app/entities/category/category-code';
 import { CategoryService } from 'app/entities/category/service/category.service';
 import { LocationService } from 'app/entities/location/service/location.service';
 import { TreeFilter, createTreeSource } from 'app/shared/tree';
@@ -95,7 +96,7 @@ export class Listing {
         ]
       : ['javaSpringBootBackEndApp.location.filter.allProvinces', 'javaSpringBootBackEndApp.location.filter.allWards'],
   );
-  readonly categoryTree = createTreeSource(inject(CategoryService));
+  readonly categoryTree = createTreeSource(inject(CategoryService), VSIC_TREE_SORT);
 
   readonly itemsPerPage = signal(ITEMS_PER_PAGE);
   readonly totalItems = signal(0);
