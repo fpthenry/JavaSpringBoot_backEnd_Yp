@@ -56,6 +56,11 @@ public class WebConfigurer implements ServletContextInitializer, WebServerFactor
     }
 
     private void setLocationForStaticAssets(WebServerFactory server) {
+        // Sửa tay: chạy từ file jar thì tài nguyên nằm trong jar. Đường dẫn "nested:/C:/..." làm Path.of lỗi trên Windows
+        // khi jar nằm trong thư mục target/ (Unable to start web server).
+        if (this.getClass().getResource("").getPath().startsWith("nested:")) {
+            return;
+        }
         if (server instanceof ConfigurableServletWebServerFactory servletWebServer) {
             File root;
             String prefixPath = resolvePathPrefix();

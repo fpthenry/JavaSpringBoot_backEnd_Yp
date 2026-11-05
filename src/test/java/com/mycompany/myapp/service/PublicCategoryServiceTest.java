@@ -133,7 +133,10 @@ class PublicCategoryServiceTest {
         org.mockito.Mockito.when(repository.findRedirectSlug("ban-buon-thuc-pham-cu")).thenReturn(
             new java.util.ArrayList<>(List.of("ban-buon-thuc-pham-4632"))
         );
-        org.mockito.Mockito.when(repository.findRedirectSlug("chua-phan-loai")).thenReturn(java.util.Collections.singletonList(null));
+        // Slug cũ không có ngành đích: cột slug null
+        List<Object> noTarget = new java.util.ArrayList<>();
+        noTarget.add(null);
+        org.mockito.Mockito.when(repository.findRedirectSlug("chua-phan-loai")).thenReturn(noTarget);
         org.mockito.Mockito.when(repository.findRedirectSlug("khong-co")).thenReturn(List.of());
         PublicCategoryService service = new PublicCategoryService(repository);
 

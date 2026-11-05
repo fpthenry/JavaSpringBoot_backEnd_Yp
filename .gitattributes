@@ -24,7 +24,6 @@
 *.sass          text
 *.scss          text
 *.sh            text eol=lf
-ops/**          text eol=lf
 *.sql           text
 *.ts            text
 *.xml           text
@@ -85,7 +84,7 @@ TODO            text
 *.class         binary
 *.jar           binary
 *.war           binary
-# Sửa tay: bảng tính (ops/vsic/*.xlsx) là file nhị phân, không đổi ký tự xuống dòng
+# Sửa tay: bảng tính là file nhị phân, không đổi ký tự xuống dòng
 *.xlsx          binary
 *.xls           binary
 

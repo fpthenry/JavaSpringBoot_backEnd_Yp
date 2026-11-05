@@ -158,8 +158,8 @@ public class PublicLocationService {
             found = findNewByCode(all, slugOrId);
         }
         // Đơn vị cũ (trước 01/7/2025, cả quận/huyện đã bỏ) → đơn vị mới đang chứa nó: slug khác slug hỏi, FE chuyển hướng 301
-        if (found.isPresent() && !found.get().isNew()) {
-            PublicLocationDTO old = found.get();
+        if (found.isPresent() && !found.orElseThrow().isNew()) {
+            PublicLocationDTO old = found.orElseThrow();
             found = newUnitOf(all, loadConversions(), old, this::sharedListings).or(() -> Optional.of(old));
         }
         return found.map(l -> detail(all, l));

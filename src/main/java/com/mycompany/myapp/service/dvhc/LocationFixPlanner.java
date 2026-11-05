@@ -156,11 +156,11 @@ public final class LocationFixPlanner {
                     .filter(o -> o.code().equals(code))
                     .findFirst();
                 if (byCode.isPresent()) {
-                    matches.put(row, byCode.get());
+                    matches.put(row, byCode.orElseThrow());
                     dbLeft.remove(row);
-                    officialLeft.remove(byCode.get());
+                    officialLeft.remove(byCode.orElseThrow());
                     count(stats, "Xã mới: khớp theo mã (đổi tên)");
-                    renames.add("Đổi tên xã (cùng mã " + code + "): \"" + row.name() + "\" → \"" + byCode.get().name() + "\"");
+                    renames.add("Đổi tên xã (cùng mã " + code + "): \"" + row.name() + "\" → \"" + byCode.orElseThrow().name() + "\"");
                 }
             }
 
