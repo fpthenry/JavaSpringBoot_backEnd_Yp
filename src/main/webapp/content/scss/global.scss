@@ -6,6 +6,23 @@
 Bootstrap tweaks
 ===============================================================*/
 
+/* Sửa tay: biến của khung quản trị. Vàng #fedb00 là màu thương hiệu, cùng màu với website */
+:root {
+  --app-sidebar-w: 15rem;
+  --app-topbar-h: 3.75rem;
+  --app-brand: #fedb00;
+  --app-brand-soft: #fff6c2;
+  --app-line: #e6e8ec;
+}
+
+.app-shell:has(.app-sidebar) .app-main {
+  padding-top: var(--app-topbar-h);
+
+  @media (min-width: 992px) {
+    padding-left: var(--app-sidebar-w);
+  }
+}
+
 /* Sửa tay: chữ thường 400 dễ đọc hơn 300 mảnh của JHipster; tiêu đề đậm vừa */
 body {
   font-weight: 400;
@@ -106,6 +123,8 @@ Generic styles
 }
 
 .footer {
+  color: var(--bs-secondary-color);
+  font-size: 0.8125rem;
   border-top: 1px solid rgba(0, 0, 0, 0.125);
 }
 
@@ -217,16 +236,6 @@ ui bootstrap tweaks
 /* ==========================================================================
 angular-cli removes postcss-rtl processed inline css, processed rules must be added here instead
 ========================================================================== */
-/* page-ribbon.scss */
-.ribbon {
-  left: -3.5em;
-  -moz-transform: rotate(-45deg);
-  -ms-transform: rotate(-45deg);
-  -o-transform: rotate(-45deg);
-  -webkit-transform: rotate(-45deg);
-  transform: rotate(-45deg);
-}
-
 /* navbar.scss */
 .navbar {
   ul.navbar-nav {
@@ -240,6 +249,41 @@ Sửa tay: giao diện trang quản trị (đầu trang, thẻ nhóm field, than
 ========================================================================== */
 .min-w-0 {
   min-width: 0;
+}
+
+/* Trang đăng nhập */
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 8rem);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 26rem;
+  padding: 2rem;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+.auth-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: var(--app-brand);
+  color: #1f2328;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 /* Đầu trang: đường dẫn, tiêu đề, nút thao tác */
@@ -351,7 +395,7 @@ textarea.auto-resize {
 @media (min-width: 1200px) {
   .side-sticky {
     position: sticky;
-    top: 1rem;
+    top: calc(var(--app-topbar-h) + 1rem);
   }
 }
 
@@ -582,7 +626,7 @@ textarea.auto-resize {
 /* Thanh mục lục dính đầu trang xem (SectionNav) */
 .section-nav {
   position: sticky;
-  top: 0;
+  top: var(--app-topbar-h);
   z-index: 1010;
   display: flex;
   gap: 0.25rem;
@@ -910,7 +954,7 @@ a.tree-path-node:hover {
 /* ---------- Cột phải ---------- */
 .side-sticky-nav {
   @media (min-width: 1200px) {
-    top: 4.5rem;
+    top: calc(var(--app-topbar-h) + 4.5rem);
   }
 }
 

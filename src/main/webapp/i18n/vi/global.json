@@ -8,14 +8,14 @@
       "entities": {
         "main": "Thực thể",
         "jhipster-needle-menu-add-entry": "JHipster will add additional entities here (do not translate!)",
-        "adminAuthority": "Authority",
-        "listing": "Listing",
+        "adminAuthority": "Phân quyền",
+        "listing": "Doanh nghiệp",
         "listingImport": "Nhập doanh nghiệp",
         "category": "Category",
         "location": "Location",
         "blogPost": "Bài viết",
         "tag": "Thẻ",
-        "locationGroup": "Tỉnh thành",
+        "locationGroup": "Đơn vị hành chính",
         "locationTree": "Tra cứu đơn vị hành chính",
         "locationIndex": "Mục lục A–Z",
         "locationProvince": "Tỉnh thành",
@@ -26,7 +26,7 @@
         "categoryList": "Danh sách ngành nghề",
         "gallery": "Vị trí banner",
         "galleryImage": "Ảnh banner",
-        "galleryGroup": "Banner quảng cáo",
+        "galleryGroup": "Banner",
         "blogCategory": "Danh mục bài viết",
         "blogGroup": "Blogs",
         "categoryIndex": "Mục lục A–Z"
@@ -42,17 +42,30 @@
       },
       "admin": {
         "main": "Quản trị",
-        "userManagement": "Quản lý tài khoản",
+        "userManagement": "Tài khoản",
         "tracker": "Theo dõi người dùng",
         "metrics": "Số liệu",
         "health": "Tình trạng",
         "configuration": "Cấu hình",
-        "logs": "Ghi logs",
-        "apidocs": "API",
+        "logs": "Nhật ký",
+        "apidocs": "Tài liệu API",
         "database": "Cơ sở dữ liệu",
-        "jhipster-needle-menu-add-admin-element": "JHipster will add additional menu entries here (do not translate!)"
+        "jhipster-needle-menu-add-admin-element": "JHipster will add additional menu entries here (do not translate!)",
+        "monitoring": "Giám sát"
       },
-      "language": "Ngôn ngữ"
+      "language": "Ngôn ngữ",
+      "groups": {
+        "data": "Dữ liệu",
+        "content": "Nội dung",
+        "system": "Hệ thống"
+      },
+      "sidebar": {
+        "lookup": "Tra cứu",
+        "index": "Mục lục A–Z",
+        "list": "Danh sách",
+        "search": "Tìm doanh nghiệp theo tên, mã số thuế…",
+        "viewSite": "Xem website"
+      }
     },
     "form": {
       "username.label": "Tên tài khoản",

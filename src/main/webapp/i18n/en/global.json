@@ -8,14 +8,14 @@
       "entities": {
         "main": "Entities",
         "jhipster-needle-menu-add-entry": "JHipster will add additional entities here (do not translate!)",
-        "adminAuthority": "Authority",
-        "listing": "Listing",
+        "adminAuthority": "Roles",
+        "listing": "Companies",
         "listingImport": "Import listings",
         "category": "Category",
         "location": "Location",
         "blogPost": "Posts",
         "tag": "Tags",
-        "locationGroup": "Locations",
+        "locationGroup": "Administrative units",
         "locationTree": "Administrative unit lookup",
         "locationIndex": "A–Z index",
         "locationProvince": "Provinces",
@@ -26,7 +26,7 @@
         "categoryList": "Industry list",
         "gallery": "Banner positions",
         "galleryImage": "Banner images",
-        "galleryGroup": "Ad banners",
+        "galleryGroup": "Banners",
         "blogCategory": "Post categories",
         "blogGroup": "Blogs",
         "categoryIndex": "A–Z index"
@@ -42,17 +42,30 @@
       },
       "admin": {
         "main": "Administration",
-        "userManagement": "User management",
+        "userManagement": "Users",
         "tracker": "User tracker",
         "metrics": "Metrics",
         "health": "Health",
         "configuration": "Configuration",
         "logs": "Logs",
-        "apidocs": "API",
+        "apidocs": "API docs",
         "database": "Database",
-        "jhipster-needle-menu-add-admin-element": "JHipster will add additional menu entries here (do not translate!)"
+        "jhipster-needle-menu-add-admin-element": "JHipster will add additional menu entries here (do not translate!)",
+        "monitoring": "Monitoring"
       },
-      "language": "Language"
+      "language": "Language",
+      "groups": {
+        "data": "Data",
+        "content": "Content",
+        "system": "System"
+      },
+      "sidebar": {
+        "lookup": "Lookup",
+        "index": "A–Z index",
+        "list": "List",
+        "search": "Search companies by name, tax code…",
+        "viewSite": "View website"
+      }
     },
     "form": {
       "username.label": "Username",

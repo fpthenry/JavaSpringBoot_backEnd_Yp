@@ -1,405 +1,141 @@
-<nav data-cy="navbar" class="navbar navbar-dark navbar-expand-lg bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand logo" routerLink="/" (click)="collapseNavbar()">
-      <span class="logo-img"></span>
-      <span class="navbar-title" jhiTranslate="global.title">JavaSpringBootBackEnd</span>
-      <span class="navbar-version">{{ version }}</span>
+<!-- Sửa tay: khung quản trị = menu bên trái + thanh trên, thay thanh menu ngang và dropdown "Thực thể". Danh sách mục menu ở navbar-menu.ts -->
+<!-- jhipster-needle-add-entity-to-menu - JHipster will add entities to the menu here -->
+<!-- jhipster-needle-add-element-to-admin-menu - JHipster will add entities to the admin menu here -->
+@if (account(); as accountRef) {
+  <aside class="app-sidebar" [class.open]="!isNavbarCollapsed()" data-cy="navbar">
+    <a class="app-brand" routerLink="/" (click)="collapseNavbar()">
+      <span class="app-brand-mark">YP</span>
+      <span class="app-brand-name" jhiTranslate="global.title">Trang Vàng – Quản trị</span>
     </a>
-    <a
-      class="navbar-toggler d-lg-none"
-      href="javascript:void(0);"
-      aria-controls="navbarResponsive"
+
+    <nav class="app-menu" data-cy="entity">
+      @for (group of menu(); track $index) {
+        <div class="app-menu-group">
+          @if (group.label) {
+            <div class="app-menu-label" [jhiTranslate]="group.label"></div>
+          }
+          @for (item of group.items; track item.label) {
+            @if (item.children; as children) {
+              <button type="button" class="app-menu-item" [attr.aria-expanded]="openMenu() === item.label" (click)="toggleMenu(item.label)">
+                <fa-icon [icon]="item.icon!" [fixedWidth]="true" />
+                <span class="app-menu-text" [jhiTranslate]="item.label"></span>
+                <fa-icon icon="chevron-right" class="app-menu-caret" [class.open]="openMenu() === item.label" />
+              </button>
+              @if (openMenu() === item.label) {
+                <div class="app-submenu">
+                  @for (child of children; track child.link) {
+                    <a
+                      class="app-menu-item"
+                      [routerLink]="child.link"
+                      routerLinkActive="active"
+                      [routerLinkActiveOptions]="activeOptions(child)"
+                      (click)="collapseNavbar()"
+                    >
+                      <span class="app-menu-text" [jhiTranslate]="child.label"></span>
+                    </a>
+                  }
+                </div>
+              }
+            } @else {
+              <a
+                class="app-menu-item"
+                [routerLink]="item.link"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="activeOptions(item)"
+                (click)="collapseNavbar()"
+              >
+                <fa-icon [icon]="item.icon!" [fixedWidth]="true" />
+                <span class="app-menu-text" [jhiTranslate]="item.label"></span>
+              </a>
+            }
+          }
+        </div>
+      }
+    </nav>
+
+    @if (version) {
+      <div class="app-sidebar-version">{{ version }}</div>
+    }
+  </aside>
+
+  @if (!isNavbarCollapsed()) {
+    <div class="app-backdrop" (click)="collapseNavbar()"></div>
+  }
+
+  <header class="app-topbar">
+    <button
+      type="button"
+      class="app-topbar-btn d-lg-none"
       [attr.aria-expanded]="!isNavbarCollapsed()"
-      aria-label="Toggle navigation"
+      aria-label="Menu"
       (click)="isNavbarCollapsed.update(isNavbarCollapsed => !isNavbarCollapsed)"
     >
       <fa-icon icon="bars" />
+    </button>
+
+    <form
+      class="app-search"
+      role="search"
+      [class.invisible]="onListing()"
+      (submit)="searchListing(quickSearch.value); $event.preventDefault()"
+    >
+      <fa-icon icon="search" class="app-search-icon" />
+      <input
+        #quickSearch
+        type="search"
+        class="form-control"
+        name="quickSearch"
+        [placeholder]="'global.menu.sidebar.search' | translate"
+        [attr.aria-label]="'global.menu.sidebar.search' | translate"
+      />
+    </form>
+
+    <a class="app-topbar-link d-none d-sm-inline-flex" href="https://yp.vn" target="_blank" rel="noopener">
+      <span jhiTranslate="global.menu.sidebar.viewSite">Xem website</span>
+      <fa-icon icon="arrow-up-right-from-square" />
     </a>
-    <div class="navbar-collapse collapse" id="navbarResponsive" [ngbCollapse]="isNavbarCollapsed()">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-          <a class="nav-link" routerLink="/" (click)="collapseNavbar()">
-            <span>
-              <fa-icon icon="home" />
-              <span jhiTranslate="global.menu.home">Home</span>
-            </span>
+
+    <div ngbDropdown class="dropdown" display="static" data-cy="accountMenu">
+      <button type="button" class="app-account" ngbDropdownToggle id="account-menu">
+        @if (accountRef.imageUrl) {
+          <img [src]="accountRef.imageUrl" class="app-avatar" alt="Avatar" />
+        } @else {
+          <span class="app-avatar">{{ (accountRef.firstName || accountRef.login).charAt(0).toUpperCase() }}</span>
+        }
+        <span class="app-account-name d-none d-md-inline">{{ accountRef.firstName || accountRef.login }}</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" ngbDropdownMenu aria-labelledby="account-menu">
+        <li>
+          <a class="dropdown-item" routerLink="/account/settings" routerLinkActive="active" data-cy="settings">
+            <fa-icon icon="wrench" [fixedWidth]="true" />
+            <span jhiTranslate="global.menu.account.settings">Settings</span>
           </a>
         </li>
-        @if (account() !== null) {
-          <li
-            ngbDropdown
-            class="nav-item dropdown pointer"
-            display="static"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: true }"
-            data-cy="entity"
-          >
-            <a class="nav-link dropdown-toggle" ngbDropdownToggle href="javascript:void(0);" id="entity-menu">
-              <span>
-                <fa-icon icon="th-list" />
-                <span jhiTranslate="global.menu.entities.main">Entities</span>
-              </span>
-            </a>
-            <ul class="dropdown-menu" ngbDropdownMenu aria-labelledby="entity-menu">
-              <li>
-                <a
-                  class="dropdown-item"
-                  routerLink="/listing"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="asterisk" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.listing">Listing</span>
-                </a>
-              </li>
-              <!-- Sửa tay: nhập doanh nghiệp (chỉ ROLE_ADMIN) -->
-              <li *jhiHasAnyAuthority="'ROLE_ADMIN'">
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/listing-import"
-                  routerLinkActive="active"
-                  (click)="collapseNavbar()"
-                  data-cy="listingImportMenu"
-                >
-                  <fa-icon icon="file-import" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.listingImport">Nhập doanh nghiệp</span>
-                </a>
-              </li>
-              <!-- Category: nhóm Ngành nghề (cây phân cấp + danh sách) -->
-              <li><hr class="dropdown-divider" /></li>
-              <li>
-                <h6 class="dropdown-header">
-                  <fa-icon icon="briefcase" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.categoryGroup">Ngành nghề</span>
-                </h6>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/category/tree"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="sitemap" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.categoryTree">Cây ngành nghề</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/category/index"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="arrow-down-a-z" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.categoryIndex">Mục lục A–Z</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/category"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="database" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.categoryList">Danh sách ngành nghề</span>
-                </a>
-              </li>
-              <!-- Location: nhóm Tỉnh thành (cây phân cấp + danh sách theo cấp) -->
-              <li><hr class="dropdown-divider" /></li>
-              <li>
-                <h6 class="dropdown-header">
-                  <fa-icon icon="map" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.locationGroup">Tỉnh thành</span>
-                </h6>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/location/tree"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="sitemap" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.locationTree">Đơn vị hành chính</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/location/index"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="arrow-down-a-z" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.locationIndex">Mục lục A–Z</span>
-                </a>
-              </li>
-              @for (level of locationLevels; track level.type) {
-                <li>
-                  <a
-                    class="dropdown-item ps-4"
-                    routerLink="/location"
-                    [queryParams]="{ 'filter[type.equals]': level.type }"
-                    routerLinkActive="active"
-                    [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'subset', fragment: 'ignored', matrixParams: 'ignored' }"
-                    (click)="collapseNavbar()"
-                  >
-                    <fa-icon icon="database" [fixedWidth]="true" />
-                    <span [jhiTranslate]="level.labelKey"></span>
-                  </a>
-                </li>
-              }
-              <!-- Blog: nhóm Blogs (bài viết, danh mục bài viết, thẻ) -->
-              <li><hr class="dropdown-divider" /></li>
-              <li>
-                <h6 class="dropdown-header">
-                  <fa-icon icon="newspaper" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.blogGroup">Blogs</span>
-                </h6>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/blog-post"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="newspaper" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.blogPost">Bài viết</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/blog-category"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="folder-tree" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.blogCategory">Danh mục bài viết</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/tag"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="tags" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.tag">Thẻ</span>
-                </a>
-              </li>
-              <!-- Gallery: nhóm Banner quảng cáo (vị trí banner + ảnh banner) -->
-              <li><hr class="dropdown-divider" /></li>
-              <li>
-                <h6 class="dropdown-header">
-                  <fa-icon icon="images" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.galleryGroup">Banner quảng cáo</span>
-                </h6>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/gallery"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="map" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.gallery">Vị trí banner</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item ps-4"
-                  routerLink="/gallery-image"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="collapseNavbar()"
-                >
-                  <fa-icon icon="image" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.entities.galleryImage">Ảnh banner</span>
-                </a>
-              </li>
-              <!-- jhipster-needle-add-entity-to-menu - JHipster will add entities to the menu here -->
-            </ul>
-          </li>
-        }
-        <li
-          *jhiHasAnyAuthority="'ROLE_ADMIN'"
-          ngbDropdown
-          class="nav-item dropdown pointer"
-          display="static"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          data-cy="adminMenu"
-        >
-          <a class="nav-link dropdown-toggle" ngbDropdownToggle href="javascript:void(0);" id="admin-menu">
-            <span>
-              <fa-icon icon="users-cog" />
-              <span jhiTranslate="global.menu.admin.main">Administration</span>
-            </span>
+        <li>
+          <a class="dropdown-item" routerLink="/account/password" routerLinkActive="active" data-cy="passwordItem">
+            <fa-icon icon="lock" [fixedWidth]="true" />
+            <span jhiTranslate="global.menu.account.password">Password</span>
           </a>
-          <ul class="dropdown-menu" ngbDropdownMenu aria-labelledby="admin-menu">
-            <li>
-              <a
-                class="dropdown-item"
-                routerLink="/user-management"
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: true }"
-                (click)="collapseNavbar()"
-              >
-                <fa-icon icon="asterisk" [fixedWidth]="true" />
-                <span jhiTranslate="userManagement.home.title">User Management</span>
-              </a>
-            </li>
-            <li>
-              <a
-                class="dropdown-item"
-                routerLink="/authority"
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: true }"
-                (click)="collapseNavbar()"
-              >
-                <fa-icon icon="asterisk" [fixedWidth]="true" />
-                <span jhiTranslate="global.menu.entities.adminAuthority">Authority</span>
-              </a>
-            </li>
-            <!-- jhipster-needle-add-element-to-admin-menu - JHipster will add entities to the admin menu here -->
-            <li>
-              <a class="dropdown-item" routerLink="/admin/metrics" routerLinkActive="active" (click)="collapseNavbar()">
-                <fa-icon icon="tachometer-alt" [fixedWidth]="true" />
-                <span jhiTranslate="global.menu.admin.metrics">Metrics</span>
-              </a>
-            </li>
-            <li>
-              <a class="dropdown-item" routerLink="/admin/health" routerLinkActive="active" (click)="collapseNavbar()">
-                <fa-icon icon="heart" [fixedWidth]="true" />
-                <span jhiTranslate="global.menu.admin.health">Health</span>
-              </a>
-            </li>
-            <li>
-              <a class="dropdown-item" routerLink="/admin/configuration" routerLinkActive="active" (click)="collapseNavbar()">
-                <fa-icon icon="cogs" [fixedWidth]="true" />
-                <span jhiTranslate="global.menu.admin.configuration">Configuration</span>
-              </a>
-            </li>
-            <li>
-              <a class="dropdown-item" routerLink="/admin/logs" routerLinkActive="active" (click)="collapseNavbar()">
-                <fa-icon icon="tasks" [fixedWidth]="true" />
-                <span jhiTranslate="global.menu.admin.logs">Logs</span>
-              </a>
-            </li>
-            @if (openAPIEnabled()) {
-              <li>
-                <a class="dropdown-item" routerLink="/admin/docs" routerLinkActive="active" (click)="collapseNavbar()">
-                  <fa-icon icon="book" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.admin.apidocs">API</span>
-                </a>
-              </li>
-            }
-          </ul>
         </li>
         @if (languages.length > 1) {
-          <li ngbDropdown class="nav-item dropdown pointer" display="static">
-            <a class="nav-link dropdown-toggle" ngbDropdownToggle href="javascript:void(0);" id="languagesnavBarDropdown">
-              <span>
-                <fa-icon icon="flag" />
-                <span jhiTranslate="global.menu.language">Language</span>
-              </span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" ngbDropdownMenu aria-labelledby="languagesnavBarDropdown">
-              @for (language of languages; track $index) {
-                <li>
-                  <a
-                    class="dropdown-item"
-                    [jhiActiveMenu]="language"
-                    href="javascript:void(0);"
-                    (click)="changeLanguage(language); collapseNavbar()"
-                    >{{ language | findLanguageFromKey }}</a
-                  >
-                </li>
-              }
-            </ul>
-          </li>
+          <li><hr class="dropdown-divider" /></li>
+          <li><h6 class="dropdown-header" jhiTranslate="global.menu.language">Language</h6></li>
+          @for (language of languages; track $index) {
+            <li>
+              <button type="button" class="dropdown-item" [jhiActiveMenu]="language" (click)="changeLanguage(language)">
+                {{ language | findLanguageFromKey }}
+              </button>
+            </li>
+          }
         }
-        <li
-          ngbDropdown
-          class="nav-item dropdown pointer"
-          display="static"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          data-cy="accountMenu"
-        >
-          @let accountRef = account();
-          <a class="nav-link dropdown-toggle" ngbDropdownToggle href="javascript:void(0);" id="account-menu">
-            @if (!accountRef?.imageUrl) {
-              <span>
-                <fa-icon icon="user" />
-                <span jhiTranslate="global.menu.account.main">Account</span>
-              </span>
-            } @else {
-              <span>
-                <img [src]="accountRef.imageUrl" class="profile-image rounded-circle" alt="Avatar" />
-              </span>
-            }
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" ngbDropdownMenu aria-labelledby="account-menu">
-            @if (accountRef !== null) {
-              <li>
-                <a
-                  class="dropdown-item"
-                  routerLink="/account/settings"
-                  routerLinkActive="active"
-                  (click)="collapseNavbar()"
-                  data-cy="settings"
-                >
-                  <fa-icon icon="wrench" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.account.settings">Settings</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  routerLink="/account/password"
-                  routerLinkActive="active"
-                  (click)="collapseNavbar()"
-                  data-cy="passwordItem"
-                >
-                  <fa-icon icon="lock" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.account.password">Password</span>
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" (click)="logout()" id="logout" data-cy="logout">
-                  <fa-icon icon="sign-out-alt" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.account.logout">Sign out</span>
-                </a>
-              </li>
-            } @else {
-              <li>
-                <a class="dropdown-item" (click)="login()" id="login" data-cy="login">
-                  <fa-icon icon="sign-in-alt" [fixedWidth]="true" />
-                  <span jhiTranslate="global.menu.account.login">Sign in</span>
-                </a>
-              </li>
-              <!-- Sửa tay (bảo mật): bỏ "Đăng ký" — tự đăng ký đã tắt (application.registration.enabled=false); admin tạo tài khoản -->
-            }
-          </ul>
+        <li><hr class="dropdown-divider" /></li>
+        <li>
+          <button type="button" class="dropdown-item" (click)="logout()" id="logout" data-cy="logout">
+            <fa-icon icon="sign-out-alt" [fixedWidth]="true" />
+            <span jhiTranslate="global.menu.account.logout">Sign out</span>
+          </button>
         </li>
       </ul>
     </div>
-  </div>
-</nav>
+  </header>
+}

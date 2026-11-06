@@ -2,8 +2,7 @@
   "home": {
     "title": "Trang Vàng – Quản trị",
     "greeting": "Xin chào, {{ name }}",
-    "subtitle": "Chọn một mục bên dưới để bắt đầu quản lý dữ liệu.",
-    "loginPrompt": "Đăng nhập để quản lý doanh nghiệp, ngành nghề, bài viết và banner.",
+    "subtitle": "Hôm nay bạn muốn làm gì?",
     "logged": {
       "message": "Bạn đang đăng nhập bằng tài khoản \"{{username}}\"."
     },
@@ -15,19 +14,11 @@
       "galleries": "Vị trí banner"
     },
     "quick": {
-      "title": "Thao tác nhanh",
+      "title": "Việc hay làm",
       "newListing": "Thêm doanh nghiệp",
       "newPost": "Viết bài mới",
       "newBanner": "Thêm ảnh banner",
-      "searchListing": "Tìm doanh nghiệp theo tên, địa chỉ, mã số thuế"
-    },
-    "browse": {
-      "title": "Tra cứu",
-      "categoryIndex": "Mục lục ngành nghề A–Z",
-      "locationIndex": "Mục lục tỉnh thành A–Z",
-      "categoryTree": "Tra cứu mã ngành (VSIC)",
-      "locationTree": "Đơn vị hành chính",
-      "api": "Tài liệu API"
+      "importListing": "Nhập doanh nghiệp"
     }
   }
 }

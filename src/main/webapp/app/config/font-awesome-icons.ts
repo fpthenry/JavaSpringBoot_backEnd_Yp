@@ -1,4 +1,7 @@
 import {
+  faFolder,
+  faHeartPulse,
+  faUserShield,
   faDownload,
   faArrowRight,
   faUpload,
@@ -90,6 +93,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 export const fontAwesomeIcons = [
+  faFolder,
+  faHeartPulse,
+  faUserShield,
   // Sửa tay: trang Nhập doanh nghiệp (entities/listing-import)
   faDownload,
   faArrowRight,

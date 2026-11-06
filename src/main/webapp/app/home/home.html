@@ -1,4 +1,4 @@
-<!-- Sửa tay: trang chủ quản trị (số liệu, lối tắt) thay cho trang giới thiệu JHipster -->
+<!-- Sửa tay: trang tổng quan: số liệu và việc hay làm; lối vào các mục đã có ở menu bên trái -->
 @if (account(); as accountRef) {
   <div class="home-dashboard">
     <div class="page-header">
@@ -6,91 +6,36 @@
         <h1 class="page-title" id="home-logged-message">
           {{ 'home.greeting' | translate: { name: accountRef.firstName || accountRef.login } }}
         </h1>
-        <div class="text-muted" jhiTranslate="home.subtitle">Chọn một mục để bắt đầu quản lý dữ liệu.</div>
+        <div class="text-muted" jhiTranslate="home.subtitle">Hôm nay bạn muốn làm gì?</div>
       </div>
     </div>
 
-    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+    <div class="stat-grid mb-4">
       @for (stat of stats; track stat.key) {
-        <div class="col">
-          <a class="stat-card surface d-block h-100 text-decoration-none" [routerLink]="stat.link" [attr.data-cy]="'stat-' + stat.key">
-            <span class="stat-icon"><fa-icon [icon]="stat.icon" /></span>
-            <span class="stat-value">{{ formatCount(counts()[stat.key]) }}</span>
-            <span class="stat-label">{{ stat.label | translate }}</span>
-          </a>
-        </div>
+        <a class="stat-card surface" [routerLink]="stat.link" [attr.data-cy]="'stat-' + stat.key">
+          <span class="stat-label"><fa-icon [icon]="stat.icon" [fixedWidth]="true" />{{ stat.label | translate }}</span>
+          <span class="stat-value">{{ formatCount(counts()[stat.key]) }}</span>
+        </a>
       }
     </div>
 
-    <div class="row g-3">
-      <div class="col-lg-6">
-        <section class="form-card h-100">
-          <h3 class="form-card-title"><fa-icon icon="plus" /> <span jhiTranslate="home.quick.title">Thao tác nhanh</span></h3>
-          <div class="list-group list-group-flush">
-            <a class="list-group-item list-group-item-action" routerLink="/listing/new">
-              <fa-icon icon="building" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.quick.newListing"
-                >Thêm doanh nghiệp</span
-              >
-            </a>
-            <a class="list-group-item list-group-item-action" routerLink="/blog-post/new">
-              <fa-icon icon="newspaper" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.quick.newPost"
-                >Viết bài mới</span
-              >
-            </a>
-            <a class="list-group-item list-group-item-action" routerLink="/gallery-image/new">
-              <fa-icon icon="images" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.quick.newBanner"
-                >Thêm ảnh banner</span
-              >
-            </a>
-            <a class="list-group-item list-group-item-action" routerLink="/listing">
-              <fa-icon icon="search" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.quick.searchListing"
-                >Tìm doanh nghiệp theo tên, địa chỉ, mã số thuế</span
-              >
-            </a>
-          </div>
-        </section>
-      </div>
-      <div class="col-lg-6">
-        <section class="form-card h-100">
-          <h3 class="form-card-title"><fa-icon icon="arrow-down-a-z" /> <span jhiTranslate="home.browse.title">Tra cứu</span></h3>
-          <div class="list-group list-group-flush">
-            <a class="list-group-item list-group-item-action" routerLink="/category/index">
-              <fa-icon icon="briefcase" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.browse.categoryIndex"
-                >Mục lục ngành nghề A–Z</span
-              >
-            </a>
-            <a class="list-group-item list-group-item-action" routerLink="/location/index">
-              <fa-icon icon="map" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.browse.locationIndex"
-                >Mục lục tỉnh thành A–Z</span
-              >
-            </a>
-            <a class="list-group-item list-group-item-action" routerLink="/category/tree">
-              <fa-icon icon="sitemap" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.browse.categoryTree"
-                >Cây ngành nghề</span
-              >
-            </a>
-            <a class="list-group-item list-group-item-action" routerLink="/location/tree">
-              <fa-icon icon="sitemap" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.browse.locationTree"
-                >Đơn vị hành chính</span
-              >
-            </a>
-            <a *jhiHasAnyAuthority="'ROLE_ADMIN'" class="list-group-item list-group-item-action" routerLink="/admin/docs">
-              <fa-icon icon="book" [fixedWidth]="true" class="text-primary me-2" /><span jhiTranslate="home.browse.api">Tài liệu API</span>
-            </a>
-          </div>
-        </section>
-      </div>
+    <h2 class="home-section-title" jhiTranslate="home.quick.title">Việc hay làm</h2>
+    <div class="quick-grid">
+      @for (action of quickActions; track action.link) {
+        @if (action.adminOnly) {
+          <a *jhiHasAnyAuthority="'ROLE_ADMIN'" class="quick-action surface" [routerLink]="action.link">
+            <span class="quick-icon"><fa-icon [icon]="action.icon" /></span>
+            <span>{{ action.label | translate }}</span>
+          </a>
+        } @else {
+          <a class="quick-action surface" [routerLink]="action.link">
+            <span class="quick-icon"><fa-icon [icon]="action.icon" /></span>
+            <span>{{ action.label | translate }}</span>
+          </a>
+        }
+      }
     </div>
   </div>
 } @else {
-  <div class="home-login">
-    <section class="form-card text-center p-5">
-      <span class="stat-icon mx-auto mb-3"><fa-icon icon="lock" /></span>
-      <h1 class="page-title mb-2" jhiTranslate="global.title">Trang Vàng – Quản trị</h1>
-      <p class="text-muted mb-4" jhiTranslate="home.loginPrompt">Đăng nhập để quản lý doanh nghiệp, ngành nghề, bài viết và banner.</p>
-      <button type="button" class="btn btn-primary btn-lg px-5" (click)="login()">
-        <fa-icon icon="sign-in-alt" />&nbsp;<span jhiTranslate="global.messages.info.authenticated.link">Đăng nhập</span>
-      </button>
-    </section>
-  </div>
+  <jhi-login />
 }

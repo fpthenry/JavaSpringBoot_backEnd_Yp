@@ -1,36 +1,274 @@
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins/breakpoints';
 
 /* ==========================================================================
-Navbar
+Sửa tay: khung quản trị. Biến --app-* khai báo ở global.scss
 ========================================================================== */
+.app-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 1040;
+  display: flex;
+  flex-direction: column;
+  width: var(--app-sidebar-w);
+  background: #fff;
+  border-right: 1px solid var(--app-line);
 
-.navbar-version {
-  font-size: 0.65em;
-  color: $navbar-dark-color;
-}
+  @include media-breakpoint-down(lg) {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
 
-.profile-image {
-  height: 1.75em;
-  width: 1.75em;
-}
-
-.navbar {
-  padding: 0.2rem 1rem;
-
-  a.nav-link {
-    font-weight: 400;
+    &.open {
+      transform: none;
+      box-shadow: 0 0 2rem rgba(16, 24, 40, 0.18);
+    }
   }
 }
 
-/* ==========================================================================
-Logo styles
-========================================================================== */
-.logo-img {
-  height: 45px;
-  width: 45px;
-  display: inline-block;
-  vertical-align: middle;
-  background: url('/content/images/logo-jhipster.png') no-repeat center center;
-  background-size: contain;
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1035;
+  background: rgba(16, 24, 40, 0.4);
+
+  @include media-breakpoint-up(lg) {
+    display: none;
+  }
+}
+
+.app-brand {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.625rem;
+  height: var(--app-topbar-h);
+  padding: 0 1rem;
+  color: var(--bs-body-color);
+  border-bottom: 1px solid var(--app-line);
+
+  &:hover {
+    color: var(--bs-body-color);
+  }
+}
+
+.app-brand-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: var(--app-brand);
+  color: #1f2328;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.app-brand-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.app-menu {
+  flex: 1;
+  min-height: 0;
+  padding: 0.5rem 0.625rem 1rem;
+  overflow-y: auto;
+}
+
+.app-menu-group + .app-menu-group {
+  margin-top: 0.75rem;
+}
+
+.app-menu-label {
+  padding: 0.375rem 0.625rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.app-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 2.375rem;
+  padding: 0.375rem 0.625rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: none;
+  color: #3a4048;
+  font-size: 0.925rem;
+  font-weight: 500;
+  text-align: left;
+
+  fa-icon:first-child {
+    color: #7a828c;
+  }
+
+  &:hover {
+    background: #f2f4f7;
+    color: #1f2328;
+  }
+
+  &.active {
+    background: var(--app-brand-soft);
+    color: #1f2328;
+    font-weight: 600;
+
+    fa-icon:first-child {
+      color: #1f2328;
+    }
+  }
+}
+
+.app-menu-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-menu-caret {
+  color: #9aa1aa;
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+
+  &.open {
+    transform: rotate(90deg);
+  }
+}
+
+.app-submenu {
+  margin: 0.125rem 0 0.25rem 1.25rem;
+  padding-left: 0.625rem;
+  border-left: 1px solid var(--app-line);
+
+  .app-menu-item {
+    min-height: 2.125rem;
+    font-size: 0.875rem;
+  }
+}
+
+.app-sidebar-version {
+  flex: none;
+  padding: 0.5rem 1rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  border-top: 1px solid var(--app-line);
+}
+
+.app-topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: var(--app-topbar-h);
+  padding: 0 1rem;
+  background: #fff;
+  border-bottom: 1px solid var(--app-line);
+
+  @include media-breakpoint-up(lg) {
+    left: var(--app-sidebar-w);
+    padding: 0 1.5rem;
+  }
+}
+
+.app-topbar-btn {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: none;
+  color: #3a4048;
+
+  &:hover {
+    background: #f2f4f7;
+  }
+}
+
+.app-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-width: 30rem;
+  margin-right: auto;
+
+  .form-control {
+    height: 2.5rem;
+    padding-left: 2.375rem;
+    border-color: transparent;
+    background: #f2f4f7;
+
+    &:focus {
+      border-color: var(--bs-primary);
+      background: #fff;
+    }
+  }
+}
+
+.app-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.875rem;
+  color: #7a828c;
+  font-size: 0.875rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.app-topbar-link {
+  align-items: center;
+  gap: 0.4rem;
+  color: #3a4048;
+  font-size: 0.875rem;
+  white-space: nowrap;
+
+  fa-icon {
+    font-size: 0.75rem;
+  }
+}
+
+.app-account {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border: 0;
+  border-radius: 2rem;
+  background: none;
+  color: #1f2328;
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  &:hover {
+    background: #f2f4f7;
+  }
+}
+
+.app-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--app-brand);
+  color: #1f2328;
+  font-size: 0.85rem;
+  font-weight: 700;
+  object-fit: cover;
+}
+
+.app-account-name {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

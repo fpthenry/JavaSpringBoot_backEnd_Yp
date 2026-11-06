@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
 
 import { provideTranslateService } from '@ngx-translate/core';
 
@@ -11,7 +10,6 @@ import Home from './home';
 describe('Home Component', () => {
   let comp: Home;
   let fixture: ComponentFixture<Home>;
-  let mockRouter: Router;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -27,18 +25,10 @@ describe('Home Component', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(Home);
     comp = fixture.componentInstance;
-
-    mockRouter = TestBed.inject(Router);
-    vi.spyOn(mockRouter, 'navigate');
   });
 
-  describe('login', () => {
-    it('should navigate to /login on login', () => {
-      // WHEN
-      comp.login();
-
-      // THEN
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
-    });
+  it('should format counts, showing an ellipsis while loading', () => {
+    expect(comp.formatCount(1855712)).toBe('1.855.712');
+    expect(comp.formatCount(null)).toBe('…');
   });
 });

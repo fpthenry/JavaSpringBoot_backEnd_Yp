@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, effect, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -9,6 +9,7 @@ import { catchError, of } from 'rxjs';
 
 import { serverApiUrl } from 'app/config';
 import { AccountService } from 'app/core/auth';
+import Login from 'app/login/login';
 import { HasAnyAuthorityDirective } from 'app/shared/auth';
 import { TranslateDirective } from 'app/shared/language';
 
@@ -29,23 +30,38 @@ export const DASHBOARD_STATS: DashboardStat[] = [
   { key: 'gallery', label: 'home.stats.galleries', icon: 'images', link: '/gallery', countUrl: 'api/galleries/count' },
 ];
 
+/** Việc hay làm trên trang tổng quan. */
+export interface QuickAction {
+  label: string;
+  icon: IconProp;
+  link: string;
+  adminOnly?: boolean;
+}
+
+export const QUICK_ACTIONS: QuickAction[] = [
+  { label: 'home.quick.newListing', icon: 'building', link: '/listing/new' },
+  { label: 'home.quick.importListing', icon: 'file-import', link: '/listing-import', adminOnly: true },
+  { label: 'home.quick.newPost', icon: 'newspaper', link: '/blog-post/new' },
+  { label: 'home.quick.newBanner', icon: 'images', link: '/gallery-image/new' },
+];
+
 /**
  * Sửa tay: trang chủ quản trị thay cho trang giới thiệu JHipster. Đã đăng nhập: lời chào, số liệu từng loại dữ liệu
- * (bấm để mở), lối tắt việc hay làm. Chưa đăng nhập: nút đăng nhập.
+ * (bấm để mở), việc hay làm. Chưa đăng nhập: hiện form đăng nhập luôn, bớt một lần bấm.
  */
 @Component({
   selector: 'jhi-home',
   templateUrl: './home.html',
   styleUrl: './home.scss',
-  imports: [TranslateDirective, TranslatePipe, RouterLink, FontAwesomeModule, HasAnyAuthorityDirective],
+  imports: [TranslateDirective, TranslatePipe, RouterLink, FontAwesomeModule, HasAnyAuthorityDirective, Login],
 })
 export default class Home {
   public readonly account = inject(AccountService).account;
   readonly stats = DASHBOARD_STATS;
+  readonly quickActions = QUICK_ACTIONS;
   /** Số bản ghi theo khóa; null = đang tải hoặc lỗi. */
   readonly counts = signal<Record<string, number | null>>({});
 
-  private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
 
   constructor() {
@@ -54,10 +70,6 @@ export default class Home {
         this.loadCounts();
       }
     });
-  }
-
-  login(): void {
-    this.router.navigate(['/login']);
   }
 
   formatCount(count: number | null | undefined): string {

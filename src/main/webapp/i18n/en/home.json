@@ -2,8 +2,7 @@
   "home": {
     "title": "Yellow Pages – Admin",
     "greeting": "Hello, {{ name }}",
-    "subtitle": "Pick an item below to start managing data.",
-    "loginPrompt": "Sign in to manage businesses, industries, posts and banners.",
+    "subtitle": "What would you like to do today?",
     "logged": {
       "message": "You are logged in as user \"{{username}}\"."
     },
@@ -19,15 +18,7 @@
       "newListing": "Add business",
       "newPost": "Write a post",
       "newBanner": "Add banner image",
-      "searchListing": "Find businesses by name, address, tax code"
-    },
-    "browse": {
-      "title": "Browse",
-      "categoryIndex": "Industry index A–Z",
-      "locationIndex": "Location index A–Z",
-      "categoryTree": "Industry code lookup (VSIC)",
-      "locationTree": "Administrative units",
-      "api": "API documentation"
+      "importListing": "Import companies"
     }
   }
 }

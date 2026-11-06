@@ -2369,6 +2369,17 @@ Kết quả trên Chrome (bài mẫu theo từng nguồn): yp.vn 2/2, pcdn 5/5, 
 
 ---
 
+### 16.4 Khung quản trị mới (2026-11-05)
+
+Thay thanh menu ngang và dropdown "Thực thể" bằng menu bên trái chia 3 nhóm: Dữ liệu, Nội dung, Hệ thống.
+
+- **Thêm mục menu:** sửa `app/layouts/navbar/navbar-menu.ts` (`MENU_GROUPS`), không sửa HTML. `adminOnly` ẩn với tài khoản thường; `exact` khi đường dẫn có trang con cùng nhóm.
+- **Thanh trên:** ô tìm nhanh mở `/listing?search=...` (ẩn ở trang `/listing` vì đã có ô tìm đầy đủ), Xem website, menu tài khoản gồm cài đặt, mật khẩu, ngôn ngữ, đăng xuất.
+- **Trang chủ:** số liệu và 4 việc hay làm. Chưa đăng nhập thì hiện form đăng nhập luôn.
+- **Biến giao diện:** `--app-sidebar-w`, `--app-topbar-h`, `--app-brand` ở đầu `content/scss/global.scss`. Phần tử `position: sticky` phải cộng `--app-topbar-h`, nếu không sẽ chui dưới thanh trên.
+- **Màn hình hẹp hơn 992px:** menu trái thành ngăn kéo, bấm mục nào tự đóng.
+- Bỏ 3 link lọc cấp Tỉnh thành, Quận huyện, Phường xã khỏi menu. Lọc vẫn dùng được qua URL `/location?filter[type.equals]=province`; tra cứu theo cấp ở mục Đơn vị hành chính > Tra cứu.
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.
@@ -2504,7 +2515,11 @@ Việc đưa lên máy chủ do người quản trị tự làm, dự án không
 
 ⚠️ **Dữ liệu phải đưa bằng bản dump từ CSDL đã chuyển đổi, không dựng lại bằng Liquibase.** Dữ liệu VSIC 2025 (1.606 ngành, liên kết doanh nghiệp, `category_slug_redirect`) và cập nhật đơn vị hành chính 30/10/2026 đã chạy thẳng trên CSDL dev, không nằm trong changelog. Sau khi nạp dump: reindex Elasticsearch toàn bộ. Không đổi mật khẩu CSDL trong dump mà quên đổi trong `.env`.
 
+⚠️ **Trước khi dump, kiểm tra khóa Liquibase:** `select locked, lockgranted, lockedby from databasechangeloglock`. Backend bị tắt ngang lúc Liquibase đang chạy sẽ để lại `locked=1`, và dump mang khóa này sang server. Ở profile prod, Liquibase chạy đồng bộ lúc khởi động nên app chờ khóa rồi dừng. Nếu `locked=1` mà không còn backend nào chạy: `update databasechangeloglock set locked=0, lockgranted=null, lockedby=null where id=1`. Máy dev gặp đúng trường hợp này (khóa từ 30/10/2026); ở dev Liquibase chạy nền nên app vẫn lên, chỉ log lỗi `Liquibase could not start correctly`.
+
 ⚠️ **MySQL trên server phải khởi tạo với `lower_case_table_names=1`** (như `src/main/docker/mysql.yml`; chỉ đặt được lúc tạo thư mục dữ liệu lần đầu, không đổi sau được). Bản dump lưu tên bảng chữ thường (`databasechangelog`), Liquibase tìm `DATABASECHANGELOG`: nếu máy chủ phân biệt hoa thường, Liquibase coi CSDL là trống, chạy lại từ đầu và app không khởi động được. Thêm các tùy chọn `--character_set_server=utf8mb4 --explicit_defaults_for_timestamp --innodb-buffer-pool-size=1G`.
+
+**MySQL cài sẵn trên server (không qua Docker):** kiểm tra `select version(), @@lower_case_table_names`. Trên Linux giá trị mặc định là `0` và không đổi được sau khi đã khởi tạo. Nếu là `0`, sau khi nạp dump đổi tên hai bảng của Liquibase về chữ hoa (`rename table databasechangelog to DATABASECHANGELOG, databasechangeloglock to DATABASECHANGELOGLOCK`); các bảng khác đều tên chữ thường. Dump phải có `--hex-blob` vì `gallery_image.image` là longblob. Nạp bằng dòng lệnh `mysql`, không nạp qua phpMyAdmin vì quá lớn.
 
 **Kiểm tra trước khi deploy (2026-11-05, chạy jar production thật trên CSDL riêng):**
 
