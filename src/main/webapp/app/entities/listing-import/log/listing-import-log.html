@@ -1,0 +1,59 @@
+<!-- Sửa tay: lịch sử các lần đã nhập vào hệ thống. Không qua JDL. -->
+<div class="listing-import">
+  <div class="page-header">
+    <div class="min-w-0">
+      <h2 class="page-title" data-cy="importLogHeading" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.title">Lịch sử nhập</h2>
+      <p class="text-muted mb-0 small" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.subtitle"></p>
+    </div>
+  </div>
+
+  @if (batches().length === 0 && !loading()) {
+    <div class="surface p-4 text-center text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.empty"></div>
+  } @else {
+    <div class="surface table-responsive">
+      <table class="table table-entities align-middle mb-0" aria-describedby="importLogHeading">
+        <thead>
+          <tr>
+            <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.time">Thời gian</th>
+            <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.source">Nguồn</th>
+            <th scope="col" class="text-end" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.created">Thêm mới</th>
+            <th scope="col" class="text-end" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.merged">Cập nhật</th>
+            <th scope="col" class="text-end" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.rejected">Loại bỏ</th>
+            <th scope="col" class="d-none d-md-table-cell" jhiTranslate="javaSpringBootBackEndApp.listingImport.log.by">Người chạy</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (b of batches(); track b.id) {
+            <tr data-cy="logRow">
+              <td class="text-nowrap">
+                <a [routerLink]="['/listing-import', b.id]" class="fw-semibold">{{ b.startedAt | date: 'dd/MM/yyyy HH:mm' }}</a>
+                @if (b.status !== 'DONE') {
+                  <span class="badge bg-secondary ms-1">{{
+                    'javaSpringBootBackEndApp.listingImport.batchStatus.' + b.status | translate
+                  }}</span>
+                }
+              </td>
+              <td>{{ 'javaSpringBootBackEndApp.listingImport.sourceKind.' + sourceKind(b.source) | translate }}</td>
+              <td class="text-end fw-semibold text-success">{{ fmt(b.createdCount) }}</td>
+              <td class="text-end fw-semibold text-primary">{{ fmt(b.mergedCount) }}</td>
+              <td class="text-end fw-semibold text-danger">{{ fmt(rejectedCount(b)) }}</td>
+              <td class="d-none d-md-table-cell small">{{ b.createdBy }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (total() > pageSize) {
+      <div class="d-flex justify-content-center mt-3">
+        <ngb-pagination
+          [collectionSize]="total()"
+          [page]="page()"
+          [pageSize]="pageSize"
+          [maxSize]="5"
+          [rotate]="true"
+          (pageChange)="changePage($event)"
+        />
+      </div>
+    }
+  }
+</div>

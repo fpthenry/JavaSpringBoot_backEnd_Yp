@@ -19,7 +19,13 @@ public class ApplicationProperties {
 
     private final Registration registration = new Registration();
 
+    private final Directus directus = new Directus();
+
     // jhipster-needle-application-properties-property
+
+    public Directus getDirectus() {
+        return directus;
+    }
 
     public Liquibase getLiquibase() {
         return liquibase;
@@ -105,6 +111,43 @@ public class ApplicationProperties {
 
         public void setBaseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
+        }
+
+        public int getPageSize() {
+            return pageSize;
+        }
+
+        public void setPageSize(int pageSize) {
+            this.pageSize = pageSize;
+        }
+    }
+
+    /**
+     * API Directus của Trang Vàng để đồng bộ doanh nghiệp. Token khai báo bằng biến môi trường, không ghi vào code.
+     */
+    public static class Directus {
+
+        private String baseUrl = "https://api.yp.com.vn";
+
+        private String token;
+
+        /** Số bản ghi mỗi request */
+        private int pageSize = 1000;
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
         }
 
         public int getPageSize() {

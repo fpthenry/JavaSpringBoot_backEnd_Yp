@@ -11,6 +11,12 @@ const listingImportRoute: Routes = [
     canActivate: [userRouteAccessService],
   },
   {
+    path: 'history',
+    loadComponent: () => import('./log/listing-import-log').then(m => m.ListingImportLog),
+    data: { authorities: ['ROLE_ADMIN'] },
+    canActivate: [userRouteAccessService],
+  },
+  {
     path: ':id',
     loadComponent: () => import('./detail/listing-import-detail').then(m => m.ListingImportDetail),
     data: { authorities: ['ROLE_ADMIN'] },

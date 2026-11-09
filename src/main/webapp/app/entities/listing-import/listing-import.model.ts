@@ -28,6 +28,20 @@ export interface IImportBatch {
   createdBy?: string | null;
   startedAt?: string | null;
   finishedAt?: string | null;
+  undoneAt?: string | null;
+  undoneBy?: string | null;
+  /** Số trường giữ nguyên khi hoàn tác vì đã đổi sau đợt này */
+  undoSkipped?: number | null;
+}
+
+/** Tình trạng bảng bản gốc API Trang Vàng (GET /directus/pull). */
+export interface IDirectusSummary {
+  /** Lần kéo gần nhất từ khi backend khởi động; null nếu chưa kéo */
+  pull?: { state: 'RUNNING' | 'DONE' | 'FAILED'; read: number; changed: number; lastId: number; error?: string | null } | null;
+  stored: number;
+  /** Bản ghi mới hoặc đã đổi so với lần nhập thật gần nhất */
+  pending: number;
+  lastFetchedAt?: string | null;
 }
 
 export interface IImportRow {
@@ -44,8 +58,12 @@ export interface IImportRow {
   matchedListingId?: number | null;
   /** Doanh nghiệp được tạo / bổ sung (đợt chạy thật) */
   listingId?: number | null;
-  /** Các trường đã bổ sung, cách nhau bởi dấu phẩy */
+  /** Các trường đã đổi, cách nhau bởi dấu phẩy */
   filledFields?: string | null;
+  /** Trong đó các trường bị ghi đè */
+  updatedFields?: string | null;
+  /** Ngày cập nhật của bản nguồn */
+  sourceUpdatedAt?: string | null;
   /** Ghi chú: không nhận ra tỉnh/ngành, tọa độ sai… (cách nhau bởi "; ") */
   message?: string | null;
   resolvedBy?: string | null;
@@ -69,11 +87,52 @@ export interface IMatchedListing {
   source?: string | null;
 }
 
+/** Một trường đã đổi; updated: ghi đè giá trị đang có, không thì điền ô trống. */
+export interface IFieldChange {
+  field: string;
+  oldValue?: string | null;
+  newValue?: string | null;
+  updated: boolean;
+}
+
+/** Những gì một dòng nhập đã đổi ở doanh nghiệp (ListingChanges.java). */
+export interface IListingChanges {
+  fields: IFieldChange[];
+  categories: number[];
+  locations: number[];
+}
+
 /** Một dòng kèm dữ liệu gốc (field chuẩn → giá trị) và doanh nghiệp bị khớp. */
 export interface IImportRowView {
   row: IImportRow;
   data?: Record<string, string> | null;
   matched?: IMatchedListing | null;
+  changes?: IListingChanges | null;
+}
+
+/** Số dòng đã đổi một trường. */
+export interface IFieldStat {
+  field: string;
+  filled: number;
+  updated: number;
+}
+
+export interface IHistoryEntry {
+  rowId: number;
+  batchId: number;
+  source: string;
+  importedAt?: string | null;
+  sourceRef?: string | null;
+  sourceUpdatedAt?: string | null;
+  status: ImportRowStatus;
+  undone: boolean;
+  changes?: IListingChanges | null;
+}
+
+/** Lịch sử nhập của một doanh nghiệp và các bản nguồn đang nối. */
+export interface IListingHistory {
+  entries: IHistoryEntry[];
+  sources: { source: string; sourceId: string; sourceUpdatedAt?: string | null; lastFetchedAt?: string | null }[];
 }
 
 /** Nhập từ API JSON của bên thứ ba (ApiRecordSource.Request). */

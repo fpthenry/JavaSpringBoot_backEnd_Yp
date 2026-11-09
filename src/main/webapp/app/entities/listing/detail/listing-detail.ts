@@ -14,6 +14,7 @@ import { FormatMediumDatetimePipe } from 'app/shared/date';
 import { CopyButton, DetailSection, SectionNav, avatarHue, initials } from 'app/shared/detail';
 import { decodeEntities } from 'app/shared/form';
 import { TranslateDirective } from 'app/shared/language';
+import { ListingImportHistory } from 'app/entities/listing-import/history/listing-import-history';
 import { ListingDeleteDialog } from '../delete/listing-delete-dialog';
 import {
   NEW_UNIT_SUFFIX,
@@ -76,6 +77,7 @@ export const LISTING_SECTIONS: DetailSection[] = [
     FormatMediumDatetimePipe,
     CopyButton,
     SectionNav,
+    ListingImportHistory,
   ],
   host: { '(document:keydown)': 'onKeydown($event)' },
 })

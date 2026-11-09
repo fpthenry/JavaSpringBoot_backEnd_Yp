@@ -49,6 +49,7 @@ describe('ListingImportList', () => {
       of(new HttpResponse({ body: [BATCH], headers: new HttpHeaders({ 'X-Total-Count': '1' }) })),
     );
     vi.spyOn(service, 'running').mockReturnValue(of(null));
+    vi.spyOn(service, 'pullSummary').mockReturnValue(of({ stored: 100, pending: 20 }));
     vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture = TestBed.createComponent(ListingImportList);
     comp = fixture.componentInstance;
@@ -56,13 +57,46 @@ describe('ListingImportList', () => {
 
   const el = (): HTMLElement => fixture.nativeElement as HTMLElement;
 
-  it('loads batches and shows one row per batch with counters', () => {
+  const directusCheck: IImportBatch = { ...BATCH, source: 'api:yp-directus', sourceName: 'listing_source_record' };
+
+  it('shows the three steps and no batch table', () => {
     fixture.detectChanges();
-    expect(service.batches).toHaveBeenCalledWith(0, 20);
-    const rows = el().querySelectorAll('[data-cy="batchRow"]');
-    expect(rows.length).toBe(1);
-    expect(rows[0].textContent).toContain('#7');
-    expect(rows[0].textContent).toContain('doanh-nghiep.xlsx');
+    comp['pull'].set({ stored: 100, pending: 20 }); // watchPull chỉ cập nhật ở lượt timer sau
+    fixture.detectChanges();
+    expect(el().querySelector('[data-cy="importSteps"]')).not.toBeNull();
+    expect(el().querySelector('[data-cy="batchRow"]')).toBeNull();
+    expect(el().querySelector('[data-cy="checkButton"]')).not.toBeNull();
+  });
+
+  it('runs a check and stays on the page', () => {
+    vi.spyOn(service, 'importDirectus').mockReturnValue(of({ ...directusCheck, status: 'RUNNING' }));
+    fixture.detectChanges();
+    comp.runDirectus(true);
+    expect(service.importDirectus).toHaveBeenCalledWith(true);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('shows added, updated and rejected counts, then imports after confirming', () => {
+    vi.mocked(service.batches).mockReturnValue(of(new HttpResponse({ body: [directusCheck] })));
+    vi.spyOn(service, 'importDirectus').mockReturnValue(of({ ...directusCheck, dryRun: false, status: 'RUNNING' }));
+    fixture.detectChanges();
+    comp['pull'].set({ stored: 100, pending: 20 });
+    fixture.detectChanges();
+    expect(el().querySelector('[data-cy="checkResult"]')?.textContent).toContain('80');
+    (el().querySelector('[data-cy="importButton"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(service.importDirectus).not.toHaveBeenCalled();
+    (el().querySelector('[data-cy="importConfirm"]') as HTMLButtonElement).click();
+    expect(service.importDirectus).toHaveBeenCalledWith(false);
+  });
+
+  it('says nothing is left to import once everything is in', () => {
+    vi.mocked(service.pullSummary).mockReturnValue(of({ stored: 100, pending: 0 }));
+    vi.mocked(service.batches).mockReturnValue(of(new HttpResponse({ body: [{ ...directusCheck, dryRun: false }] })));
+    fixture.detectChanges();
+    expect(el().querySelector('[data-cy="upToDate"]')).not.toBeNull();
+    expect(el().querySelector('[data-cy="lastImport"]')).not.toBeNull();
+    expect(el().querySelector('[data-cy="checkResult"]')).toBeNull();
   });
 
   it('accepts only .xlsx / .csv up to 100 MB', () => {
@@ -83,6 +117,7 @@ describe('ListingImportList', () => {
 
   it('submits the file as a dry run by default and opens the new batch', () => {
     vi.spyOn(service, 'importFile').mockReturnValue(of({ ...BATCH, id: 8, status: 'RUNNING' }));
+    comp['tab'].set('file');
     const file = new File(['a,b'], 'dn.csv');
     comp.pickFile(file);
     expect(comp.canSubmit()).toBe(true);
@@ -95,6 +130,7 @@ describe('ListingImportList', () => {
     vi.spyOn(service, 'importFile').mockReturnValue(
       throwError(() => new HttpErrorResponse({ status: 409, error: { error: 'Đang có đợt nhập #5 chạy' } })),
     );
+    comp['tab'].set('file');
     comp.pickFile(new File(['a'], 'dn.csv'));
     comp.submit();
     expect(comp['submitError']()).toBe('Đang có đợt nhập #5 chạy');
@@ -102,6 +138,7 @@ describe('ListingImportList', () => {
   });
 
   it('cannot start while a batch is running', () => {
+    comp['tab'].set('file');
     comp.pickFile(new File(['a'], 'dn.csv'));
     comp['running'].set({ ...BATCH, status: 'RUNNING' });
     expect(comp.canSubmit()).toBe(false);

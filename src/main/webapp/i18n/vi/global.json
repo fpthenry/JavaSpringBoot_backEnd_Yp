@@ -60,6 +60,8 @@
         "system": "Hệ thống"
       },
       "sidebar": {
+        "importRun": "Nhập dữ liệu",
+        "importHistory": "Lịch sử",
         "lookup": "Tra cứu",
         "index": "Mục lục A–Z",
         "list": "Danh sách",

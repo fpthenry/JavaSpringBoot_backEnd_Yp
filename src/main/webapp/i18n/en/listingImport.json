@@ -3,7 +3,7 @@
     "listingImport": {
       "home": {
         "title": "Import listings",
-        "subtitle": "Bring companies from an Excel/CSV file or an external API into the system, with automatic duplicate checks.",
+        "subtitle": "Get the data, check it, then add new companies, update existing ones and reject bad records.",
         "notFound": "No import yet. Start with \"New import\" — a dry run first is recommended."
       },
       "action": {
@@ -19,6 +19,13 @@
         "publishYes": "Publish",
         "publishNo": "Cancel",
         "published": "Published {{ count }} listings.",
+        "check": "Check data",
+        "cancelRun": "Cancel",
+        "undo": "Undo this import",
+        "undoConfirm": "Undo: {{ merged }} listings return to their old values, {{ created }} new listings go back to draft and leave the website. Fields changed after this import are kept.",
+        "export": "Export to Excel",
+        "importReal": "Import to system",
+        "importConfirm": "Import to system: {{ created }} new listings go live, {{ merged }} listings get updated. Suspected duplicates stay for review.",
         "importAgain": "Import for real with this file"
       },
       "new": {
@@ -52,6 +59,15 @@
           "advanced": "Advanced options",
           "invalidSource": "Source code may only contain lowercase letters, digits and dashes.",
           "invalidUrl": "URL must start with http:// or https://"
+        },
+        "tabDirectus": "Yellow Pages API",
+        "directusHint": "1. Pull data into the holding table; live data is not touched. 2. Check data: review each tab, nothing is written. 3. Press Import for real on the result page.",
+        "directus": {
+          "pull": "Get data",
+          "resume": "Continue",
+          "stored": "Stored",
+          "pending": "Not imported",
+          "pulling": "Getting data"
         }
       },
       "list": {
@@ -65,8 +81,8 @@
         "rows": "{{ count }} rows"
       },
       "mode": {
-        "dryRun": "Dry run",
-        "real": "Real import"
+        "dryRun": "Check",
+        "real": "Imported"
       },
       "sourceKind": {
         "file": "File",
@@ -76,17 +92,20 @@
       "batchStatus": {
         "RUNNING": "Running",
         "DONE": "Done",
-        "FAILED": "Failed"
+        "FAILED": "Failed",
+        "CANCELLED": "Cancelled",
+        "UNDOING": "Undoing",
+        "UNDONE": "Undone"
       },
       "status": {
-        "SUSPECT": "Suspected duplicate",
-        "CREATED": "Created",
-        "CREATED_DRY": "Will create",
-        "MERGED": "Merged",
-        "MERGED_DRY": "Will merge",
+        "SUSPECT": "Needs review",
+        "CREATED": "Added",
+        "CREATED_DRY": "Will add",
+        "MERGED": "Updated",
+        "MERGED_DRY": "Will update",
         "UNCHANGED": "Exists, unchanged",
         "DUPLICATE_IN_BATCH": "Duplicate in file",
-        "INVALID": "Invalid",
+        "INVALID": "Rejected",
         "SKIPPED": "Skipped",
         "all": "All"
       },
@@ -106,11 +125,56 @@
         "NAME_ADDRESS": "Name + address",
         "NAME": "Name"
       },
+      "steps": {
+        "pull": "Get data",
+        "pullHelp": "Saved to a holding table; live data is not touched. About 25 minutes.",
+        "check": "Check",
+        "checkHelp": "Compare with the system: new companies are added, existing ones updated, bad records rejected. Nothing is written yet.",
+        "import": "Import to system",
+        "importHelp": "After the check, the numbers appear here for you to confirm.",
+        "upToDate": "No new data to import.",
+        "detail": "View details",
+        "lastImport": "Last import: {{ created }} added, {{ merged }} updated, {{ rejected }} rejected."
+      },
+      "log": {
+        "title": "Import history",
+        "subtitle": "Every import into the system.",
+        "empty": "No imports yet.",
+        "time": "Time",
+        "source": "Source",
+        "created": "Added",
+        "merged": "Updated",
+        "rejected": "Rejected",
+        "by": "Run by"
+      },
+      "history": {
+        "title": "Import history",
+        "sources": "Linked source records:"
+      },
       "detail": {
         "title": "Import #{{ id }}",
         "dryRunNotice": "This was a dry run: results show what WOULD happen; nothing was written. Import the file again without \"Dry run\" to write.",
         "runningNotice": "Processing… this page updates itself. You can leave; the import keeps running.",
+        "dryRunReady": "This is a check result; nothing was written. Review each tab, then press Import to system at the top.",
+        "cancelled": "This import was cancelled. Unprocessed records stay in the holding table; run it again to continue.",
+        "undoing": "Undoing this import… this page updates itself.",
+        "undone": "Undone by {{ user }} at {{ at }}. {{ skipped }} fields were kept because they changed after this import. API records are marked not imported and can be imported again.",
+        "searchPlaceholder": "Search by name, tax code, source id",
+        "clearSearch": "Clear search",
+        "byField": "By field:",
+        "fieldHelp": "Filled {{ filled }}, updated {{ updated }}",
+        "sourceDate": "source {{ date }}",
+        "fromSource": "from record #{{ id }}",
+        "showChanges": "Show old → new",
+        "hideChanges": "Collapse",
+        "changeField": "Field",
+        "oldValue": "Old value",
+        "newValue": "New value",
+        "updated": "Updated:",
         "failed": "Import failed: {{ error }}",
+        "doneNotice": "Imported into the system: {{ created }} new listings, {{ merged }} listings updated.",
+        "draftsLeft": "{{ count }} drafts not published yet.",
+        "allPublished": "New listings are live on the website.",
         "suspectNotice": "{{ count }} suspected duplicates waiting for review.",
         "reviewSuspects": "Review now",
         "rowNo": "Row",

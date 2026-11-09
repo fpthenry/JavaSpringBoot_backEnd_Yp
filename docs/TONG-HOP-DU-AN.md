@@ -205,6 +205,10 @@ Kiểu JDL được sinh thành kiểu MySQL như sau: `String` → `VARCHAR(n)`
 | `esIndexed` | `es_indexed` | Boolean | | |
 
 > **Tọa độ doanh nghiệp** nằm trong `location_json` dưới dạng chuỗi `"coordinate":"21.0001:105.698"` (1.791.151 doanh nghiệp có tọa độ). Phải giữ nguyên dạng text: **không** chuyển sang DECIMAL hay Double, vì làm tròn hoặc thêm số 0 đều làm sai tọa độ.
+>
+> **Bổ sung tọa độ (2026-11-06, ghi trực tiếp CSDL dev):** 64.558 doanh nghiệp chưa có tọa độ; thêm 29.423 từ `webbupointfinder_items_location` của WordPress (`ypvn_25_db.wp_postmeta`), giữ nguyên văn chữ số, chỉ đổi dấu phẩy thành `:`. Hiện có 1.820.577 doanh nghiệp có tọa độ. Tọa độ đã có không đổi. Bỏ 32.552 điểm dùng chung từ 30 doanh nghiệp trở lên (tâm khu vực), 2.012 không có tọa độ WordPress, và 571 sai định dạng, ngoài tỉnh hoặc cách tâm xã quá 25 km; nhóm này để trống, Google Maps tra theo địa chỉ. Sao lưu: schema `backup_coord_20261106` (`listing_location_json` là bản trước khi ghi, `coord_fill` là dữ liệu đã ghi). Lưu ý: phần lớn tọa độ cũ là **tâm xã hoặc tâm tỉnh** (34 điểm tâm tỉnh cho 288.536 doanh nghiệp), không phải vị trí thật của doanh nghiệp.
+>
+> **FE dùng tọa độ thế nào (`src/lib/coordinate.ts`, `preciseCoordinate`):** bản đồ OpenStreetMap hiện mọi tọa độ có sẵn, kể cả tâm khu vực (theo yêu cầu giữ nguyên hiển thị). Chỉ tọa độ có từ 6 chữ số thập phân ở cả vĩ độ và kinh độ mới coi là vị trí riêng: nút Google Maps mở theo tọa độ, khai `geo` trong JSON-LD. Từ 5 chữ số trở xuống là tâm khu vực (có 2 điểm tâm 5 chữ số: `12.24579:109.19533`, `21.85926:106.75417`): Google Maps tìm theo địa chỉ, không khai `geo`. Khoảng 29.400 doanh nghiệp có tọa độ riêng. Dữ liệu tọa độ cũ giữ nguyên, quy tắc chỉ nằm ở FE.
 
 #### Category (`category`)
 
@@ -2499,6 +2503,73 @@ Menu **Thực thể → Doanh nghiệp → Nhập doanh nghiệp** (`/listing-im
 Backend kèm theo: `rows` trả thêm email, website, địa chỉ mới, người đại diện của doanh nghiệp bị khớp (để so). **Kiểm thử:** `listing-import-display.spec.ts` 7, `listing-import-list.spec.ts` 6, `listing-import-detail.spec.ts` 5 — 18/18; navbar 13/13. Chrome (đăng nhập admin): menu có mục mới; chạy thử 7 dòng qua giao diện → bộ lọc "Sẽ tạo mới 6 · Sẽ bổ sung 1", không nút duyệt; nhập thật 1 dòng nghi trùng → khối so sánh (tên, SĐT khác tô vàng) → **Bỏ qua** → dòng "Đã bỏ qua", có thông báo; 390 px không cuộn ngang; không lỗi console. Không tạo/sửa doanh nghiệp nào; đã xóa nhật ký các đợt thử theo id.
 
 ---
+
+### 17.8 Đồng bộ từ API Trang Vàng (Directus, 2026-11-06)
+
+Nguồn: `https://api.yp.com.vn/items/listings`, cũng là API mà code WordPress cũ dùng. Giao diện: **Nhập doanh nghiệp > Thêm > API Trang Vàng**; REST `POST /api/admin/listing-imports/directus?dryRun=true` (mặc định chạy thử). Token ở biến môi trường `YP_DIRECTUS_TOKEN` (`.env`, không commit), gửi bằng header `Authorization`, không nằm trong URL hay nhật ký đợt nhập.
+
+**Quét so sánh trước khi làm (2026-11-06, 12 phút, 1.947.127 bản ghi):** bản ghi mới nhất ngày 01/04/2026, id `2009352`, trùng id lớn nhất đã có.
+
+| API | Số lượng |
+|---|---|
+| Đã xuất bản, đã có | 1.469.026 (api_id 344.060; yp_id = wp_id 1.123.953; slug 151; MST 862) |
+| Đã xuất bản, chưa có | 832 |
+| Nháp, đã có / chưa có | 462.758 / 14.511 (không nhập) |
+
+72.169 doanh nghiệp có ô trống mà API có dữ liệu, chủ yếu mã ngành chính (69.970), loại hình (7.152), tình trạng (5.472). Ngoài ra 1.395 doanh nghiệp chưa có ngành, 11.285 doanh nghiệp chưa có xã mới mà API có `ward`.
+
+**Chạy thử bản đầu (đợt 52, 27 phút, gọi API trực tiếp):** 73.756 dòng: 72.215 bổ sung, 789 tạo mới, 709 không đổi, 38 nghi trùng, 5 thiếu tên.
+
+**Nhập thật trên dev (đợt 54, 2026-11-06, 38 phút 51 giây):** 73.047 dòng, kết quả đúng như đợt chạy thử 53: 72.215 bổ sung, 789 tạo mới (nháp), 38 nghi trùng, 5 thiếu tên. 17 phút xử lý dòng, 22 phút cho giao dịch cuối đánh dấu `imported_hash` trên 1,47 triệu dòng: trong lúc đó bộ đếm đứng yên nhưng đợt vẫn `RUNNING`, không phải treo; các lần sau chỉ còn bản ghi mới hoặc đã đổi nên bước này nhanh hơn nhiều. Sao lưu trước khi nhập ở schema `backup_import_20261106` (72.253 `listing`, liên kết ngành và địa phương).
+
+Đối chiếu với bản sao lưu: không đổi slug, tên, trạng thái; không ghi đè ô đã có (địa chỉ, điện thoại, email, MST, mã ngành); không đổi tọa độ nào; không mất liên kết ngành hay địa phương (thêm 5.170 liên kết ngành, 569 liên kết địa phương). `location_json` được điền khóa còn trống ở 62.807 doanh nghiệp (tỉnh, xã, mã; tọa độ vẫn trống nếu trước đó trống), trong đó 803 doanh nghiệp có xã trong JSON không nằm trong các xã đang gắn ở `rel_listing__location`, cần rà ở bước cập nhật địa chỉ. Elasticsearch khớp MySQL: 1.856.501 doanh nghiệp.
+
+**Màn hình đợt nhập sau khi xong:** đợt nhập thật có thông báo xanh (số tạo mới, số bổ sung, còn bao nhiêu nháp). Nút xuất bản lấy số nháp còn lại từ `GET /api/admin/listing-imports/{id}/drafts`, không dùng `createdCount`, nên giảm dần và tự ẩn khi hết nháp; trước đây nút luôn ghi 789, bấm lần hai báo 0.
+
+**So sánh API với `listing` sau khi nhập (1.469.815 bản ghi đã nối, 1.393.945 doanh nghiệp, số lấy mẫu 1/20 có ký hiệu ≈):** 392.988 doanh nghiệp khác ít nhất một trường. Mã ngành khác ở 254.005 dòng vì `industry_code` trong DB là danh sách nhiều mã, API chỉ có mã chính; không phải giá trị mâu thuẫn. Email khác 9.553 dòng, mẫu cho thấy DB bị cắt đuôi (`...@gmail.co`). Tình trạng khác 138.812 dòng, phần lớn trong mẫu là cùng nội dung, DB ngắn hơn. Người đại diện khác 62.119 dòng, hai bên đều có bản xấu. Địa chỉ khác thật ≈27.800 dòng, trong đó ≈9.200 dòng API là địa chỉ mới dạng `..., Việt Nam`. Tên khác thật ≈400 dòng. 1.122.945 bản ghi không có `source_last_updated`, và `listing.updated_at` phần lớn là ngày chép dữ liệu hoặc ngày nhập, nên không so được bên nào mới hơn theo ngày. 75.866 doanh nghiệp có từ hai bản ghi API trở lên (cùng MST, id API khác nhau).
+
+**Luồng nhập API Trang Vàng (chốt 2026-11-06):** menu **Nhập doanh nghiệp** có hai mục con. **Nhập dữ liệu** (`/listing-import`) là một trang ba bước: Lấy dữ liệu về → Kiểm tra (luôn là chạy thử, ở lại trang) → thẻ số liệu Thêm mới, Cập nhật, Loại bỏ, Cần xem lại (bấm để xem chi tiết) và nút **Nhập vào hệ thống**. Loại bỏ = `invalid_count + duplicate_in_batch_count`. **Lịch sử** (`/listing-import/history`, `GET ?dryRun=false`) chỉ có các lần nhập thật, không hiện lần kiểm tra. Trang đợt nhập vẫn ở `/listing-import/{id}`. `POST /directus` báo 400 khi không còn bản ghi mới. Nhập từ file Excel/CSV và API khác ở hai tab còn lại, giữ ô chỉ kiểm tra.
+
+**Quy tắc ghi khi nhập thật:**
+
+| Loại | Xử lý |
+|---|---|
+| Tạo mới | Lên website ngay (`status = publish`, `published_at`), không qua nháp; file Excel/CSV vẫn tạo nháp |
+| Đã có, khớp theo khóa | Điền ô trống. Nếu bản ghi API có `source_updated_at` mới hơn cả `modified_at` lẫn `updated_at`, cùng MST, và là bản mới nhất của doanh nghiệp đó, thì [`ListingImportWriter.refresh`](../src/main/java/com/mycompany/myapp/service/listingimport/ListingImportWriter.java) đè tên, tên tiếng Anh, tên viết tắt, điện thoại, email, website, địa chỉ (cả `address_new`), cơ quan quản lý, người đại diện, vốn, năm thành lập, loại hình, tình trạng, mô tả. Nguồn trống hoặc không có ngày thì giữ nguyên |
+| Nghi trùng | Không có khóa để nối (chỉ giống tên), giữ lại để duyệt tay; chọn tạo mới thì lên website ngay |
+| Không đè | Slug, MST, tọa độ, liên kết địa phương, mã ngành (DB giữ danh sách nhiều mã, API chỉ có mã chính) |
+
+Khoảng trắng thừa, hoa thường không tính là khác. Giá trị API chỉ là phần đầu của giá trị đang có thì giữ bản đang có, vì DB đầy đủ hơn (`LÊ BÁ HÀ` so với `LÊ BÁ HÀ - Giới tính: Nam - Chức danh: Giám đốc`). Điện thoại so theo chữ số. Website đọc `address` trước `address_new`.
+
+**Truy vết và trang kết quả (2026-11-06):** mỗi dòng lưu `changes` (JSON [`ListingChanges`](../src/main/java/com/mycompany/myapp/service/listingimport/ListingChanges.java): từng trường cũ → mới, ngành và địa phương đã gắn, `modified_at`, `updated_at` trước khi nhập), `updated_fields` (trường bị ghi đè, tập con của `filled_fields`), `source_updated_at`. Chạy thử cũng lưu, nên xem được cũ → mới trước khi nhập thật. Changelog `20261106120000_listing_import_history.xml`.
+
+| Chức năng | REST (`/api/admin/listing-imports`) | Ghi chú |
+|---|---|---|
+| Tìm, lọc dòng | `GET /{id}/rows?status=&q=&field=` | `q`: tên (không phân biệt dấu), MST, id nguồn |
+| Thống kê theo trường | `GET /{id}/field-stats` | Bấm để lọc |
+| Xuất file | `GET /{id}/export` | CSV có BOM, cùng bộ lọc, mỗi trường đã đổi một dòng, giá trị cắt 300 ký tự |
+| Hoàn tác | `POST /{id}/undo` | Chạy nền, trạng thái `UNDOING` → `UNDONE` |
+| Lịch sử doanh nghiệp | `GET /history/{listingId}` | Khối Lịch sử nhập ở trang xem doanh nghiệp, tối đa 50 lần |
+
+**Hoàn tác:** chỉ với đợt nhập thật `DONE`, duyệt dòng theo id giảm dần. Trường được trả lại khi giá trị hiện tại còn đúng giá trị đợt đó đã ghi; đã đổi sau đó thì giữ nguyên và đếm vào `undo_skipped`. Trả cả `modified_at`, `updated_at`, gỡ ngành và địa phương đã gắn. Doanh nghiệp đợt đó tạo về `draft`, không xóa để giữ slug; nhập lại sẽ khớp doanh nghiệp nháp đó, cần xuất bản tay trong Doanh nghiệp. Bản gốc API của các dòng bị hoàn tác về `imported_hash = NULL`. Hoàn tác đợt cũ khi đợt mới hơn đã đổi cùng trường sẽ không có tác dụng với các trường đó, nên hoàn tác từ đợt mới nhất trở về.
+
+Lịch sử đợt 54 và 56 dựng lại từ `backup_import_20261106` bằng SQL. Đợt 53, 55 và các đợt cũ hơn không có giá trị cũ → mới.
+
+**Khi sửa changelog lúc backend dev đang chạy:** không chạy `mvnw` liên tiếp trước khi `databasechangelog` có dòng mới. Devtools khởi động lại giữa lúc Liquibase chạy sẽ để lại cột đã thêm mà chưa ghi log, kèm khóa kẹt; phải xóa phần dở và nhả khóa.
+
+**Hủy đợt đang chạy:** nút Hủy ở thanh tiến độ trang danh sách và trang đợt nhập (`POST /api/admin/listing-imports/{id}/cancel`). Backend dừng sau lô 200 dòng đang xử lý, đợt có trạng thái `CANCELLED`. Nhập thật bị hủy thì các lô đã xong vẫn được giữ; bản gốc chưa đánh dấu `imported_hash` nên chạy lại là xử lý tiếp. Bước đánh dấu cuối đợt không hủy được.
+
+**Áp dụng cho đợt 54:** chỉ nhóm Merged (72.215), 1,39 triệu doanh nghiệp còn lại giữ nguyên. Đợt 54 đã đặt `modified_at` thành ngày nhập nên không so được ngày, vì vậy chạy một lần bằng SQL: chép nhóm Merged vào `backup_import_20261106.listing_before_overwrite`, lập danh sách dòng khác API vào `backup_import_20261106.overwrite_plan`, trả `modified_at`, `updated_at` về `modified_at` trước khi nhập, đặt `imported_hash = NULL` ở bản ghi mới nhất, rồi chạy Kiểm tra dữ liệu trên giao diện. Bỏ qua doanh nghiệp có `updated_at` sau 30/06/2026 trong bản sao lưu (92 dòng, coi là đã sửa tay).
+
+**Ba bước, tách để kéo một lần rồi chạy thử bao nhiêu lần cũng được:**
+
+1. **Kéo về** ([`DirectusPullService`](../src/main/java/com/mycompany/myapp/service/listingimport/DirectusPullService.java), `POST /api/admin/listing-imports/directus/pull`, tiến độ `GET` cùng đường dẫn): đọc theo `id > cursor`, 1.000 bản ghi một lần, chỉ `status = published`, ghi vào `listing_source_record`, không đụng `listing`. Lỗi giữa chừng: `resume=true` đọc tiếp từ id lớn nhất đã lưu. Trong lúc kéo, `GET` tính từ số đầu đợt, không đếm lại bảng: đếm quét cả bảng từng mất 14 giây ở 1,4 triệu dòng, màn hình hỏi mỗi 2 giây nên làm cạn 10 kết nối của Hikari (lỗi "Failed to obtain JDBC Connection"); đã thêm index phủ `ix_listing_source_record__import_state`.
+2. **Chạy thử** (`POST /directus?dryRun=true`, [`DirectusRecordSource`](../src/main/java/com/mycompany/myapp/service/listingimport/DirectusRecordSource.java)): đọc từ bảng bản gốc, không gọi API. Chỉ lấy dòng `imported_hash` khác `content_hash`. Khớp theo api_id → yp_id = wp_id → slug → MST; chỉ đưa vào quy trình nhập (mục 17.2) bản ghi chưa có doanh nghiệp hoặc có ô bổ sung được, nên không sinh 1,47 triệu dòng `listing_import_row`.
+3. **Nhập thật** (`dryRun=false`): đã có thì điền ô trống, không ghi đè, không đổi slug, không đụng tọa độ. Chưa có thì tạo nháp, giữ slug của API nếu chưa ai dùng, ghi `api_id`; xuất bản ở màn hình đợt nhập. Nhập xong cả đợt mới ghi `imported_hash`, lỗi giữa chừng thì lần sau xử lý lại từ đầu, kết quả không đổi vì chỉ điền ô trống.
+
+**Mã ngành:** mã có chữ (`113YP`, `2490YP`, `1272YP`, `106YP`) là mã nội bộ cũ của YP, bỏ qua. Mã VSIC cũ không còn trong bảng ngành (55 mã, như `6201`) tra qua `category_slug_redirect` theo đuôi slug cũ, chỉ dùng khi đuôi đó trỏ tới đúng một ngành mới. Logo là id file Directus, không phải URL, nên không lấy.
+
+**Bảng `listing_source_record`:** một dòng cho mỗi bản ghi nguồn, `UNIQUE (source, source_id)`, kéo lại thì cập nhật đúng dòng đó. Cột: `listing_id` (`SET NULL` khi xóa doanh nghiệp), `tax_code`, `slug`, `status`, `payload` (toàn bộ JSON, gồm mã ngành), `content_hash` (SHA-256), `imported_hash` (hash của lần nhập thật gần nhất), `source_updated_at`, `first_fetched_at`, `last_fetched_at`. Khoảng 1,9 GB cho 1,47 triệu bản ghi, cộng vào bản dump. Bảng giữ lâu dài, không xóa sau khi nhập. Cú pháp `INSERT ... AS n ON DUPLICATE KEY` cần MySQL 8.0.19 trở lên.
 
 ## 18. Đưa dự án lên máy chủ (tự triển khai) và SEO yp.vn
 

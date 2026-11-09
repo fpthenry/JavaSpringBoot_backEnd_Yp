@@ -3,7 +3,7 @@
     "listingImport": {
       "home": {
         "title": "Nhập doanh nghiệp",
-        "subtitle": "Đưa doanh nghiệp từ file Excel/CSV hoặc API bên ngoài vào hệ thống, tự kiểm tra trùng với doanh nghiệp đang có.",
+        "subtitle": "Lấy dữ liệu về, kiểm tra, rồi thêm doanh nghiệp mới, cập nhật doanh nghiệp đã có và loại bỏ dữ liệu sai.",
         "notFound": "Chưa có đợt nhập nào. Bắt đầu bằng \"Nhập mới\" — nên chọn chạy thử trước."
       },
       "action": {
@@ -19,6 +19,13 @@
         "publishYes": "Xuất bản",
         "publishNo": "Thôi",
         "published": "Đã xuất bản {{ count }} doanh nghiệp.",
+        "check": "Kiểm tra dữ liệu",
+        "cancelRun": "Hủy",
+        "undo": "Hoàn tác đợt này",
+        "undoConfirm": "Hoàn tác: {{ merged }} doanh nghiệp trở về giá trị cũ, {{ created }} doanh nghiệp mới về nháp và gỡ khỏi website. Trường đã sửa sau đợt này giữ nguyên.",
+        "export": "Xuất Excel",
+        "importReal": "Nhập vào hệ thống",
+        "importConfirm": "Nhập vào hệ thống: {{ created }} doanh nghiệp mới lên website, {{ merged }} doanh nghiệp được cập nhật. Nghi trùng giữ lại để duyệt.",
         "importAgain": "Nhập thật với file này"
       },
       "new": {
@@ -52,6 +59,15 @@
           "advanced": "Tùy chọn nâng cao",
           "invalidSource": "Mã nguồn chỉ gồm chữ thường, số, gạch ngang.",
           "invalidUrl": "URL phải bắt đầu bằng http:// hoặc https://"
+        },
+        "tabDirectus": "API Trang Vàng",
+        "directusHint": "1. Kéo dữ liệu về bảng tạm, chưa đụng dữ liệu đang chạy. 2. Kiểm tra dữ liệu: xem kết quả từng tab, chưa ghi gì. 3. Bấm Nhập thật trên trang kết quả.",
+        "directus": {
+          "pull": "Lấy dữ liệu về",
+          "resume": "Lấy tiếp",
+          "stored": "Đã lưu",
+          "pending": "Chưa nhập",
+          "pulling": "Đang lấy"
         }
       },
       "list": {
@@ -65,8 +81,8 @@
         "rows": "{{ count }} dòng"
       },
       "mode": {
-        "dryRun": "Chạy thử",
-        "real": "Nhập thật"
+        "dryRun": "Kiểm tra",
+        "real": "Đã nhập"
       },
       "sourceKind": {
         "file": "File",
@@ -76,24 +92,27 @@
       "batchStatus": {
         "RUNNING": "Đang chạy",
         "DONE": "Xong",
-        "FAILED": "Lỗi"
+        "FAILED": "Lỗi",
+        "CANCELLED": "Đã hủy",
+        "UNDOING": "Đang hoàn tác",
+        "UNDONE": "Đã hoàn tác"
       },
       "status": {
-        "SUSPECT": "Nghi trùng",
-        "CREATED": "Tạo mới",
-        "CREATED_DRY": "Sẽ tạo mới",
-        "MERGED": "Bổ sung",
-        "MERGED_DRY": "Sẽ bổ sung",
+        "SUSPECT": "Cần xem lại",
+        "CREATED": "Thêm mới",
+        "CREATED_DRY": "Sẽ thêm mới",
+        "MERGED": "Cập nhật",
+        "MERGED_DRY": "Sẽ cập nhật",
         "UNCHANGED": "Đã có, không đổi",
         "DUPLICATE_IN_BATCH": "Trùng trong file",
-        "INVALID": "Lỗi dữ liệu",
+        "INVALID": "Loại bỏ",
         "SKIPPED": "Đã bỏ qua",
         "all": "Tất cả"
       },
       "statusHelp": {
         "SUSPECT": "Tên gần giống doanh nghiệp đang có (kèm SĐT / địa chỉ) — cần bạn duyệt",
-        "CREATED": "Không trùng doanh nghiệp nào → doanh nghiệp mới, dạng nháp",
-        "MERGED": "Trùng chắc chắn (mã số thuế / mã nguồn) → bổ sung các ô còn trống",
+        "CREATED": "Chưa có trong hệ thống → thêm mới",
+        "MERGED": "Đã có trong hệ thống → cập nhật thông tin",
         "UNCHANGED": "Trùng chắc chắn, không có gì để bổ sung",
         "DUPLICATE_IN_BATCH": "Trùng một dòng phía trên trong cùng file",
         "INVALID": "Thiếu tên doanh nghiệp",
@@ -106,11 +125,56 @@
         "NAME_ADDRESS": "Tên + địa chỉ",
         "NAME": "Tên"
       },
+      "steps": {
+        "pull": "Lấy dữ liệu về",
+        "pullHelp": "Lưu vào bảng tạm, chưa đổi dữ liệu đang chạy. Khoảng 25 phút.",
+        "check": "Kiểm tra",
+        "checkHelp": "So với hệ thống: chưa có thì thêm mới, có rồi thì cập nhật, sai thì loại bỏ. Bước này chưa ghi gì.",
+        "import": "Nhập vào hệ thống",
+        "importHelp": "Sau khi kiểm tra, số liệu sẽ hiện ở đây để bạn xác nhận.",
+        "upToDate": "Không có dữ liệu mới cần nhập.",
+        "detail": "Xem chi tiết",
+        "lastImport": "Lần nhập gần nhất: thêm mới {{ created }}, cập nhật {{ merged }}, loại bỏ {{ rejected }}."
+      },
+      "log": {
+        "title": "Lịch sử nhập",
+        "subtitle": "Các lần đã nhập vào hệ thống.",
+        "empty": "Chưa có lần nhập nào.",
+        "time": "Thời gian",
+        "source": "Nguồn",
+        "created": "Thêm mới",
+        "merged": "Cập nhật",
+        "rejected": "Loại bỏ",
+        "by": "Người chạy"
+      },
+      "history": {
+        "title": "Lịch sử nhập",
+        "sources": "Bản nguồn đang nối:"
+      },
       "detail": {
         "title": "Đợt nhập #{{ id }}",
         "dryRunNotice": "Đây là đợt chạy thử: các kết quả là điều SẼ xảy ra, chưa ghi gì vào doanh nghiệp. Muốn ghi thật, nhập lại file và bỏ chọn \"Chạy thử\".",
         "runningNotice": "Đang xử lý… trang tự cập nhật. Có thể rời trang, đợt vẫn chạy tiếp.",
+        "dryRunReady": "Đây là kết quả kiểm tra, chưa ghi gì. Xem từng tab, thấy đúng thì bấm Nhập vào hệ thống ở góc trên.",
+        "cancelled": "Đợt này đã hủy. Phần chưa xử lý vẫn còn trong bảng tạm, chạy lại sẽ xử lý tiếp.",
+        "undoing": "Đang hoàn tác đợt này… trang tự cập nhật.",
+        "undone": "Đã hoàn tác bởi {{ user }} lúc {{ at }}. {{ skipped }} trường giữ nguyên vì đã đổi sau đợt này. Dữ liệu API được đánh dấu chưa nhập, có thể nhập lại.",
+        "searchPlaceholder": "Tìm theo tên, MST, id nguồn",
+        "clearSearch": "Xóa tìm kiếm",
+        "byField": "Theo trường:",
+        "fieldHelp": "Điền mới {{ filled }}, cập nhật {{ updated }}",
+        "sourceDate": "bản nguồn {{ date }}",
+        "fromSource": "từ bản #{{ id }}",
+        "showChanges": "Xem cũ → mới",
+        "hideChanges": "Thu gọn",
+        "changeField": "Trường",
+        "oldValue": "Giá trị cũ",
+        "newValue": "Giá trị mới",
+        "updated": "Cập nhật:",
         "failed": "Đợt nhập lỗi: {{ error }}",
+        "doneNotice": "Đã nhập xong vào hệ thống: {{ created }} doanh nghiệp mới, {{ merged }} doanh nghiệp được cập nhật.",
+        "draftsLeft": "Còn {{ count }} doanh nghiệp nháp chưa xuất bản.",
+        "allPublished": "Các doanh nghiệp mới đã lên website.",
         "suspectNotice": "{{ count }} dòng nghi trùng đang chờ duyệt.",
         "reviewSuspects": "Duyệt ngay",
         "rowNo": "Dòng",
@@ -119,7 +183,7 @@
         "basis": "Căn cứ",
         "matched": "Doanh nghiệp đang có",
         "notes": "Bổ sung / ghi chú",
-        "filled": "Bổ sung:",
+        "filled": "Điền mới:",
         "created": "Đã tạo",
         "noRows": "Không có dòng nào.",
         "resolvedBy": "Duyệt bởi {{ user }}"

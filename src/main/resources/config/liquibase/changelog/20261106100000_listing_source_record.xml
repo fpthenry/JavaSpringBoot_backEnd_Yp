@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay: bản gốc mỗi doanh nghiệp kéo từ nguồn ngoài (toàn bộ JSON), một dòng cho một bản ghi nguồn.
+        Kéo lại thì cập nhật đúng dòng đó. listing_import_row là nhật ký từng đợt, bảng này là bản mới nhất theo nguồn.
+    -->
+    <changeSet id="20261106100000-1" author="dev">
+        <createTable tableName="listing_source_record" remarks="Bản gốc doanh nghiệp kéo từ nguồn ngoài">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="source" type="varchar(50)" remarks="Nguồn, vd api:yp-directus">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_id" type="varchar(100)" remarks="Id bản ghi ở nguồn">
+                <constraints nullable="false"/>
+            </column>
+            <column name="listing_id" type="bigint" remarks="Doanh nghiệp tương ứng; NULL nếu chưa khớp"/>
+            <column name="tax_code" type="varchar(100)"/>
+            <column name="slug" type="varchar(500)"/>
+            <column name="status" type="varchar(30)" remarks="Trạng thái ở nguồn"/>
+            <column name="payload" type="longtext" remarks="Toàn bộ JSON của bản ghi, gồm mã ngành">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_hash" type="varchar(64)" remarks="SHA-256 của payload, nhận biết bản ghi đổi">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_updated_at" type="datetime(6)" remarks="Ngày cập nhật ở nguồn"/>
+            <column name="first_fetched_at" type="datetime(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_fetched_at" type="datetime(6)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="listing_source_record" columnNames="source, source_id"
+                             constraintName="ux_listing_source_record__source_id"/>
+        <createIndex tableName="listing_source_record" indexName="ix_listing_source_record__listing_id">
+            <column name="listing_id"/>
+        </createIndex>
+        <createIndex tableName="listing_source_record" indexName="ix_listing_source_record__tax_code">
+            <column name="tax_code"/>
+        </createIndex>
+        <addForeignKeyConstraint baseTableName="listing_source_record" baseColumnNames="listing_id"
+                                 constraintName="fk_listing_source_record__listing_id"
+                                 referencedTableName="listing" referencedColumnNames="id" onDelete="SET NULL"/>
+    </changeSet>
+
+    <!-- Viết tay: bản gốc đã nhập vào listing ở lần nào: khác content_hash thì là bản ghi mới hoặc đã đổi, lần nhập sau chỉ xử lý các dòng này -->
+    <changeSet id="20261106100000-2" author="dev">
+        <addColumn tableName="listing_source_record">
+            <column name="imported_hash" type="varchar(64)" remarks="content_hash của lần nhập thật gần nhất"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Viết tay: index phủ cho câu đếm đã lưu / chưa nhập: không có thì phải quét cả bảng, 14 giây với 1,4 triệu dòng -->
+    <changeSet id="20261106100000-3" author="dev">
+        <createIndex tableName="listing_source_record" indexName="ix_listing_source_record__import_state">
+            <column name="source"/>
+            <column name="imported_hash"/>
+            <column name="content_hash"/>
+            <column name="last_fetched_at"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

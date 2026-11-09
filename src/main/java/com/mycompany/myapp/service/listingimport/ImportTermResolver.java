@@ -25,6 +25,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public final class ImportTermResolver {
 
+    private static final java.util.regex.Pattern OLD_CODE_TAIL = java.util.regex.Pattern.compile("-(\\d{4,5})$");
+
     private final Map<String, Long> categoryByKey = new HashMap<>();
     private final Map<String, Long> provinceNew = new HashMap<>();
     private final Map<String, Long> provinceOld = new HashMap<>();
@@ -65,6 +67,19 @@ public final class ImportTermResolver {
                 categoryByKey.putIfAbsent("slug:" + slug, id);
             }
             categoryByKey.putIfAbsent("name:" + ListingImportNormalizer.folded(rs.getString("name")), id);
+        });
+        // Mã VSIC cũ không còn trong bảng ngành: tra bảng chuyển ngành cũ → mới theo đuôi slug cũ, chỉ dùng khi không có mã mới trùng
+        Map<String, Set<Long>> oldCodes = new HashMap<>();
+        jdbc.query("select old_slug, category_id from category_slug_redirect where category_id is not null", rs -> {
+            java.util.regex.Matcher tail = OLD_CODE_TAIL.matcher(rs.getString("old_slug"));
+            if (tail.find()) {
+                oldCodes.computeIfAbsent(tail.group(1), k -> new HashSet<>()).add(rs.getLong("category_id"));
+            }
+        });
+        oldCodes.forEach((code, ids) -> {
+            if (ids.size() == 1) {
+                categoryByKey.put("oldcode:" + code, ids.iterator().next());
+            }
         });
 
         // Địa phương: tỉnh, quận/huyện, phường/xã (parent_id trỏ tới id cha)
@@ -217,6 +232,9 @@ public final class ImportTermResolver {
         java.util.regex.Matcher code = java.util.regex.Pattern.compile("(?<!\\d)(\\d{4,5})(?!\\d)").matcher(v);
         if (code.find()) {
             Long id = categoryByKey.get("code:" + code.group(1));
+            if (id == null) {
+                id = categoryByKey.get("oldcode:" + code.group(1));
+            }
             if (id != null) {
                 return id;
             }

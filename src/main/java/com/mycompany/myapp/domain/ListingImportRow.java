@@ -1,5 +1,6 @@
 package com.mycompany.myapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.Instant;
@@ -82,6 +83,20 @@ public class ListingImportRow implements Serializable {
 
     @Column(name = "filled_fields", length = 500)
     private String filledFields;
+
+    /** Trường bị ghi đè, tập con của {@link #filledFields}. */
+    @Column(name = "updated_fields", length = 500)
+    private String updatedFields;
+
+    /** JSON {@code ListingChanges}: API trả riêng ở dạng đã đọc, không trả chuỗi này. */
+    @JsonIgnore
+    @Lob
+    @Column(name = "changes")
+    private String changes;
+
+    /** Ngày cập nhật của bản nguồn. */
+    @Column(name = "source_updated_at")
+    private Instant sourceUpdatedAt;
 
     @Column(name = "message", length = 1000)
     private String message;
@@ -190,6 +205,30 @@ public class ListingImportRow implements Serializable {
 
     public void setListingId(Long listingId) {
         this.listingId = listingId;
+    }
+
+    public String getUpdatedFields() {
+        return updatedFields;
+    }
+
+    public void setUpdatedFields(String updatedFields) {
+        this.updatedFields = cut(updatedFields, 500);
+    }
+
+    public String getChanges() {
+        return changes;
+    }
+
+    public void setChanges(String changes) {
+        this.changes = changes;
+    }
+
+    public Instant getSourceUpdatedAt() {
+        return sourceUpdatedAt;
+    }
+
+    public void setSourceUpdatedAt(Instant sourceUpdatedAt) {
+        this.sourceUpdatedAt = sourceUpdatedAt;
     }
 
     public String getFilledFields() {

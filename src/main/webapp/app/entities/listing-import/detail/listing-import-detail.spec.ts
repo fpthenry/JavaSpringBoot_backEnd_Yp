@@ -89,11 +89,13 @@ describe('ListingImportDetail', () => {
     vi.spyOn(service, 'rows').mockReturnValue(
       of(new HttpResponse({ body: [MERGED, SUSPECT], headers: new HttpHeaders({ 'X-Total-Count': '2' }) })),
     );
+    vi.spyOn(service, 'drafts').mockReturnValue(of(1));
+    vi.spyOn(service, 'fieldStats').mockReturnValue(of([{ field: 'address', filled: 1, updated: 2 }]));
   });
 
   it('shows rows with filled fields, notes and a review box for the suspect row', async () => {
     const { el } = await setup(BATCH);
-    expect(service.rows).toHaveBeenCalledWith(7, null, 0, 50);
+    expect(service.rows).toHaveBeenCalledWith(7, null, 0, 50, '', null);
     expect(el.querySelectorAll('[data-cy="importRow"]').length).toBe(2);
     expect(el.textContent).toContain('Không nhận ra tỉnh: X');
     const review = el.querySelectorAll('[data-cy="reviewBox"]');
@@ -123,7 +125,7 @@ describe('ListingImportDetail', () => {
     const { harness, el } = await setup(BATCH);
     (el.querySelector('[data-cy="filter-SUSPECT"]') as HTMLButtonElement).click();
     harness.detectChanges();
-    expect(service.rows).toHaveBeenLastCalledWith(7, 'SUSPECT', 0, 50);
+    expect(service.rows).toHaveBeenLastCalledWith(7, 'SUSPECT', 0, 50, '', null);
   });
 
   it('publishes drafts only after confirming', async () => {
@@ -135,5 +137,103 @@ describe('ListingImportDetail', () => {
     (el.querySelector('[data-cy="publishConfirm"]') as HTMLButtonElement).click();
     harness.detectChanges();
     expect(service.publish).toHaveBeenCalledWith(7);
+  });
+
+  it('hides the publish button once no drafts are left, keeps the done notice', async () => {
+    vi.mocked(service.drafts).mockReturnValue(of(0));
+    const { el } = await setup(BATCH);
+    expect(service.drafts).toHaveBeenCalledWith(7);
+    expect(el.querySelector('[data-cy="publishBox"]')).toBeNull();
+    expect(el.querySelector('[data-cy="doneNotice"]')).not.toBeNull();
+  });
+
+  it('offers the real import on the latest dry run of the Yellow Pages API, then opens the new batch', async () => {
+    const dry = { ...BATCH, dryRun: true, source: 'api:yp-directus' };
+    vi.spyOn(service, 'batches').mockReturnValue(of(new HttpResponse({ body: [dry] })));
+    vi.spyOn(service, 'pullSummary').mockReturnValue(of({ stored: 5, pending: 2 }));
+    vi.spyOn(service, 'importDirectus').mockReturnValue(of({ ...BATCH, id: 8 }));
+    const { harness, el } = await setup(dry);
+    (el.querySelector('[data-cy="importButton"]') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(service.importDirectus).not.toHaveBeenCalled();
+    (el.querySelector('[data-cy="importConfirm"]') as HTMLButtonElement).click();
+    expect(service.importDirectus).toHaveBeenCalledWith(false);
+  });
+
+  it('hides the real import once nothing is left to import', async () => {
+    const dry = { ...BATCH, dryRun: true, source: 'api:yp-directus' };
+    vi.spyOn(service, 'batches').mockReturnValue(of(new HttpResponse({ body: [dry] })));
+    vi.spyOn(service, 'pullSummary').mockReturnValue(of({ stored: 5, pending: 0 }));
+    const { el } = await setup(dry);
+    expect(el.querySelector('[data-cy="importBox"]')).toBeNull();
+  });
+
+  it('filters rows by changed field, then clears on the second click', async () => {
+    const { harness, el } = await setup(BATCH);
+    (el.querySelector('[data-cy="field-address"]') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(service.rows).toHaveBeenLastCalledWith(7, null, 0, 50, '', 'address');
+    (el.querySelector('[data-cy="field-address"]') as HTMLButtonElement).click();
+    expect(service.rows).toHaveBeenLastCalledWith(7, null, 0, 50, '', null);
+  });
+
+  it('separates overwritten from filled fields and shows old and new values', async () => {
+    vi.mocked(service.rows).mockReturnValue(
+      of(
+        new HttpResponse({
+          body: [
+            {
+              ...MERGED,
+              row: { ...MERGED.row, filledFields: 'address,phone', updatedFields: 'address' },
+              changes: {
+                fields: [
+                  { field: 'address', oldValue: 'Địa chỉ cũ', newValue: 'Địa chỉ mới', updated: true },
+                  { field: 'phone', oldValue: null, newValue: '0901', updated: false },
+                  { field: 'locationJson', oldValue: '{}', newValue: '{"ward":"A"}', updated: true },
+                ],
+                categories: [],
+                locations: [],
+              },
+            },
+          ],
+          headers: new HttpHeaders({ 'X-Total-Count': '1' }),
+        }),
+      ),
+    );
+    const { harness, el } = await setup(BATCH);
+    expect(el.querySelector('[data-cy="updatedTags"]')).not.toBeNull();
+    expect(el.querySelector('[data-cy="filledTags"]')).not.toBeNull();
+    (el.querySelector('[data-cy="toggleChanges"]') as HTMLButtonElement).click();
+    harness.detectChanges();
+    const changes = el.querySelector('[data-cy="changesRow"]') as HTMLElement;
+    expect(changes.textContent).toContain('Địa chỉ cũ');
+    expect(changes.textContent).toContain('Địa chỉ mới');
+    expect(changes.querySelectorAll('td.import-diff-new').length).toBe(2);
+  });
+
+  it('undoes a finished real import only after confirming', async () => {
+    const { harness, el } = await setup(BATCH);
+    vi.spyOn(service, 'undo').mockReturnValue(of({ ...BATCH, status: 'UNDOING' }));
+    (el.querySelector('[data-cy="undoButton"]') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(service.undo).not.toHaveBeenCalled();
+    (el.querySelector('[data-cy="undoConfirm"]') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(service.undo).toHaveBeenCalledWith(7);
+    expect(el.querySelector('[data-cy="undoingNotice"]')).not.toBeNull();
+  });
+
+  it('cancels a running import', async () => {
+    vi.spyOn(service, 'cancel').mockReturnValue(of(undefined));
+    const { harness, el } = await setup({ ...BATCH, status: 'RUNNING' });
+    (el.querySelector('[data-cy="cancelRun"]') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(service.cancel).toHaveBeenCalledWith(7);
+  });
+
+  it('dry run: no done notice, does not ask for drafts', async () => {
+    const { el } = await setup({ ...BATCH, dryRun: true });
+    expect(service.drafts).not.toHaveBeenCalled();
+    expect(el.querySelector('[data-cy="doneNotice"]')).toBeNull();
   });
 });

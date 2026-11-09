@@ -17,6 +17,9 @@ public class ListingImportBatch implements Serializable {
     public static final String RUNNING = "RUNNING";
     public static final String DONE = "DONE";
     public static final String FAILED = "FAILED";
+    public static final String CANCELLED = "CANCELLED";
+    public static final String UNDOING = "UNDOING";
+    public static final String UNDONE = "UNDONE";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -69,6 +72,40 @@ public class ListingImportBatch implements Serializable {
 
     @Column(name = "finished_at")
     private Instant finishedAt;
+
+    @Column(name = "undone_at")
+    private Instant undoneAt;
+
+    @Column(name = "undone_by", length = 50)
+    private String undoneBy;
+
+    /** Số trường giữ nguyên khi hoàn tác vì đã đổi sau đợt này. */
+    @Column(name = "undo_skipped")
+    private Integer undoSkipped;
+
+    public Instant getUndoneAt() {
+        return undoneAt;
+    }
+
+    public void setUndoneAt(Instant undoneAt) {
+        this.undoneAt = undoneAt;
+    }
+
+    public String getUndoneBy() {
+        return undoneBy;
+    }
+
+    public void setUndoneBy(String undoneBy) {
+        this.undoneBy = undoneBy;
+    }
+
+    public Integer getUndoSkipped() {
+        return undoSkipped;
+    }
+
+    public void setUndoSkipped(Integer undoSkipped) {
+        this.undoSkipped = undoSkipped;
+    }
 
     /** Cộng kết quả của một dòng vào bộ đếm của đợt. */
     public void count(ListingImportRow.Status status) {

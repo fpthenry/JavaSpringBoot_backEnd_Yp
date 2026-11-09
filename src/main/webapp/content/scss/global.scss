@@ -1529,3 +1529,71 @@ Sửa tay: Nhập doanh nghiệp (entities/listing-import)
 }
 
 /* jhipster-needle-scss-add-main JHipster will add new css style */
+
+/* Sửa tay: bảng giá trị cũ → mới của dòng nhập, dùng ở trang đợt nhập và trang doanh nghiệp */
+.import-search {
+  max-width: 22rem;
+}
+
+.import-diff {
+  font-size: 0.8125rem;
+
+  th[scope='row'] {
+    width: 10rem;
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+  }
+
+  td {
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+
+  .import-diff-old {
+    width: 45%;
+    color: var(--bs-secondary-color);
+  }
+
+  .import-diff-new {
+    width: 45%;
+    font-weight: 500;
+  }
+}
+
+/* Sửa tay: ba bước trang nhập và thẻ số liệu kết quả kiểm tra */
+.import-steps {
+  padding-left: 1.25rem;
+  margin-bottom: 0;
+
+  > li {
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--bs-border-color);
+
+    &:last-child {
+      padding-bottom: 0;
+      margin-bottom: 0;
+      border-bottom: 0;
+    }
+  }
+}
+
+.import-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.625rem 0.875rem;
+  color: var(--bs-body-color);
+  text-decoration: none;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+
+  &:hover {
+    background: var(--bs-tertiary-bg);
+  }
+}
+
+.import-stat-value {
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}

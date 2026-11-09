@@ -4,12 +4,14 @@ import com.mycompany.myapp.domain.ListingImportBatch;
 import com.mycompany.myapp.domain.ListingImportRow;
 import com.mycompany.myapp.security.AuthoritiesConstants;
 import com.mycompany.myapp.service.listingimport.ApiRecordSource;
+import com.mycompany.myapp.service.listingimport.DirectusPullService;
 import com.mycompany.myapp.service.listingimport.ImportRecord;
 import com.mycompany.myapp.service.listingimport.ListingImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -47,9 +49,11 @@ public class ListingImportResource {
     private static final Logger LOG = LoggerFactory.getLogger(ListingImportResource.class);
 
     private final ListingImportService importService;
+    private final DirectusPullService pullService;
 
-    public ListingImportResource(ListingImportService importService) {
+    public ListingImportResource(ListingImportService importService, DirectusPullService pullService) {
         this.importService = importService;
+        this.pullService = pullService;
     }
 
     // ---------------------------------------------------------------- nhập
@@ -80,6 +84,41 @@ public class ListingImportResource {
     public ResponseEntity<ListingImportBatch> importApi(@RequestBody ApiRecordSource.Request request) {
         LOG.info("REST request to import listings from API {} ({})", request.source(), request.url());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(importService.startApi(request));
+    }
+
+    @PostMapping("/directus/pull")
+    @Operation(
+        summary = "Kéo doanh nghiệp đã xuất bản từ API Trang Vàng về bảng bản gốc (chạy nền)",
+        description = "Lưu vào listing_source_record, không đụng tới listing. Kéo lại thì cập nhật đúng dòng cũ. " +
+            "resume=true: đọc tiếp từ id lớn nhất đã lưu. Token ở biến môi trường YP_DIRECTUS_TOKEN."
+    )
+    public ResponseEntity<DirectusPullService.Summary> pullDirectus(
+        @Parameter(description = "Đọc tiếp từ id lớn nhất đã lưu") @RequestParam(defaultValue = "false") boolean resume
+    ) {
+        if (importService.runningBatchId().isPresent()) {
+            throw new IllegalStateException("Đang có đợt nhập chạy, chờ xong rồi kéo dữ liệu");
+        }
+        LOG.info("REST request to pull listings from Directus (resume={})", resume);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(pullService.start(resume));
+    }
+
+    @GetMapping("/directus/pull")
+    @Operation(summary = "Tiến độ kéo dữ liệu, số bản gốc đã lưu, số bản ghi chưa nhập")
+    public DirectusPullService.Summary pullStatus() {
+        return pullService.summary();
+    }
+
+    @PostMapping("/directus")
+    @Operation(
+        summary = "Nhập từ bảng bản gốc API Trang Vàng vào listing (chạy nền)",
+        description = "Chỉ đọc bản ghi mới hoặc đã đổi, không gọi API. Khớp theo api_id, yp_id, slug, MST: đã có thì chỉ điền ô trống, " +
+            "chưa có thì tạo nháp. Mặc định chạy thử, không ghi gì."
+    )
+    public ResponseEntity<ListingImportBatch> importDirectus(
+        @Parameter(description = "Chạy thử: chỉ phân loại, không ghi") @RequestParam(defaultValue = "true") boolean dryRun
+    ) {
+        LOG.info("REST request to sync listings from Directus (dryRun={})", dryRun);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(importService.startDirectus(dryRun));
     }
 
     @Schema(description = "Danh sách doanh nghiệp gửi thẳng")
@@ -135,9 +174,10 @@ public class ListingImportResource {
     @GetMapping("")
     @Operation(summary = "Các đợt nhập, mới nhất trước")
     public ResponseEntity<List<ListingImportBatch>> batches(
+        @RequestParam(required = false) Boolean dryRun,
         @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<ListingImportBatch> page = importService.batches(pageable);
+        Page<ListingImportBatch> page = importService.batches(dryRun, pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
@@ -169,9 +209,11 @@ public class ListingImportResource {
     public ResponseEntity<List<ListingImportService.RowView>> rows(
         @PathVariable long id,
         @RequestParam(required = false) ListingImportRow.Status status,
+        @RequestParam(required = false) String q,
+        @RequestParam(required = false) String field,
         @PageableDefault(size = 50, sort = "rowNo") Pageable pageable
     ) {
-        Page<ListingImportService.RowView> page = importService.rows(id, status, pageable);
+        Page<ListingImportService.RowView> page = importService.rows(id, status, q, field, pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
@@ -201,6 +243,55 @@ public class ListingImportResource {
     @Operation(summary = "Xuất bản doanh nghiệp nháp do đợt tạo (hiện lên website)", description = "Trả số doanh nghiệp đã xuất bản.")
     public Map<String, Integer> publish(@PathVariable long id) {
         return Map.of("published", importService.publish(id));
+    }
+
+    @GetMapping("/{id}/field-stats")
+    @Operation(summary = "Số dòng đã đổi từng trường của đợt")
+    public List<ListingImportService.FieldStat> fieldStats(@PathVariable long id) {
+        return importService.fieldStats(id);
+    }
+
+    @GetMapping("/{id}/export")
+    @Operation(summary = "Xuất các dòng đang lọc ra CSV", description = "Cùng bộ lọc với /rows; mỗi trường đã đổi một dòng.")
+    public void export(
+        @PathVariable long id,
+        @RequestParam(required = false) ListingImportRow.Status status,
+        @RequestParam(required = false) String q,
+        @RequestParam(required = false) String field,
+        HttpServletResponse response
+    ) throws IOException {
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"dot-nhap-" + id + ".csv\"");
+        importService.exportRows(id, status, q, field, response.getWriter());
+    }
+
+    @PostMapping("/{id}/undo")
+    @Operation(
+        summary = "Hoàn tác đợt nhập thật",
+        description = "Chạy nền. Trả giá trị cũ, trường đã đổi sau đợt này giữ nguyên; doanh nghiệp đợt tạo về nháp."
+    )
+    public ListingImportBatch undo(@PathVariable long id) {
+        return importService.undo(id);
+    }
+
+    @GetMapping("/history/{listingId}")
+    @Operation(summary = "Lịch sử nhập của một doanh nghiệp và các bản nguồn đang nối")
+    public ListingImportService.ListingHistory history(@PathVariable long listingId) {
+        return importService.history(listingId);
+    }
+
+    @PostMapping("/{id}/cancel")
+    @Operation(summary = "Hủy đợt đang chạy", description = "Dừng sau lô đang xử lý.")
+    public ResponseEntity<Void> cancel(@PathVariable long id) {
+        importService.cancel(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/drafts")
+    @Operation(summary = "Số doanh nghiệp nháp do đợt tạo mà chưa xuất bản")
+    public Map<String, Long> drafts(@PathVariable long id) {
+        return Map.of("drafts", importService.draftCount(id));
     }
 
     // ---------------------------------------------------------------- lỗi

@@ -55,12 +55,30 @@ public class ListingImportWriter {
         Set<String> slugsInBatch,
         List<String> notes
     ) {
+        return create(n, source, batchId, terms, slugsInBatch, notes, null);
+    }
+
+    /** Như trên; {@code preferredSlug}: slug nguồn cấp, giữ nguyên nếu chưa ai dùng. */
+    public Listing create(
+        ListingImportMatcher.Normalized n,
+        String source,
+        Long batchId,
+        ImportTermResolver terms,
+        Set<String> slugsInBatch,
+        List<String> notes,
+        String preferredSlug
+    ) {
         ImportRecord r = n.record();
         Instant now = Instant.now();
         Listing l = new Listing();
         l.setName(ListingImportNormalizer.cut(n.name(), 500));
         l.setTaxCode(n.taxCode());
-        l.setSlug(uniqueSlug(n, slugsInBatch));
+        l.setSlug(
+            preferredSlug != null && !slugsInBatch.contains(preferredSlug) && !slugExists(preferredSlug)
+                ? preferredSlug
+                : uniqueSlug(n, slugsInBatch)
+        );
+        slugsInBatch.add(l.getSlug());
         l.setStatus(DRAFT);
         l.setIsFeatured(false);
         l.setViewCount(0);
@@ -74,6 +92,61 @@ public class ListingImportWriter {
         fillEmpty(l, r, terms, notes); // các field còn lại: cùng quy tắc với bổ sung (doanh nghiệp mới thì mọi ô đều trống)
         em.persist(l);
         return l;
+    }
+
+    /**
+     * Nguồn mới hơn dữ liệu đang có: đè thông tin doanh nghiệp bằng giá trị của nguồn, nguồn trống thì giữ nguyên.
+     * Địa chỉ mới ghi cả {@code address_new} để hai cột không mâu thuẫn. Không đè slug, MST, tọa độ (quy tắc cố định của dự án)
+     * và mã ngành (DB giữ danh sách nhiều mã, nguồn chỉ có mã chính). Chỉ gọi khi {@link RecordSource.SourceRow#refresh()}.
+     *
+     * @return tên các field đã đổi
+     */
+    public List<String> refresh(Listing l, ImportRecord r) {
+        List<String> changed = new ArrayList<>();
+        replace(changed, "name", l::getName, l::setName, r.name(), 500);
+        replace(changed, "nameEn", l::getNameEn, l::setNameEn, r.nameEn(), 500);
+        replace(changed, "nameAlias", l::getNameAlias, l::setNameAlias, r.nameAlias(), 500);
+        if (!digits(r.phone()).equals(digits(l.getPhone()))) {
+            replace(changed, "phone", l::getPhone, l::setPhone, r.phone(), 100);
+        }
+        replace(changed, "email", l::getEmail, l::setEmail, r.email(), 255);
+        replace(changed, "website", l::getWebsite, l::setWebsite, r.website(), 500);
+        replace(changed, "address", l::getAddress, l::setAddress, r.address(), 65_000);
+        if (changed.contains("address") && l.getAddress().length() <= 500) {
+            l.setAddressNew(l.getAddress());
+        }
+        replace(changed, "managedBy", l::getManagedBy, l::setManagedBy, r.managedBy(), 255);
+        replace(changed, "representative", l::getRepresentative, l::setRepresentative, r.representative(), 255);
+        replace(changed, "capital", l::getCapital, l::setCapital, r.capital(), 100);
+        replace(changed, "foundedYear", l::getFoundedYear, l::setFoundedYear, r.foundedYear(), 50);
+        replace(changed, "businessType", l::getBusinessType, l::setBusinessType, r.businessType(), 100);
+        replace(changed, "businessStatus", l::getBusinessStatus, l::setBusinessStatus, r.businessStatus(), 50);
+        replace(changed, "description", l::getDescription, l::setDescription, r.description(), 65_000);
+        return changed;
+    }
+
+    private static void replace(List<String> changed, String field, Supplier<String> get, Consumer<String> set, String value, int max) {
+        String v = ListingImportNormalizer.cut(value, max);
+        if (differs(v, get.get())) {
+            set.accept(v);
+            changed.add(field);
+        }
+    }
+
+    /**
+     * Nguồn cho giá trị thật sự khác: không tính khoảng trắng thừa, hoa thường. Nguồn trống, hoặc chỉ là phần đầu của giá trị đang có
+     * (DB đầy đủ hơn: "NGUYỄN VĂN A - Chức danh: Giám đốc", nguồn "NGUYỄN VĂN A") thì không tính.
+     */
+    static boolean differs(String source, String current) {
+        return source != null && !source.isBlank() && !squeeze(current).toLowerCase().startsWith(squeeze(source).toLowerCase());
+    }
+
+    private static String digits(String s) {
+        return s == null ? "" : s.replaceAll("\\D", "");
+    }
+
+    private static String squeeze(String s) {
+        return s == null ? "" : s.trim().replaceAll("\\s+", " ");
     }
 
     /**

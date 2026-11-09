@@ -1,0 +1,61 @@
+<!-- Sửa tay: lịch sử nhập của một doanh nghiệp. Không qua JDL. -->
+@if (history(); as h) {
+  @if (h.entries.length || h.sources.length) {
+    <section class="form-card detail-section" id="section-import-history" data-cy="importHistory">
+      <h3 class="form-card-title">
+        <fa-icon icon="clock-rotate-left" />
+        <span jhiTranslate="javaSpringBootBackEndApp.listingImport.history.title">Lịch sử nhập</span>
+      </h3>
+
+      @if (h.sources.length) {
+        <div class="small text-muted mb-2">
+          <span jhiTranslate="javaSpringBootBackEndApp.listingImport.history.sources">Bản nguồn đang nối:</span>
+          @for (s of h.sources; track s.sourceId) {
+            <span class="me-2"
+              >#{{ s.sourceId }}
+              @if (s.sourceUpdatedAt) {
+                ({{ s.sourceUpdatedAt | date: 'dd/MM/yyyy' }})
+              }
+            </span>
+          }
+        </div>
+      }
+
+      @for (e of h.entries; track e.rowId) {
+        <div class="border-top pt-2 mt-2" data-cy="importHistoryEntry">
+          <div class="small d-flex flex-wrap gap-2 align-items-center">
+            <a [routerLink]="['/listing-import', e.batchId]" class="fw-semibold">#{{ e.batchId }}</a>
+            <span>{{ e.importedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+            <span class="badge" [class]="e.status === 'CREATED' ? 'bg-success' : 'bg-primary'">{{
+              'javaSpringBootBackEndApp.listingImport.status.' + e.status | translate
+            }}</span>
+            @if (e.undone) {
+              <span class="badge bg-secondary" jhiTranslate="javaSpringBootBackEndApp.listingImport.batchStatus.UNDONE">Đã hoàn tác</span>
+            }
+            @if (e.sourceRef) {
+              <span class="text-muted"
+                >{{ 'javaSpringBootBackEndApp.listingImport.detail.fromSource' | translate: { id: e.sourceRef } }}
+                @if (e.sourceUpdatedAt) {
+                  · {{ e.sourceUpdatedAt | date: 'dd/MM/yyyy' }}
+                }
+              </span>
+            }
+          </div>
+          @if (visibleChanges(e.changes).length) {
+            <table class="table table-sm import-diff mt-1 mb-0">
+              <tbody>
+                @for (c of visibleChanges(e.changes); track c.field) {
+                  <tr>
+                    <th scope="row">{{ 'javaSpringBootBackEndApp.listingImport.field.' + c.field | translate }}</th>
+                    <td class="import-diff-old">{{ shortValue(c.oldValue) }}</td>
+                    <td class="import-diff-new">{{ shortValue(c.newValue) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      }
+    </section>
+  }
+}

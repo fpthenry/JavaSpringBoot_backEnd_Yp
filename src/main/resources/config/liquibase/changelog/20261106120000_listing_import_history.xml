@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Viết tay: mỗi dòng nhập lưu giá trị cũ → mới và ngày cập nhật của bản nguồn, để xem lại và hoàn tác cả đợt -->
+    <changeSet id="20261106120000-1" author="dev">
+        <addColumn tableName="listing_import_row">
+            <column name="changes" type="longtext" remarks="JSON ListingChanges: từng trường cũ → mới, liên kết đã thêm"/>
+            <column name="updated_fields" type="varchar(500)" remarks="Trường bị ghi đè, tập con của filled_fields"/>
+            <column name="source_updated_at" type="datetime(6)" remarks="Ngày cập nhật của bản nguồn"/>
+        </addColumn>
+        <createIndex tableName="listing_import_row" indexName="idx_listing_import_row__listing">
+            <column name="listing_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Viết tay: hoàn tác đợt nhập -->
+    <changeSet id="20261106120000-2" author="dev">
+        <addColumn tableName="listing_import_batch">
+            <column name="undone_at" type="datetime(6)"/>
+            <column name="undone_by" type="varchar(50)"/>
+            <column name="undo_skipped" type="int" remarks="Số trường giữ nguyên vì đã đổi sau đợt này"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

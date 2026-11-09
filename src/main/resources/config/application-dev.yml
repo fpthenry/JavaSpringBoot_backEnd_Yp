@@ -107,6 +107,9 @@ jhipster:
 # ===================================================================
 
 application:
+  # API Trang Vàng để đồng bộ doanh nghiệp (Nhập doanh nghiệp > API Trang Vàng); token chỉ khai báo bằng biến môi trường
+  directus:
+    token: ${YP_DIRECTUS_TOKEN:}
   # API công khai /api/public/** cho FE Next.js: gửi header X-API-Key bằng một trong các khóa dưới.
   # Khóa DEV, chỉ dùng trên máy dev; production đặt khóa riêng bằng biến môi trường APPLICATION_PUBLIC_API_KEYS
   public-api:

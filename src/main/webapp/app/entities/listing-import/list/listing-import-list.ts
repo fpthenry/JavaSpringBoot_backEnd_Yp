@@ -6,49 +6,48 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { NgbPagination } from '@ng-bootstrap/ng-bootstrap/pagination';
 import { TranslatePipe } from '@ngx-translate/core';
 import { Subscription, switchMap, timer } from 'rxjs';
 
-import { TOTAL_COUNT_RESPONSE_HEADER } from 'app/config';
 import { Alert, AlertError } from 'app/shared/alert';
 import { TranslateDirective } from 'app/shared/language';
-import { durationText, parsePairs, sourceCode, sourceKind } from '../listing-import-display';
-import { IApiImportRequest, IImportBatch } from '../listing-import.model';
+import { durationText, parsePairs, rejectedCount } from '../listing-import-display';
+import { IApiImportRequest, IDirectusSummary, IImportBatch } from '../listing-import.model';
 import { ListingImportService } from '../service/listing-import.service';
 
 /** Giới hạn upload của backend (spring.servlet.multipart.max-file-size). */
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
-const PAGE_SIZE = 20;
+/** Nguồn API Trang Vàng (DirectusRecordSource.SOURCE). */
+const DIRECTUS_SOURCE = 'api:yp-directus';
 /** Đợt đang chạy: hỏi lại mỗi 2 giây. */
 const POLL_MS = 2000;
 
 /**
- * Sửa tay: trang "Nhập doanh nghiệp" — các đợt nhập, khung nhập mới (file Excel/CSV hoặc API), tải file mẫu,
- * theo dõi đợt đang chạy. Chi tiết, duyệt nghi trùng ở /listing-import/:id. Chỉ ROLE_ADMIN.
+ * Sửa tay: trang "Nhập doanh nghiệp": ba bước với API Trang Vàng (lấy dữ liệu, kiểm tra, nhập vào hệ thống), nhập từ file Excel/CSV
+ * hoặc API khác, theo dõi đợt đang chạy. Lịch sử ở /listing-import/history, chi tiết ở /listing-import/:id. Chỉ ROLE_ADMIN.
  */
 @Component({
   selector: 'jhi-listing-import-list',
   templateUrl: './listing-import-list.html',
-  imports: [RouterLink, FormsModule, FontAwesomeModule, NgbPagination, TranslateDirective, TranslatePipe, DatePipe, Alert, AlertError],
+  imports: [RouterLink, FormsModule, FontAwesomeModule, TranslateDirective, TranslatePipe, DatePipe, Alert, AlertError],
 })
 export class ListingImportList implements OnInit {
-  protected readonly batches = signal<IImportBatch[]>([]);
-  protected readonly totalItems = signal(0);
-  protected readonly page = signal(1);
-  protected readonly loading = signal(false);
+  /** Đợt gần nhất, gồm cả lần kiểm tra */
+  protected readonly latest = signal<IImportBatch | null>(null);
   protected readonly running = signal<IImportBatch | null>(null);
   protected readonly now = signal(Date.now());
 
-  // ---- khung nhập mới
-  protected readonly showNew = signal(false);
-  protected readonly tab = signal<'file' | 'api'>('file');
+  // ---- khung nhập
+  protected readonly tab = signal<'file' | 'api' | 'directus'>('directus');
   protected readonly file = signal<File | null>(null);
   protected readonly fileError = signal<string | null>(null);
   protected readonly dragOver = signal(false);
   protected dryRun = true;
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<string | null>(null);
+  /** Tab API Trang Vàng: tình trạng bảng bản gốc và tiến độ kéo */
+  protected readonly pull = signal<IDirectusSummary | null>(null);
+  protected readonly pulling = computed(() => this.pull()?.pull?.state === 'RUNNING');
   protected api = {
     source: '',
     url: '',
@@ -61,39 +60,39 @@ export class ListingImportList implements OnInit {
     fieldMapping: '',
   };
 
-  protected readonly pageSize = PAGE_SIZE;
-  protected readonly sourceKind = sourceKind;
-  protected readonly sourceCode = sourceCode;
+  protected readonly confirmImport = signal(false);
+  protected readonly rejectedCount = rejectedCount;
+  /** Kết quả kiểm tra mới nhất còn hiệu lực: chưa nhập, còn dữ liệu chờ */
+  protected readonly checkResult = computed(() => {
+    const b = this.latest();
+    return b?.dryRun && b.status === 'DONE' && b.source === DIRECTUS_SOURCE && (this.pull()?.pending ?? 0) > 0 ? b : null;
+  });
+  /** Lần nhập mới nhất, khi chưa có lần kiểm tra nào sau đó */
+  protected readonly lastImport = computed(() => {
+    const b = this.latest();
+    return b && !b.dryRun && b.status === 'DONE' && b.source === DIRECTUS_SOURCE ? b : null;
+  });
   protected readonly runningDuration = computed(() => {
     const r = this.running();
     return r ? durationText(r, this.now()) : '';
   });
 
+  protected readonly cancelling = signal(false);
+
   private readonly service = inject(ListingImportService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private poll?: Subscription;
+  private pullPoll?: Subscription;
 
   ngOnInit(): void {
     this.load();
     this.watchRunning();
+    this.watchPull();
   }
 
   load(): void {
-    this.loading.set(true);
-    this.service.batches(this.page() - 1, PAGE_SIZE).subscribe({
-      next: res => {
-        this.batches.set(res.body ?? []);
-        this.totalItems.set(Number(res.headers.get(TOTAL_COUNT_RESPONSE_HEADER) ?? 0));
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
-  }
-
-  changePage(page: number): void {
-    this.page.set(page);
-    this.load();
+    this.service.batches(0, 1).subscribe(res => this.latest.set(res.body?.[0] ?? null));
   }
 
   /** Hỏi đợt đang chạy mỗi 2 giây; khi đợt xong thì tải lại danh sách để cập nhật bộ đếm. */
@@ -110,13 +109,84 @@ export class ListingImportList implements OnInit {
           this.running.set(batch);
           this.now.set(Date.now());
           if (wasRunning && !batch) {
+            this.cancelling.set(false);
             this.load();
+            this.watchPull(); // số "chưa nhập" đổi sau khi nhập
           }
           if (!batch) {
             this.poll?.unsubscribe();
           }
         },
         error: () => this.poll?.unsubscribe(),
+      });
+  }
+
+  cancelRunning(batchId: number): void {
+    this.cancelling.set(true);
+    this.service.cancel(batchId).subscribe({ error: () => this.cancelling.set(false) });
+  }
+
+  // ---------------------------------------------------------------- API Trang Vàng
+
+  openDirectus(): void {
+    this.tab.set('directus');
+    this.watchPull();
+  }
+
+  canCheck(): boolean {
+    return !this.submitting() && !this.running() && !this.pulling() && (this.pull()?.pending ?? 0) > 0;
+  }
+
+  /** Bước 2 (true: kiểm tra, chưa ghi) và bước 3 (false: nhập vào hệ thống). Ở lại trang này, xong thì hiện kết quả. */
+  runDirectus(check: boolean): void {
+    this.submitting.set(true);
+    this.submitError.set(null);
+    this.confirmImport.set(false);
+    this.service.importDirectus(check).subscribe({
+      next: batch => {
+        this.submitting.set(false);
+        this.running.set(batch);
+        this.latest.set(batch);
+        this.watchRunning();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.submitting.set(false);
+        this.submitError.set(err.error?.error ?? err.error?.detail ?? err.message);
+      },
+    });
+  }
+
+  /** Bước 1: kéo về bảng bản gốc. {@code resume}: đọc tiếp từ id lớn nhất đã lưu. */
+  startPull(resume: boolean): void {
+    this.submitError.set(null);
+    this.service.startPull(resume).subscribe({
+      next: summary => {
+        this.pull.set(summary);
+        this.watchPull();
+      },
+      error: (err: HttpErrorResponse) => this.submitError.set(err.error?.error ?? err.error?.detail ?? err.message),
+    });
+  }
+
+  /** Hỏi tiến độ kéo mỗi 2 giây cho tới khi xong. */
+  private watchPull(): void {
+    this.pullPoll?.unsubscribe();
+    this.pullPoll = timer(0, POLL_MS)
+      .pipe(
+        switchMap(() => this.service.pullSummary()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: summary => {
+          this.pull.set(summary);
+          if (summary.pull?.state !== 'RUNNING') {
+            this.pullPoll?.unsubscribe();
+          }
+        },
+        error: (err: HttpErrorResponse) => {
+          this.pullPoll?.unsubscribe();
+          this.submitError.set(err.error?.error ?? err.error?.detail ?? err.message);
+        },
       });
   }
 
@@ -232,14 +302,5 @@ export class ListingImportList implements OnInit {
   /** 1234 → "1.234" */
   fmt(n: number | null | undefined): string {
     return (n ?? 0).toLocaleString('vi-VN');
-  }
-
-  durationOf(batch: IImportBatch): string {
-    return durationText(batch, this.now());
-  }
-
-  toggleNew(): void {
-    this.showNew.update(v => !v);
-    this.submitError.set(null);
   }
 }

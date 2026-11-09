@@ -1,5 +1,14 @@
 // Sửa tay: hàm thuần hiển thị đợt nhập / dòng nhập (nhãn, màu, so sánh dòng nhập với doanh nghiệp đã có). Có spec.
-import { IImportBatch, IImportRowView, IMatchedListing, ImportMatchReason, ImportRowStatus } from './listing-import.model';
+import {
+  IFieldChange,
+  IImportBatch,
+  IImportRow,
+  IImportRowView,
+  IListingChanges,
+  IMatchedListing,
+  ImportMatchReason,
+  ImportRowStatus,
+} from './listing-import.model';
 
 /** Thứ tự hiện các trạng thái (bộ đếm, bộ lọc). */
 export const ROW_STATUSES: ImportRowStatus[] = ['SUSPECT', 'CREATED', 'MERGED', 'UNCHANGED', 'DUPLICATE_IN_BATCH', 'INVALID', 'SKIPPED'];
@@ -14,6 +23,39 @@ export const STATUS_BADGE: Record<ImportRowStatus, string> = {
   INVALID: 'bg-danger',
   SKIPPED: 'bg-light text-muted border',
 };
+
+/** Trường đổi kèm khi ghi tỉnh, xã, tọa độ: lưu để hoàn tác, không hiện cho người dùng. */
+const HIDDEN_CHANGE = 'locationJson';
+const SHORT_VALUE = 300;
+
+/** Các trường đã đổi để hiện cho người dùng. */
+export function visibleChanges(changes: IListingChanges | null | undefined): IFieldChange[] {
+  return (changes?.fields ?? []).filter(c => c.field !== HIDDEN_CHANGE);
+}
+
+/** Cắt giá trị dài (mô tả) khi so cũ → mới; trống thì hiện dấu gạch. */
+export function shortValue(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+  return value.length > SHORT_VALUE ? `${value.slice(0, SHORT_VALUE)}…` : value;
+}
+
+/** Trường ghi đè giá trị đang có. */
+export function updatedList(row: IImportRow): string[] {
+  return filledList(row.updatedFields);
+}
+
+/** Trường điền vào ô trống: phần còn lại của filledFields. */
+export function filledOnlyList(row: IImportRow): string[] {
+  const updated = new Set(updatedList(row));
+  return filledList(row.filledFields).filter(f => !updated.has(f));
+}
+
+/** Dòng bị loại bỏ: thiếu tên, trùng dòng khác trong cùng đợt. */
+export function rejectedCount(batch: IImportBatch): number {
+  return batch.invalidCount + batch.duplicateInBatchCount;
+}
 
 /** Số dòng của đợt theo trạng thái (SKIPPED không có bộ đếm riêng ở đợt). */
 export function statusCount(batch: IImportBatch, status: ImportRowStatus): number | null {

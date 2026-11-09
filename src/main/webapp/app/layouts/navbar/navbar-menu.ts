@@ -24,7 +24,15 @@ export const MENU_GROUPS: MenuGroup[] = [
     label: 'global.menu.groups.data',
     items: [
       { label: 'global.menu.entities.listing', icon: 'building', link: '/listing' },
-      { label: 'global.menu.entities.listingImport', icon: 'file-import', link: '/listing-import', adminOnly: true },
+      {
+        label: 'global.menu.entities.listingImport',
+        icon: 'file-import',
+        adminOnly: true,
+        children: [
+          { label: 'global.menu.sidebar.importRun', link: '/listing-import', exact: true },
+          { label: 'global.menu.sidebar.importHistory', link: '/listing-import/history', exact: true },
+        ],
+      },
       {
         label: 'global.menu.entities.categoryGroup',
         icon: 'briefcase',

@@ -6,7 +6,11 @@
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb mb-1 small">
             <li class="breadcrumb-item">
-              <a routerLink="/listing-import" jhiTranslate="javaSpringBootBackEndApp.listingImport.action.backToList">Các đợt nhập</a>
+              <a
+                [routerLink]="b.dryRun ? '/listing-import' : '/listing-import/history'"
+                [jhiTranslate]="'javaSpringBootBackEndApp.listingImport.' + (b.dryRun ? 'home.title' : 'log.title')"
+                >Các đợt nhập</a
+              >
             </li>
           </ol>
         </nav>
@@ -38,16 +42,58 @@
           }
         </div>
       </div>
-      @if (!b.dryRun && b.status === 'DONE' && b.createdCount > 0) {
+      @if (canImport()) {
+        <div class="d-flex flex-wrap gap-2 align-items-center" data-cy="importBox">
+          @if (!confirmImport()) {
+            <button type="button" class="btn btn-primary" (click)="confirmImport.set(true)" data-cy="importButton">
+              <fa-icon icon="play" />
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.importReal">Nhập thật</span>
+            </button>
+          } @else {
+            <span class="small fw-semibold">{{
+              'javaSpringBootBackEndApp.listingImport.action.importConfirm'
+                | translate: { created: fmt(b.createdCount), merged: fmt(b.mergedCount) }
+            }}</span>
+            <button type="button" class="btn btn-primary btn-sm" (click)="importReal()" [disabled]="importing()" data-cy="importConfirm">
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.importReal">Nhập thật</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="confirmImport.set(false)">
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.publishNo">Thôi</span>
+            </button>
+          }
+        </div>
+      }
+      @if (canUndo()) {
+        <div class="d-flex flex-wrap gap-2 align-items-center" data-cy="undoBox">
+          @if (!confirmUndo()) {
+            <button type="button" class="btn btn-outline-danger" (click)="confirmUndo.set(true)" data-cy="undoButton">
+              <fa-icon icon="clock-rotate-left" />
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.undo">Hoàn tác đợt này</span>
+            </button>
+          } @else {
+            <span class="small fw-semibold">{{
+              'javaSpringBootBackEndApp.listingImport.action.undoConfirm'
+                | translate: { merged: fmt(b.mergedCount), created: fmt(b.createdCount) }
+            }}</span>
+            <button type="button" class="btn btn-danger btn-sm" (click)="undo()" data-cy="undoConfirm">
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.undo">Hoàn tác đợt này</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="confirmUndo.set(false)">
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.publishNo">Thôi</span>
+            </button>
+          }
+        </div>
+      }
+      @if (!b.dryRun && b.status === 'DONE' && (drafts() ?? 0) > 0) {
         <div class="d-flex flex-wrap gap-2 align-items-center" data-cy="publishBox">
           @if (!confirmPublish()) {
             <button type="button" class="btn btn-success" (click)="confirmPublish.set(true)" data-cy="publishButton">
               <fa-icon icon="upload" />
-              {{ 'javaSpringBootBackEndApp.listingImport.action.publish' | translate: { count: fmt(b.createdCount) } }}
+              {{ 'javaSpringBootBackEndApp.listingImport.action.publish' | translate: { count: fmt(drafts()) } }}
             </button>
           } @else {
             <span class="small fw-semibold">{{
-              'javaSpringBootBackEndApp.listingImport.action.publishConfirm' | translate: { count: fmt(b.createdCount) }
+              'javaSpringBootBackEndApp.listingImport.action.publishConfirm' | translate: { count: fmt(drafts()) }
             }}</span>
             <button type="button" class="btn btn-success btn-sm" (click)="publish()" [disabled]="publishing()" data-cy="publishConfirm">
               <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.publishYes">Xuất bản</span>
@@ -70,15 +116,65 @@
           {{ 'javaSpringBootBackEndApp.listingImport.list.rows' | translate: { count: fmt(b.totalRows) } }} ·
           {{ 'javaSpringBootBackEndApp.listingImport.detail.runningNotice' | translate }}
         </span>
+        <button
+          type="button"
+          class="btn btn-outline-danger btn-sm ms-auto"
+          [disabled]="cancelling()"
+          (click)="cancelRun()"
+          data-cy="cancelRun"
+        >
+          <fa-icon icon="ban" />
+          <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.cancelRun">Hủy</span>
+        </button>
       </div>
+    }
+    @if (undoing()) {
+      <div class="alert alert-info d-flex align-items-center gap-2" data-cy="undoingNotice">
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        <span jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.undoing">Đang hoàn tác…</span>
+      </div>
+    }
+    @if (b.status === 'UNDONE') {
+      <div class="alert alert-secondary" data-cy="undoneNotice">
+        {{
+          'javaSpringBootBackEndApp.listingImport.detail.undone'
+            | translate: { user: b.undoneBy ?? '', at: (b.undoneAt | date: 'dd/MM/yyyy HH:mm') ?? '', skipped: fmt(b.undoSkipped) }
+        }}
+      </div>
+    }
+    @if (b.status === 'CANCELLED') {
+      <div
+        class="alert alert-secondary"
+        data-cy="cancelledNotice"
+        jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.cancelled"
+      ></div>
     }
     @if (b.status === 'FAILED') {
       <div class="alert alert-danger">
         {{ 'javaSpringBootBackEndApp.listingImport.detail.failed' | translate: { error: b.error ?? '' } }}
       </div>
     }
+    @if (importError(); as err) {
+      <div class="alert alert-danger small">{{ err }}</div>
+    }
     @if (b.dryRun && !running()) {
-      <div class="alert alert-light border small" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.dryRunNotice"></div>
+      <div
+        class="alert alert-light border small"
+        [jhiTranslate]="'javaSpringBootBackEndApp.listingImport.detail.' + (canImport() ? 'dryRunReady' : 'dryRunNotice')"
+      ></div>
+    }
+    @if (!b.dryRun && b.status === 'DONE') {
+      <div class="alert alert-success" data-cy="doneNotice">
+        {{
+          'javaSpringBootBackEndApp.listingImport.detail.doneNotice'
+            | translate: { created: fmt(b.createdCount), merged: fmt(b.mergedCount) }
+        }}
+        @if ((drafts() ?? 0) > 0) {
+          {{ 'javaSpringBootBackEndApp.listingImport.detail.draftsLeft' | translate: { count: fmt(drafts()) } }}
+        } @else if (drafts() === 0 && b.createdCount > 0) {
+          {{ 'javaSpringBootBackEndApp.listingImport.detail.allPublished' | translate }}
+        }
+      </div>
     }
     @if (!b.dryRun && b.suspectCount > 0 && filter() !== 'SUSPECT') {
       <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" data-cy="suspectNotice">
@@ -117,6 +213,62 @@
       }
     </div>
 
+    <!-- Tìm, xuất file, lọc theo trường đã đổi -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-2" data-cy="rowTools">
+      <form class="input-group input-group-sm import-search" (ngSubmit)="applySearch()">
+        <input
+          class="form-control"
+          name="search"
+          [(ngModel)]="search"
+          [placeholder]="'javaSpringBootBackEndApp.listingImport.detail.searchPlaceholder' | translate"
+          data-cy="rowSearch"
+        />
+        <button class="btn btn-outline-secondary" type="submit" [attr.aria-label]="'entity.action.search' | translate">
+          <fa-icon icon="search" />
+        </button>
+      </form>
+      @if (q()) {
+        <button
+          type="button"
+          class="btn btn-link btn-sm"
+          (click)="clearSearch()"
+          jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.clearSearch"
+        >
+          Xóa tìm kiếm
+        </button>
+      }
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm ms-auto"
+        [disabled]="exporting()"
+        (click)="exportRows()"
+        data-cy="exportRows"
+      >
+        <fa-icon icon="file-excel" />
+        <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.export">Xuất Excel</span>
+      </button>
+    </div>
+    @if (stats().length) {
+      <div class="d-flex flex-wrap gap-1 align-items-center mb-3" data-cy="fieldStats">
+        <span class="small text-muted me-1" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.byField">Theo trường:</span>
+        @for (s of stats(); track s.field) {
+          <button
+            type="button"
+            class="btn btn-sm import-field-chip"
+            [class]="field() === s.field ? 'btn-dark' : 'btn-outline-secondary'"
+            (click)="setField(s.field)"
+            [title]="
+              'javaSpringBootBackEndApp.listingImport.detail.fieldHelp' | translate: { filled: fmt(s.filled), updated: fmt(s.updated) }
+            "
+            [attr.data-cy]="'field-' + s.field"
+          >
+            {{ 'javaSpringBootBackEndApp.listingImport.field.' + s.field | translate }}
+            <span class="fw-semibold ms-1">{{ fmt(s.filled + s.updated) }}</span>
+          </button>
+        }
+      </div>
+    }
+
     <!-- Từng dòng -->
     @if (rows().length === 0 && !loadingRows()) {
       <div class="surface p-4 text-center text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.noRows"></div>
@@ -150,7 +302,13 @@
                       <span class="me-2">{{ v.row.phone }}</span>
                     }
                     @if (v.row.sourceRef) {
-                      <span>#{{ v.row.sourceRef }}</span>
+                      <span class="me-2">#{{ v.row.sourceRef }}</span>
+                    }
+                    @if (v.row.sourceUpdatedAt) {
+                      <span>{{
+                        'javaSpringBootBackEndApp.listingImport.detail.sourceDate'
+                          | translate: { date: v.row.sourceUpdatedAt | date: 'dd/MM/yyyy' }
+                      }}</span>
                     }
                   </div>
                   <!-- Điện thoại: cột ghi chú bị ẩn → hiện ghi chú ngay dưới tên -->
@@ -178,6 +336,14 @@
                       {{ 'javaSpringBootBackEndApp.listingImport.detail.resolvedBy' | translate: { user: v.row.resolvedBy } }}
                     </div>
                   }
+                  @if (visibleChanges(v.changes).length) {
+                    <button type="button" class="btn btn-link btn-sm p-0 d-block" (click)="toggleRow(v.row.id)" data-cy="toggleChanges">
+                      {{
+                        'javaSpringBootBackEndApp.listingImport.detail.' + (expanded().has(v.row.id) ? 'hideChanges' : 'showChanges')
+                          | translate
+                      }}
+                    </button>
+                  }
                 </td>
                 <td class="d-none d-lg-table-cell text-break">
                   @if (v.matched; as m) {
@@ -195,11 +361,21 @@
                   }
                 </td>
                 <td class="d-none d-md-table-cell small">
-                  @if (filledList(v.row.filledFields).length) {
-                    <div class="d-flex flex-wrap gap-1 align-items-center">
-                      <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.filled">Bổ sung:</span>
-                      @for (f of filledList(v.row.filledFields); track f) {
+                  @if (updatedList(v.row).length) {
+                    <div class="d-flex flex-wrap gap-1 align-items-center mb-1" data-cy="updatedTags">
+                      <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.updated">Cập nhật:</span>
+                      @for (f of updatedList(v.row); track f) {
                         <span class="badge bg-primary-subtle text-primary-emphasis">{{
+                          'javaSpringBootBackEndApp.listingImport.field.' + f | translate
+                        }}</span>
+                      }
+                    </div>
+                  }
+                  @if (filledOnlyList(v.row).length) {
+                    <div class="d-flex flex-wrap gap-1 align-items-center" data-cy="filledTags">
+                      <span class="text-muted" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.filled">Điền mới:</span>
+                      @for (f of filledOnlyList(v.row); track f) {
+                        <span class="badge bg-success-subtle text-success-emphasis">{{
                           'javaSpringBootBackEndApp.listingImport.field.' + f | translate
                         }}</span>
                       }
@@ -210,6 +386,32 @@
                   }
                 </td>
               </tr>
+
+              <!-- Giá trị cũ → mới của dòng -->
+              @if (expanded().has(v.row.id)) {
+                <tr data-cy="changesRow">
+                  <td colspan="5" class="pt-0">
+                    <table class="table table-sm import-diff mb-0">
+                      <thead>
+                        <tr>
+                          <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.changeField">Trường</th>
+                          <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.oldValue">Giá trị cũ</th>
+                          <th scope="col" jhiTranslate="javaSpringBootBackEndApp.listingImport.detail.newValue">Giá trị mới</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (c of visibleChanges(v.changes); track c.field) {
+                          <tr>
+                            <th scope="row">{{ 'javaSpringBootBackEndApp.listingImport.field.' + c.field | translate }}</th>
+                            <td class="import-diff-old">{{ shortValue(c.oldValue) }}</td>
+                            <td class="import-diff-new">{{ shortValue(c.newValue) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              }
 
               <!-- Nghi trùng: so cạnh nhau + duyệt -->
               @if (v.row.status === 'SUSPECT') {
