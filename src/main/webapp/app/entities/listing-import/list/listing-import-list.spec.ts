@@ -68,6 +68,65 @@ describe('ListingImportList', () => {
     expect(el().querySelector('[data-cy="checkButton"]')).not.toBeNull();
   });
 
+  it('gets only new and changed records by default, everything on request', () => {
+    vi.spyOn(service, 'startPull').mockReturnValue(of({ stored: 100, pending: 20 }));
+    fixture.detectChanges();
+    (el().querySelector('[data-cy="pullButton"]') as HTMLButtonElement).click();
+    expect(service.startPull).toHaveBeenLastCalledWith('NEW');
+    (el().querySelector('[data-cy="pullFullButton"]') as HTMLButtonElement).click();
+    expect(service.startPull).toHaveBeenLastCalledWith('FULL');
+  });
+
+  it('keeps showing the last pull and offers to continue an interrupted full pull', () => {
+    vi.mocked(service.pullSummary).mockReturnValue(
+      of({
+        stored: 100,
+        pending: 0,
+        pull: { id: 3, state: 'INTERRUPTED', read: 74000, changed: 12, lastId: 83096, mode: 'FULL', startedAt: '2026-11-09T02:50:53Z' },
+      }),
+    );
+    vi.spyOn(service, 'startPull').mockReturnValue(of({ stored: 100, pending: 0 }));
+    fixture.detectChanges();
+    const interrupted = {
+      id: 3,
+      state: 'INTERRUPTED',
+      read: 74000,
+      changed: 12,
+      lastId: 83096,
+      mode: 'FULL',
+      startedAt: '2026-11-09T02:50:53Z',
+    } as const;
+    comp['pull'].set({ stored: 100, pending: 0, pull: interrupted, unfinishedFull: interrupted });
+    fixture.detectChanges();
+    expect(el().querySelector('[data-cy="pullProgress"]')).not.toBeNull();
+    (el().querySelector('[data-cy="resumePull"]') as HTMLButtonElement).click();
+    expect(service.startPull).toHaveBeenCalledWith('RESUME');
+  });
+
+  it('still offers to continue the interrupted full pull after a later quick pull', () => {
+    vi.spyOn(service, 'startPull').mockReturnValue(of({ stored: 100, pending: 0 }));
+    fixture.detectChanges();
+    comp['pull'].set({
+      stored: 100,
+      pending: 0,
+      pull: { id: 4, state: 'DONE', read: 0, changed: 0, lastId: 0, mode: 'NEW' },
+      unfinishedFull: { id: 1, state: 'INTERRUPTED', read: 74000, changed: 0, lastId: 83096, mode: 'FULL' },
+    });
+    fixture.detectChanges();
+    expect(el().querySelector('[data-cy="unfinishedFull"]')).not.toBeNull();
+    (el().querySelector('[data-cy="resumePull"]') as HTMLButtonElement).click();
+    expect(service.startPull).toHaveBeenCalledWith('RESUME');
+  });
+
+  it('cancels a running pull', () => {
+    vi.spyOn(service, 'cancelPull').mockReturnValue(of(undefined));
+    fixture.detectChanges();
+    comp['pull'].set({ stored: 100, pending: 0, pull: { id: 4, state: 'RUNNING', read: 2000, changed: 0, lastId: 9000, mode: 'NEW' } });
+    fixture.detectChanges();
+    (el().querySelector('[data-cy="cancelPull"]') as HTMLButtonElement).click();
+    expect(service.cancelPull).toHaveBeenCalled();
+  });
+
   it('runs a check and stays on the page', () => {
     vi.spyOn(service, 'importDirectus').mockReturnValue(of({ ...directusCheck, status: 'RUNNING' }));
     fixture.detectChanges();

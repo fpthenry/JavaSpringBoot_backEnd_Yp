@@ -13,6 +13,7 @@ import {
   IImportRowView,
   IListingHistory,
   ImportAction,
+  PullMode,
   ImportRowStatus,
 } from '../listing-import.model';
 
@@ -99,8 +100,8 @@ export class ListingImportService {
   }
 
   /** Kéo dữ liệu API Trang Vàng về bảng bản gốc (chạy nền); token nằm ở backend. */
-  startPull(resume: boolean): Observable<IDirectusSummary> {
-    return this.http.post<IDirectusSummary>(`${this.resourceUrl}/directus/pull`, {}, { params: new HttpParams().set('resume', resume) });
+  startPull(mode: PullMode): Observable<IDirectusSummary> {
+    return this.http.post<IDirectusSummary>(`${this.resourceUrl}/directus/pull`, {}, { params: new HttpParams().set('mode', mode) });
   }
 
   /** Tiến độ kéo, số bản gốc đã lưu, số bản ghi chưa nhập. */
@@ -120,6 +121,11 @@ export class ListingImportService {
   /** Xuất bản doanh nghiệp nháp do đợt tạo; trả số doanh nghiệp đã xuất bản. */
   publish(batchId: number): Observable<number> {
     return this.http.post<{ published: number }>(`${this.resourceUrl}/${batchId}/publish`, {}).pipe(map(res => res.published));
+  }
+
+  /** Hủy lần lấy dữ liệu đang chạy. */
+  cancelPull(): Observable<void> {
+    return this.http.post<void>(`${this.resourceUrl}/directus/pull/cancel`, {});
   }
 
   /** Hủy đợt đang chạy: backend dừng sau lô đang xử lý. */

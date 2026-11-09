@@ -63,7 +63,9 @@
         "tabDirectus": "API Trang Vàng",
         "directusHint": "1. Kéo dữ liệu về bảng tạm, chưa đụng dữ liệu đang chạy. 2. Kiểm tra dữ liệu: xem kết quả từng tab, chưa ghi gì. 3. Bấm Nhập thật trên trang kết quả.",
         "directus": {
-          "pull": "Lấy dữ liệu về",
+          "pull": "Lấy bản mới",
+          "pullFull": "Lấy toàn bộ",
+          "fullHelp": "Lấy lại cả 1,47 triệu bản ghi (khoảng 25 phút), bắt được cả thay đổi mà nguồn không ghi ngày. Nên làm định kỳ, ví dụ mỗi tháng.",
           "resume": "Lấy tiếp",
           "stored": "Đã lưu",
           "pending": "Chưa nhập",
@@ -125,9 +127,22 @@
         "NAME_ADDRESS": "Tên + địa chỉ",
         "NAME": "Tên"
       },
+      "pull": {
+        "unfinished": "Lần lấy toàn bộ lúc {{ at }} chưa xong (dừng sau {{ read }} bản ghi).",
+        "RUNNING": "Đang {{ mode }}: đã đọc {{ read }} bản ghi, {{ changed }} bản ghi mới hoặc đã đổi.",
+        "DONE": "Lần {{ mode }} gần nhất ({{ at }}): đọc {{ read }} bản ghi, {{ changed }} bản ghi mới hoặc đã đổi.",
+        "CANCELLED": "Đã hủy lần {{ mode }} lúc {{ at }} sau {{ read }} bản ghi ({{ changed }} mới hoặc đã đổi, đã lưu).",
+        "INTERRUPTED": "Lần {{ mode }} lúc {{ at }} bị gián đoạn do backend khởi động lại, sau {{ read }} bản ghi ({{ changed }} mới hoặc đã đổi, đã lưu).",
+        "FAILED": "Lần {{ mode }} lúc {{ at }} bị lỗi sau {{ read }} bản ghi:"
+      },
+      "pullMode": {
+        "NEW": "lấy bản mới",
+        "FULL": "lấy toàn bộ",
+        "RESUME": "lấy tiếp"
+      },
       "steps": {
         "pull": "Lấy dữ liệu về",
-        "pullHelp": "Lưu vào bảng tạm, chưa đổi dữ liệu đang chạy. Khoảng 25 phút.",
+        "pullHelp": "Lưu vào bảng tạm, chưa đổi dữ liệu đang chạy. Lấy bản mới: chỉ doanh nghiệp mới và đã sửa, vài phút. Lấy toàn bộ: khoảng 25 phút, nên làm định kỳ.",
         "check": "Kiểm tra",
         "checkHelp": "So với hệ thống: chưa có thì thêm mới, có rồi thì cập nhật, sai thì loại bỏ. Bước này chưa ghi gì.",
         "import": "Nhập vào hệ thống",

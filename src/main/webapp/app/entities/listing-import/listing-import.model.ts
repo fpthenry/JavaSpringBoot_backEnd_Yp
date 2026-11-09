@@ -34,14 +34,30 @@ export interface IImportBatch {
   undoSkipped?: number | null;
 }
 
+/** Cách lấy dữ liệu (DirectusPullService.Mode): NEW chỉ phần thay đổi, FULL cả bảng, RESUME đọc tiếp khi lỗi. */
+export type PullMode = 'NEW' | 'FULL' | 'RESUME';
+
 /** Tình trạng bảng bản gốc API Trang Vàng (GET /directus/pull). */
 export interface IDirectusSummary {
   /** Lần kéo gần nhất từ khi backend khởi động; null nếu chưa kéo */
-  pull?: { state: 'RUNNING' | 'DONE' | 'FAILED'; read: number; changed: number; lastId: number; error?: string | null } | null;
+  /** Lần lấy gần nhất (lưu ở DB, còn sau khi backend khởi động lại); null nếu chưa lấy lần nào */
+  pull?: {
+    id: number;
+    state: 'RUNNING' | 'DONE' | 'FAILED' | 'CANCELLED' | 'INTERRUPTED';
+    read: number;
+    changed: number;
+    lastId: number;
+    error?: string | null;
+    mode: PullMode;
+    startedAt?: string | null;
+    finishedAt?: string | null;
+  } | null;
   stored: number;
   /** Bản ghi mới hoặc đã đổi so với lần nhập thật gần nhất */
   pending: number;
   lastFetchedAt?: string | null;
+  /** Lần lấy toàn bộ gần nhất nếu nó dừng giữa chừng (lấy tiếp được) */
+  unfinishedFull?: IDirectusSummary['pull'];
 }
 
 export interface IImportRow {

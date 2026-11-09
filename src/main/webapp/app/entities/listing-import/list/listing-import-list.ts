@@ -12,7 +12,7 @@ import { Subscription, switchMap, timer } from 'rxjs';
 import { Alert, AlertError } from 'app/shared/alert';
 import { TranslateDirective } from 'app/shared/language';
 import { durationText, parsePairs, rejectedCount } from '../listing-import-display';
-import { IApiImportRequest, IDirectusSummary, IImportBatch } from '../listing-import.model';
+import { IApiImportRequest, IDirectusSummary, IImportBatch, PullMode } from '../listing-import.model';
 import { ListingImportService } from '../service/listing-import.service';
 
 /** Giới hạn upload của backend (spring.servlet.multipart.max-file-size). */
@@ -48,6 +48,10 @@ export class ListingImportList implements OnInit {
   /** Tab API Trang Vàng: tình trạng bảng bản gốc và tiến độ kéo */
   protected readonly pull = signal<IDirectusSummary | null>(null);
   protected readonly pulling = computed(() => this.pull()?.pull?.state === 'RUNNING');
+  /** Lần lấy toàn bộ bị dừng giữa chừng: lấy tiếp từ id đã dừng */
+  /** Lần lấy toàn bộ bị dừng giữa chừng (kể cả khi đã lấy bản mới sau đó): lấy tiếp từ id đã dừng */
+  protected readonly canResume = computed(() => !!this.pull()?.unfinishedFull && !this.pulling());
+  protected readonly cancellingPull = signal(false);
   protected api = {
     source: '',
     url: '',
@@ -156,16 +160,38 @@ export class ListingImportList implements OnInit {
     });
   }
 
-  /** Bước 1: kéo về bảng bản gốc. {@code resume}: đọc tiếp từ id lớn nhất đã lưu. */
-  startPull(resume: boolean): void {
+  /** Bước 1: lấy về bảng tạm. NEW: chỉ phần thay đổi; FULL: cả bảng; RESUME: đọc tiếp khi lần trước lỗi. */
+  startPull(mode: PullMode): void {
     this.submitError.set(null);
-    this.service.startPull(resume).subscribe({
+    this.service.startPull(mode).subscribe({
       next: summary => {
         this.pull.set(summary);
         this.watchPull();
       },
       error: (err: HttpErrorResponse) => this.submitError.set(err.error?.error ?? err.error?.detail ?? err.message),
     });
+  }
+
+  cancelPull(): void {
+    this.cancellingPull.set(true);
+    this.service.cancelPull().subscribe({
+      next: () => this.cancellingPull.set(false),
+      error: () => this.cancellingPull.set(false),
+    });
+  }
+
+  /** Màu khung kết quả lần lấy gần nhất. */
+  pullAlertClass(state: string): string {
+    switch (state) {
+      case 'RUNNING':
+        return 'alert-info';
+      case 'DONE':
+        return 'alert-success';
+      case 'FAILED':
+        return 'alert-danger';
+      default:
+        return 'alert-warning';
+    }
   }
 
   /** Hỏi tiến độ kéo mỗi 2 giây cho tới khi xong. */

@@ -63,7 +63,9 @@
         "tabDirectus": "Yellow Pages API",
         "directusHint": "1. Pull data into the holding table; live data is not touched. 2. Check data: review each tab, nothing is written. 3. Press Import for real on the result page.",
         "directus": {
-          "pull": "Get data",
+          "pull": "Get new data",
+          "pullFull": "Get everything",
+          "fullHelp": "Fetch all 1.47 million records again (about 25 minutes); catches changes the source did not date. Do it periodically, e.g. monthly.",
           "resume": "Continue",
           "stored": "Stored",
           "pending": "Not imported",
@@ -125,9 +127,22 @@
         "NAME_ADDRESS": "Name + address",
         "NAME": "Name"
       },
+      "pull": {
+        "unfinished": "The full fetch at {{ at }} did not finish (stopped after {{ read }} records).",
+        "RUNNING": "Running {{ mode }}: {{ read }} records read, {{ changed }} new or changed.",
+        "DONE": "Last {{ mode }} ({{ at }}): {{ read }} records read, {{ changed }} new or changed.",
+        "CANCELLED": "{{ mode }} at {{ at }} was cancelled after {{ read }} records ({{ changed }} new or changed, saved).",
+        "INTERRUPTED": "{{ mode }} at {{ at }} was interrupted by a backend restart after {{ read }} records ({{ changed }} new or changed, saved).",
+        "FAILED": "{{ mode }} at {{ at }} failed after {{ read }} records:"
+      },
+      "pullMode": {
+        "NEW": "get new data",
+        "FULL": "get everything",
+        "RESUME": "continue"
+      },
       "steps": {
         "pull": "Get data",
-        "pullHelp": "Saved to a holding table; live data is not touched. About 25 minutes.",
+        "pullHelp": "Saved to a holding table; live data is not touched. Get new data: only new and changed companies, a few minutes. Get everything: about 25 minutes, do it periodically.",
         "check": "Check",
         "checkHelp": "Compare with the system: new companies are added, existing ones updated, bad records rejected. Nothing is written yet.",
         "import": "Import to system",

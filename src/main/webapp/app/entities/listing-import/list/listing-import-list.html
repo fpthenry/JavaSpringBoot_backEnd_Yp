@@ -105,18 +105,23 @@
               type="button"
               class="btn btn-outline-primary"
               [disabled]="pulling() || !!running()"
-              (click)="startPull(false)"
+              (click)="startPull('NEW')"
               data-cy="pullButton"
             >
               <fa-icon icon="cloud-arrow-down" />
-              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.pull">Lấy dữ liệu về</span>
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.pull">Lấy bản mới</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [disabled]="pulling() || !!running()"
+              (click)="startPull('FULL')"
+              [title]="'javaSpringBootBackEndApp.listingImport.new.directus.fullHelp' | translate"
+              data-cy="pullFullButton"
+            >
+              <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.pullFull">Lấy toàn bộ</span>
             </button>
             @if (pull(); as p) {
-              @if (p.pull?.state === 'FAILED') {
-                <button type="button" class="btn btn-outline-secondary" (click)="startPull(true)">
-                  <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.resume">Lấy tiếp</span>
-                </button>
-              }
               <span class="small text-muted">
                 <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.stored">Đã lưu</span>: {{ fmt(p.stored) }} ·
                 <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.pending">Chưa nhập</span>: {{ fmt(p.pending) }}
@@ -127,14 +132,57 @@
             }
           </div>
           @if (pull()?.pull; as progress) {
-            @if (progress.state === 'RUNNING') {
-              <div class="alert alert-info small mt-2 mb-0">
-                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.pulling">Đang lấy</span>: {{ fmt(progress.read) }}
+            <div
+              class="alert small mt-2 mb-0 d-flex flex-wrap align-items-center gap-2"
+              [class]="pullAlertClass(progress.state)"
+              data-cy="pullProgress"
+            >
+              @if (progress.state === 'RUNNING') {
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+              }
+              <span>{{
+                'javaSpringBootBackEndApp.listingImport.pull.' + progress.state
+                  | translate
+                    : {
+                        mode: ('javaSpringBootBackEndApp.listingImport.pullMode.' + progress.mode | translate),
+                        read: fmt(progress.read),
+                        changed: fmt(progress.changed),
+                        at: (progress.startedAt | date: 'dd/MM/yyyy HH:mm') ?? '',
+                      }
+              }}</span>
+              @if (progress.error) {
+                <span class="text-break">{{ progress.error }}</span>
+              }
+              @if (progress.state === 'RUNNING') {
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm ms-auto"
+                  [disabled]="cancellingPull()"
+                  (click)="cancelPull()"
+                  data-cy="cancelPull"
+                >
+                  <fa-icon icon="ban" />
+                  <span jhiTranslate="javaSpringBootBackEndApp.listingImport.action.cancelRun">Hủy</span>
+                </button>
+              }
+              @if (canResume() && progress.id === pull()?.unfinishedFull?.id) {
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" (click)="startPull('RESUME')" data-cy="resumePull">
+                  <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.resume">Lấy tiếp</span>
+                </button>
+              }
+            </div>
+          }
+          @if (pull()?.unfinishedFull; as u) {
+            @if (canResume() && u.id !== pull()?.pull?.id) {
+              <div class="small text-warning-emphasis mt-2 d-flex flex-wrap align-items-center gap-2" data-cy="unfinishedFull">
+                <span>{{
+                  'javaSpringBootBackEndApp.listingImport.pull.unfinished'
+                    | translate: { at: (u.startedAt | date: 'dd/MM/yyyy HH:mm') ?? '', read: fmt(u.read) }
+                }}</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="startPull('RESUME')" data-cy="resumePull">
+                  <span jhiTranslate="javaSpringBootBackEndApp.listingImport.new.directus.resume">Lấy tiếp</span>
+                </button>
               </div>
-            }
-            @if (progress.state === 'FAILED') {
-              <div class="alert alert-danger small mt-2 mb-0">{{ progress.error }}</div>
             }
           }
         </li>

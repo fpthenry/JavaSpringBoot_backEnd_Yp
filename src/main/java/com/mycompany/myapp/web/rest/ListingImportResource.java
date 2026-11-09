@@ -90,16 +90,24 @@ public class ListingImportResource {
     @Operation(
         summary = "Kéo doanh nghiệp đã xuất bản từ API Trang Vàng về bảng bản gốc (chạy nền)",
         description = "Lưu vào listing_source_record, không đụng tới listing. Kéo lại thì cập nhật đúng dòng cũ. " +
-            "resume=true: đọc tiếp từ id lớn nhất đã lưu. Token ở biến môi trường YP_DIRECTUS_TOKEN."
+            "mode=NEW (mặc định): chỉ id mới và bản ghi đã sửa sau lần kéo toàn bộ gần nhất; FULL: kéo lại cả bảng; " +
+            "RESUME: đọc tiếp từ id lớn nhất đã lưu. Token ở biến môi trường YP_DIRECTUS_TOKEN."
     )
     public ResponseEntity<DirectusPullService.Summary> pullDirectus(
-        @Parameter(description = "Đọc tiếp từ id lớn nhất đã lưu") @RequestParam(defaultValue = "false") boolean resume
+        @Parameter(description = "NEW | FULL | RESUME") @RequestParam(defaultValue = "NEW") DirectusPullService.Mode mode
     ) {
         if (importService.runningBatchId().isPresent()) {
             throw new IllegalStateException("Đang có đợt nhập chạy, chờ xong rồi kéo dữ liệu");
         }
-        LOG.info("REST request to pull listings from Directus (resume={})", resume);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(pullService.start(resume));
+        LOG.info("REST request to pull listings from Directus (mode={})", mode);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(pullService.start(mode));
+    }
+
+    @PostMapping("/directus/pull/cancel")
+    @Operation(summary = "Hủy lần lấy dữ liệu đang chạy", description = "Dừng sau trang đang đọc; phần đã lưu vẫn giữ.")
+    public ResponseEntity<Void> cancelPull() {
+        pullService.cancel();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/directus/pull")

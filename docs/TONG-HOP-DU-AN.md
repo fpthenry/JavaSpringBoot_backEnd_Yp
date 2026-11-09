@@ -2557,6 +2557,24 @@ Lịch sử đợt 54 và 56 dựng lại từ `backup_import_20261106` bằng S
 
 **Khi sửa changelog lúc backend dev đang chạy:** không chạy `mvnw` liên tiếp trước khi `databasechangelog` có dòng mới. Devtools khởi động lại giữa lúc Liquibase chạy sẽ để lại cột đã thêm mà chưa ghi log, kèm khóa kẹt; phải xóa phần dở và nhả khóa.
 
+**Lấy dữ liệu: ba cách (`POST /directus/pull?mode=`, 2026-11-09).** Bước kiểm tra và nhập đã chỉ xử lý bản ghi mới hoặc đã đổi (`content_hash` khác `imported_hash`); chỉ bước lấy dữ liệu trước đây luôn kéo cả bảng.
+
+| `mode` | Nút | Lấy gì | Thời gian |
+|---|---|---|---|
+| `NEW` (mặc định) | Lấy bản mới | Lượt 1: bản ghi có `date_updated` hoặc `source_last_updated` sau mốc; lượt 2: id lớn hơn id lớn nhất đã lưu | Vài giây đến vài phút |
+| `FULL` | Lấy toàn bộ | Cả bảng, như trước | Khoảng 25 phút |
+| `RESUME` | Lấy tiếp (chỉ hiện khi lỗi) | Từ id lớn nhất đã lưu | Tùy chỗ dừng |
+
+Mỗi lần lấy ghi một dòng vào `listing_source_pull` (changelog `20261109100000`): chế độ (`NEW`, `FULL`; lấy tiếp lưu là `FULL`), trạng thái `RUNNING`, `DONE`, `FAILED`, `CANCELLED`, `INTERRUPTED`, số đã đọc, số mới hoặc đã đổi, `last_id`, người chạy. Cập nhật sau mỗi trang 1.000 bản ghi, nên màn hình vẫn thấy tiến độ và kết quả khi rời trang hay backend khởi động lại. Lúc khởi động, dòng còn `RUNNING` chuyển thành `INTERRUPTED`. Nút Hủy (`POST /directus/pull/cancel`) dừng sau trang đang đọc. Lấy tiếp chỉ dành cho lần lấy toàn bộ bị dừng, đọc tiếp từ `last_id` của lần đó (trước đây đọc từ id lớn nhất đã lưu, sai khi lấy toàn bộ bị dừng giữa chừng). Lần lấy toàn bộ ngày 09/11/2026 lúc 09:50 bị cắt khi backend khởi động lại do build; đã ghi tay vào bảng (74.000 bản ghi, `last_id` 83.096) để lấy tiếp được.
+
+Mốc = `started_at` của lần lấy toàn bộ gần nhất có trạng thái `DONE` trong `listing_source_pull`, lùi 1 ngày (`source_last_updated` của nguồn không ghi múi giờ). Chưa có lần nào như vậy thì dùng `min(last_fetched_at)` của bảng bản gốc (khoảng 1 giây). Cách cũ lọc thêm `status = 'published'` nên quét cả bảng có JSON, mất 9,8 giây. Bấm nút chỉ thêm một dòng vào `listing_source_pull` rồi trả về (khoảng 40 ms); id bắt đầu, mốc và số đầu đợt tính ở luồng nền, số đầu đợt dùng lại lần đếm gần nhất của màn hình. Lấy tiếp dựa trên lần **lấy toàn bộ** gần nhất chưa xong, không phải lần lấy gần nhất, nên lấy bản mới sau đó không làm mất nút Lấy tiếp (`Summary.unfinishedFull`).
+
+**Lưu ý `auto-commit: false`:** cấu hình Hikari dev và prod tắt auto-commit, nên câu `jdbc.update` không nằm trong `TransactionTemplate` sẽ bị hủy khi trả kết nối mà không báo lỗi. Bản đầu của `listing_source_pull` mắc lỗi này: lần lấy chạy xong nhưng không có dòng nào được lưu.
+
+Kiểm tra trên backend dev bằng tài khoản admin (09/11/2026): bấm Lấy bản mới phản hồi 47 ms, xong sau khoảng 4,5 giây, đọc 0 bản ghi; danh sách lịch sử, thống kê theo trường, lọc, tìm, xuất CSV, lịch sử doanh nghiệp đều trả 200 và đúng số liệu đợt 56. Bộ lọc gửi dạng JSON `filter={"_and":[...]}` ([`DirectusPullService.filter`](../src/main/java/com/mycompany/myapp/service/listingimport/DirectusPullService.java)). Thử trên API ngày 09/11/2026: mốc 05/11/2026, cả hai lượt đều 0 bản ghi.
+
+Số liệu trường ngày trên API (09/11/2026): `source_last_updated` có ở khoảng 347.000 bản ghi, mới nhất 01/04/2026; `date_updated` có ở 25.308 bản ghi, mới nhất 02/11/2025. Bản ghi bị sửa mà không cập nhật hai trường này, hoặc chuyển từ nháp sang xuất bản mà không ghi ngày, chỉ bắt được khi Lấy toàn bộ, nên chạy Lấy toàn bộ định kỳ (ví dụ mỗi tháng). Bản ghi bị gỡ khỏi API chưa được xử lý: doanh nghiệp vẫn ở lại.
+
 **Hủy đợt đang chạy:** nút Hủy ở thanh tiến độ trang danh sách và trang đợt nhập (`POST /api/admin/listing-imports/{id}/cancel`). Backend dừng sau lô 200 dòng đang xử lý, đợt có trạng thái `CANCELLED`. Nhập thật bị hủy thì các lô đã xong vẫn được giữ; bản gốc chưa đánh dấu `imported_hash` nên chạy lại là xử lý tiếp. Bước đánh dấu cuối đợt không hủy được.
 
 **Áp dụng cho đợt 54:** chỉ nhóm Merged (72.215), 1,39 triệu doanh nghiệp còn lại giữ nguyên. Đợt 54 đã đặt `modified_at` thành ngày nhập nên không so được ngày, vì vậy chạy một lần bằng SQL: chép nhóm Merged vào `backup_import_20261106.listing_before_overwrite`, lập danh sách dòng khác API vào `backup_import_20261106.overwrite_plan`, trả `modified_at`, `updated_at` về `modified_at` trước khi nhập, đặt `imported_hash = NULL` ở bản ghi mới nhất, rồi chạy Kiểm tra dữ liệu trên giao diện. Bỏ qua doanh nghiệp có `updated_at` sau 30/06/2026 trong bản sao lưu (92 dòng, coi là đã sửa tay).
@@ -2627,7 +2645,7 @@ server {
 }
 ```
 
-Backend (trang quản trị): `client_max_body_size 100m` (nhập Excel), `proxy_read_timeout 300s`, luôn gửi `X-Robots-Tag: noindex, nofollow` để Google không lập chỉ mục API và trang quản trị, nên giới hạn tần suất `/api/authenticate`. Sau Cloudflare phải cấu hình IP thật thì giới hạn tần suất mới đúng. Sao lưu CSDL hằng ngày là việc cần tự đặt lịch.
+Backend (trang quản trị): `client_max_body_size 100m` (nhập Excel), `proxy_read_timeout 300s`, luôn gửi `X-Robots-Tag: noindex, nofollow` để Google không lập chỉ mục API và trang quản trị; `robots.txt` của backend (`src/main/webapp/robots.txt`, nằm trong jar) là `Disallow: /` (2026-11-09, trước đó là mẫu JHipster chỉ chặn vài đường dẫn), nên giới hạn tần suất `/api/authenticate`. Sau Cloudflare phải cấu hình IP thật thì giới hạn tần suất mới đúng. Sao lưu CSDL hằng ngày là việc cần tự đặt lịch.
 
 ### 18.3 SEO: quy tắc đường dẫn
 

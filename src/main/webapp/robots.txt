@@ -1,8 +1,5 @@
 # robotstxt.org/
+# Backend (yellowbe.yp.vn): trang quản trị và API, không cho máy tìm kiếm thu thập. Website công khai là yp.vn (FE Next.js).
 
 User-agent: *
-Disallow: /api/account
-Disallow: /api/logs/
-Disallow: /api/users/
-Disallow: /management/
-Disallow: /v3/api-docs/
+Disallow: /

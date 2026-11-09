@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay: mỗi lần lấy dữ liệu từ nguồn ngoài về listing_source_record. Lưu ở DB để màn hình vẫn thấy tiến độ, kết quả
+        sau khi backend khởi động lại, và "Lấy tiếp" đọc từ đúng id đã dừng.
+    -->
+    <changeSet id="20261109100000-1" author="dev">
+        <createTable tableName="listing_source_pull" remarks="Các lần lấy dữ liệu từ nguồn ngoài">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="source" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mode" type="varchar(10)" remarks="NEW: phần thay đổi, FULL: cả bảng">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)" remarks="RUNNING, DONE, FAILED, CANCELLED, INTERRUPTED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="read_count" type="bigint" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_count" type="bigint" defaultValueNumeric="0" remarks="Bản ghi mới hoặc đã đổi">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_id" type="bigint" remarks="Id nguồn cuối cùng đã lưu, để lấy tiếp"/>
+            <column name="started_at" type="datetime(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="finished_at" type="datetime(6)"/>
+            <column name="error" type="varchar(1000)"/>
+            <column name="started_by" type="varchar(50)"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

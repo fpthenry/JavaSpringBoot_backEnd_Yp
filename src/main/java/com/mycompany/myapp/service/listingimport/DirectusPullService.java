@@ -1,6 +1,7 @@
 package com.mycompany.myapp.service.listingimport;
 
 import com.mycompany.myapp.config.ApplicationProperties;
+import com.mycompany.myapp.security.SecurityUtils;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.URI;
@@ -11,11 +12,14 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,9 +34,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -43,8 +51,8 @@ import tools.jackson.databind.SerializationFeature;
 
 /**
  * Bước 1 của đồng bộ API Trang Vàng: kéo doanh nghiệp đã xuất bản về {@code listing_source_record}, không đụng tới listing.
- * Đọc theo id tăng dần (không dùng số trang: bảng gần 2 triệu dòng), kéo lại thì cập nhật đúng dòng cũ. Đứt giữa chừng thì
- * chạy tiếp từ id lớn nhất đã lưu. Bước so sánh và nhập ở {@link DirectusRecordSource}.
+ * Đọc theo id tăng dần (không dùng số trang: bảng gần 2 triệu dòng), kéo lại thì cập nhật đúng dòng cũ. Ba cách kéo, xem {@link Mode}.
+ * Bước so sánh và nhập ở {@link DirectusRecordSource}.
  */
 @Service
 public class DirectusPullService {
@@ -52,18 +60,48 @@ public class DirectusPullService {
     public static final String RUNNING = "RUNNING";
     public static final String DONE = "DONE";
     public static final String FAILED = "FAILED";
+    public static final String CANCELLED = "CANCELLED";
+    /** Backend khởi động lại giữa chừng. */
+    public static final String INTERRUPTED = "INTERRUPTED";
 
     private static final Logger LOG = LoggerFactory.getLogger(DirectusPullService.class);
     private static final int MAX_ATTEMPTS = 5;
     private static final int DELAY_MS = 150;
     private static final int RECORD_COLUMNS = 10;
     private static final String FIELDS = "*,industry.industries_code";
+    /** Lùi mốc "đã sửa sau" một ngày: source_last_updated của nguồn không ghi múi giờ. */
+    private static final Duration SINCE_MARGIN = Duration.ofDays(1);
+    private static final DateTimeFormatter SINCE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(ZoneOffset.UTC);
 
-    /** Tiến độ lần kéo gần nhất từ khi backend khởi động. */
-    public record PullStatus(String state, long read, long changed, long lastId, Instant startedAt, Instant finishedAt, String error) {}
+    /** Cách kéo. */
+    public enum Mode {
+        /**
+         * Chỉ phần thay đổi (mặc định): id lớn hơn id lớn nhất đã lưu, cộng bản ghi có {@code date_updated} hoặc
+         * {@code source_last_updated} sau lần kéo toàn bộ gần nhất. Bản ghi bị sửa mà nguồn không ghi ngày thì không thấy.
+         */
+        NEW,
+        /** Kéo lại cả bảng (khoảng 25 phút), bắt được mọi thay đổi. Nên chạy định kỳ. */
+        FULL,
+        /** Đọc tiếp từ id lớn nhất đã lưu, khi lần kéo trước bị lỗi giữa chừng. */
+        RESUME,
+    }
+
+    /** Một lần lấy dữ liệu (bảng listing_source_pull). */
+    public record PullStatus(
+        Long id,
+        String state,
+        long read,
+        long changed,
+        long lastId,
+        Instant startedAt,
+        Instant finishedAt,
+        String error,
+        Mode mode
+    ) {}
 
     /** Tình trạng bảng bản gốc: đã lưu bao nhiêu, bao nhiêu mới hoặc đã đổi so với lần nhập thật gần nhất. */
-    public record Summary(PullStatus pull, long stored, long pending, Instant lastFetchedAt) {}
+    /** @param unfinishedFull lần lấy toàn bộ gần nhất nếu nó bị dừng giữa chừng (lấy tiếp được); null nếu không có */
+    public record Summary(PullStatus pull, long stored, long pending, Instant lastFetchedAt, PullStatus unfinishedFull) {}
 
     private final ApplicationProperties.Directus config;
     private final JdbcTemplate jdbc;
@@ -81,8 +119,11 @@ public class DirectusPullService {
     });
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicReference<PullStatus> status = new AtomicReference<>();
+    private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
     /** Số liệu bảng lúc bắt đầu lần kéo đang chạy. */
     private volatile Summary baseline;
+    /** Lần đếm bảng gần nhất (màn hình đếm khi mở trang): bấm lấy dữ liệu không phải đếm lại 1,4 triệu dòng. */
+    private volatile Summary lastCounted;
 
     public DirectusPullService(
         ApplicationProperties applicationProperties,
@@ -107,8 +148,68 @@ public class DirectusPullService {
         return running.get();
     }
 
-    /** Bắt đầu kéo ở nền. {@code resume}: đọc tiếp từ id lớn nhất đã lưu thay vì từ đầu. */
-    public Summary start(boolean resume) {
+    /** Lần lấy còn RUNNING trong DB lúc khởi động là lần bị cắt ngang khi backend tắt. */
+    @EventListener(ApplicationReadyEvent.class)
+    void markInterrupted() {
+        try {
+            // CSDL đặt auto-commit = false: mọi câu ghi phải nằm trong transaction, không thì bị hủy khi trả kết nối
+            Integer n = tx.execute(s ->
+                jdbc.update(
+                    "update listing_source_pull set status = ?, finished_at = ? where status = ?",
+                    INTERRUPTED,
+                    Timestamp.from(Instant.now()),
+                    RUNNING
+                )
+            );
+            if (n != null && n > 0) {
+                LOG.warn("{} lần lấy dữ liệu API Trang Vàng bị gián đoạn khi backend khởi động lại", n);
+            }
+        } catch (DataAccessException e) {
+            LOG.warn("Chưa đọc được listing_source_pull (Liquibase chưa chạy xong?): {}", e.getMessage());
+        }
+    }
+
+    /** Dừng lần lấy đang chạy sau trang đang đọc; phần đã lưu vẫn giữ. */
+    public void cancel() {
+        if (!running.get()) {
+            throw new IllegalStateException("Không có lần lấy dữ liệu nào đang chạy");
+        }
+        cancelRequested.set(true);
+    }
+
+    /** Lần lấy gần nhất; null nếu chưa lấy lần nào. */
+    PullStatus lastRun() {
+        return latest("");
+    }
+
+    /** Lần lấy toàn bộ gần nhất nếu nó dừng giữa chừng (lỗi, hủy, gián đoạn). Lấy bản mới sau đó không làm mất nút Lấy tiếp. */
+    PullStatus unfinishedFull() {
+        PullStatus full = latest(" and mode = 'FULL'");
+        return full == null || RUNNING.equals(full.state()) || DONE.equals(full.state()) ? null : full;
+    }
+
+    private PullStatus latest(String where) {
+        List<PullStatus> rows = jdbc.query(
+            "select * from listing_source_pull where source = ?" + where + " order by id desc limit 1",
+            (rs, n) ->
+                new PullStatus(
+                    rs.getLong("id"),
+                    rs.getString("status"),
+                    rs.getLong("read_count"),
+                    rs.getLong("changed_count"),
+                    rs.getLong("last_id"),
+                    rs.getTimestamp("started_at").toInstant(),
+                    rs.getTimestamp("finished_at") == null ? null : rs.getTimestamp("finished_at").toInstant(),
+                    rs.getString("error"),
+                    Mode.valueOf(rs.getString("mode"))
+                ),
+            DirectusRecordSource.SOURCE
+        );
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    /** Bắt đầu kéo ở nền. */
+    public Summary start(Mode mode) {
         if (config.getToken() == null || config.getToken().isBlank()) {
             throw new IllegalArgumentException("Chưa khai báo token API Trang Vàng (biến môi trường YP_DIRECTUS_TOKEN)");
         }
@@ -116,19 +217,41 @@ public class DirectusPullService {
             throw new IllegalStateException("Đang kéo dữ liệu từ API");
         }
         try {
+            // Chỉ làm việc nhanh ở đây để nút phản hồi ngay; id bắt đầu và mốc "đã sửa sau" tính ở luồng nền
             long cursor = 0;
-            if (resume) {
-                Long max = jdbc.queryForObject(
-                    "select coalesce(max(cast(source_id as unsigned)), 0) from listing_source_record where source = ?",
-                    Long.class,
-                    DirectusRecordSource.SOURCE
-                );
-                cursor = max == null ? 0 : max;
+            if (mode == Mode.RESUME) {
+                PullStatus last = unfinishedFull();
+                if (last == null) {
+                    throw new IllegalArgumentException("Không có lần lấy toàn bộ nào bị dừng giữa chừng để lấy tiếp");
+                }
+                cursor = last.lastId();
             }
-            baseline = count();
-            status.set(new PullStatus(RUNNING, 0, 0, cursor, Instant.now(), null, null));
-            long from = cursor;
-            executor.submit(() -> run(from));
+            // Lấy tiếp là tiếp tục lần lấy toàn bộ: lưu là FULL để nếu lại dừng thì vẫn lấy tiếp được
+            Mode saved = mode == Mode.RESUME ? Mode.FULL : mode;
+            Summary known = lastCounted;
+            baseline = known != null ? known : count();
+            Instant now = Instant.now();
+            long startId = cursor;
+            GeneratedKeyHolder key = new GeneratedKeyHolder();
+            tx.executeWithoutResult(s ->
+                jdbc.update(con -> {
+                    PreparedStatement ps = con.prepareStatement(
+                        "insert into listing_source_pull (source, mode, status, read_count, changed_count, last_id, started_at, started_by) " +
+                            "values (?, ?, ?, 0, 0, ?, ?, ?)",
+                        Statement.RETURN_GENERATED_KEYS
+                    );
+                    ps.setString(1, DirectusRecordSource.SOURCE);
+                    ps.setString(2, saved.name());
+                    ps.setString(3, RUNNING);
+                    ps.setLong(4, startId);
+                    ps.setTimestamp(5, Timestamp.from(now));
+                    ps.setString(6, SecurityUtils.getCurrentUserLogin().orElse(null));
+                    return ps;
+                }, key)
+            );
+            status.set(new PullStatus(key.getKey().longValue(), RUNNING, 0, 0, cursor, now, null, null, saved));
+            cancelRequested.set(false);
+            executor.submit(() -> run(mode, startId));
         } catch (RuntimeException e) {
             running.set(false);
             throw e;
@@ -144,67 +267,157 @@ public class DirectusPullService {
         Summary base = baseline;
         if (running.get() && base != null) {
             PullStatus now = status.get();
-            return new Summary(now, base.stored() + now.changed(), base.pending() + now.changed(), base.lastFetchedAt());
+            return new Summary(now, base.stored() + now.changed(), base.pending() + now.changed(), base.lastFetchedAt(), null);
         }
-        return count();
+        Summary counted = count();
+        return new Summary(lastRun(), counted.stored(), counted.pending(), counted.lastFetchedAt(), unfinishedFull());
     }
 
     private Summary count() {
-        return jdbc.queryForObject(
+        Summary counted = jdbc.queryForObject(
             "select count(*) stored_count, coalesce(sum(imported_hash is null or imported_hash <> content_hash), 0) pending_count, " +
                 "max(last_fetched_at) last_fetched_at from listing_source_record where source = ?",
             (rs, n) -> {
                 Timestamp last = rs.getTimestamp("last_fetched_at");
                 return new Summary(
-                    status.get(),
+                    null,
                     rs.getLong("stored_count"),
                     rs.getLong("pending_count"),
-                    last == null ? null : last.toInstant()
+                    last == null ? null : last.toInstant(),
+                    null
                 );
             },
             DirectusRecordSource.SOURCE
         );
+        lastCounted = counted;
+        return counted;
     }
 
-    private void run(long from) {
-        long cursor = from;
-        long read = 0;
-        long changed = 0;
+    private long maxStoredId() {
+        Long max = jdbc.queryForObject(
+            "select coalesce(max(cast(source_id as unsigned)), 0) from listing_source_record where source = ?",
+            Long.class,
+            DirectusRecordSource.SOURCE
+        );
+        return max == null ? 0 : max;
+    }
+
+    /**
+     * Mốc "đã sửa sau": lúc bắt đầu lần lấy toàn bộ gần nhất đã xong (bảng listing_source_pull, tức thì), lùi một ngày.
+     * Chưa có lần nào ghi ở đó thì lấy lần lấy sớm nhất của bảng bản gốc (quét index, khoảng 1 giây). Bảng trống thì null.
+     */
+    private String changedSince() {
+        Timestamp mark = jdbc.queryForObject(
+            "select max(started_at) from listing_source_pull where source = ? and mode = 'FULL' and status = 'DONE'",
+            Timestamp.class,
+            DirectusRecordSource.SOURCE
+        );
+        if (mark == null) {
+            mark = jdbc.queryForObject(
+                "select min(last_fetched_at) from listing_source_record where source = ?",
+                Timestamp.class,
+                DirectusRecordSource.SOURCE
+            );
+        }
+        return mark == null ? null : SINCE_FORMAT.format(mark.toInstant().minus(SINCE_MARGIN));
+    }
+
+    /**
+     * Kéo phần thay đổi: lượt 1 bản ghi đã sửa sau {@code since} (nếu có), lượt 2 bản ghi có id mới. Kéo toàn bộ hay đọc tiếp: chỉ lượt 2.
+     */
+    private void run(Mode mode, long resumeFrom) {
+        long[] progress = { 0, 0, resumeFrom }; // đã đọc, mới hoặc đã đổi, id cuối
         try {
-            while (!Thread.currentThread().isInterrupted()) {
-                List<JsonNode> items = fetch(cursor);
-                if (items.isEmpty()) {
-                    break;
-                }
-                changed += save(items);
-                read += items.size();
-                cursor = items
-                    .get(items.size() - 1)
-                    .path("id")
-                    .asLong();
-                update(RUNNING, read, changed, cursor, null);
+            long from = switch (mode) {
+                case RESUME -> resumeFrom;
+                case FULL -> 0;
+                case NEW -> maxStoredId();
+            };
+            String since = mode == Mode.NEW ? changedSince() : null;
+            if (since != null) {
+                walk(0, since, progress);
             }
-            update(DONE, read, changed, cursor, null);
+            walk(from, null, progress);
+            if (Thread.currentThread().isInterrupted()) {
+                update(INTERRUPTED, progress, null);
+            } else {
+                update(cancelRequested.get() ? CANCELLED : DONE, progress, null);
+            }
         } catch (RuntimeException e) {
-            LOG.error("Kéo dữ liệu API Trang Vàng lỗi sau id {}", cursor, e);
-            update(FAILED, read, changed, cursor, e.getMessage());
+            LOG.error("Kéo dữ liệu API Trang Vàng lỗi sau id {}", progress[2], e);
+            update(FAILED, progress, e.getMessage());
         } finally {
             running.set(false);
         }
     }
 
-    private void update(String state, long read, long changed, long lastId, String error) {
-        PullStatus old = status.get();
-        status.set(new PullStatus(state, read, changed, lastId, old.startedAt(), RUNNING.equals(state) ? null : Instant.now(), error));
+    private void walk(long from, String since, long[] progress) {
+        long cursor = from;
+        while (!Thread.currentThread().isInterrupted() && !cancelRequested.get()) {
+            List<JsonNode> items = fetch(cursor, since);
+            if (items.isEmpty()) {
+                return;
+            }
+            progress[1] += save(items);
+            progress[0] += items.size();
+            cursor = items
+                .get(items.size() - 1)
+                .path("id")
+                .asLong();
+            progress[2] = cursor;
+            update(RUNNING, progress, null);
+        }
     }
 
-    private List<JsonNode> fetch(long cursor) {
+    private void update(String state, long[] progress, String error) {
+        PullStatus old = status.get();
+        PullStatus now = new PullStatus(
+            old.id(),
+            state,
+            progress[0],
+            progress[1],
+            progress[2],
+            old.startedAt(),
+            RUNNING.equals(state) ? null : Instant.now(),
+            error,
+            old.mode()
+        );
+        status.set(now);
+        try {
+            tx.executeWithoutResult(s ->
+                jdbc.update(
+                    "update listing_source_pull set status = ?, read_count = ?, changed_count = ?, last_id = ?, finished_at = ?, error = ? where id = ?",
+                    now.state(),
+                    now.read(),
+                    now.changed(),
+                    now.lastId(),
+                    now.finishedAt() == null ? null : Timestamp.from(now.finishedAt()),
+                    ListingImportNormalizer.cut(error, 1000),
+                    now.id()
+                )
+            );
+        } catch (DataAccessException e) {
+            // Backend đang tắt: lần khởi động sau sẽ đánh dấu gián đoạn
+            LOG.warn("Không ghi được tiến độ lấy dữ liệu: {}", e.getMessage());
+        }
+    }
+
+    /** Bộ lọc Directus: đã xuất bản, id sau con trỏ, và nếu có {@code since} thì đã sửa sau mốc đó. */
+    static String filter(long cursor, String since) {
+        String base = "{\"status\":{\"_eq\":\"published\"}},{\"id\":{\"_gt\":" + cursor + "}}";
+        if (since != null) {
+            base += ",{\"_or\":[{\"date_updated\":{\"_gt\":\"" + since + "\"}},{\"source_last_updated\":{\"_gt\":\"" + since + "\"}}]}";
+        }
+        return "{\"_and\":[" + base + "]}";
+    }
+
+    private List<JsonNode> fetch(long cursor, String since) {
         String url =
             config.getBaseUrl().replaceAll("/+$", "") +
             "/items/listings?limit=" +
             config.getPageSize() +
-            "&sort=id&filter%5Bstatus%5D=published&filter%5Bid%5D%5B_gt%5D=" +
-            cursor +
+            "&sort=id&filter=" +
+            URLEncoder.encode(filter(cursor, since), StandardCharsets.UTF_8) +
             "&fields=" +
             URLEncoder.encode(FIELDS, StandardCharsets.UTF_8);
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))

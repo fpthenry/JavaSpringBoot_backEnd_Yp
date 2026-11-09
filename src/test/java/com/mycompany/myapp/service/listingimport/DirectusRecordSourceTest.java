@@ -134,6 +134,19 @@ class DirectusRecordSourceTest {
     }
 
     @Test
+    void incrementalFilterAsksForPublishedRecordsChangedAfterTheMark() {
+        String full = DirectusPullService.filter(0, null);
+        String changed = DirectusPullService.filter(2009352, "2026-11-05T00:00:00");
+
+        assertThat(new ObjectMapper().readTree(full).path("_and")).hasSize(2);
+        assertThat(changed)
+            .contains("\"_gt\":2009352")
+            .contains("\"date_updated\":{\"_gt\":\"2026-11-05T00:00:00\"}")
+            .contains("\"source_last_updated\":{\"_gt\":\"2026-11-05T00:00:00\"}");
+        assertThat(new ObjectMapper().readTree(changed).path("_and")).hasSize(3);
+    }
+
+    @Test
     void hashIsStableAndChangesWithContent() {
         assertThat(DirectusPullService.sha256("a")).isEqualTo(DirectusPullService.sha256("a")).hasSize(64);
         assertThat(DirectusPullService.sha256("a")).isNotEqualTo(DirectusPullService.sha256("b"));
