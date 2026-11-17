@@ -1,0 +1,29 @@
+// Sửa tay: form tạo/sửa tài khoản gọn, rộng vừa đủ đọc.
+.user-form {
+  max-width: 760px;
+}
+
+.admin-switch {
+  border: 1px solid var(--bs-border-color);
+  background: var(--bs-tertiary-bg);
+
+  &.active {
+    border-color: var(--bs-warning);
+    background: var(--bs-warning-bg-subtle);
+  }
+}
+
+.permission-table {
+  .level-col {
+    width: 6.5rem;
+    white-space: nowrap;
+  }
+
+  .form-check-input {
+    float: none;
+    margin: 0;
+    width: 1.15rem;
+    height: 1.15rem;
+    cursor: pointer;
+  }
+}

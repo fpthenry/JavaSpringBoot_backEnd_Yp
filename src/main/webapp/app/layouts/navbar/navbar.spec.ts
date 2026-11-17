@@ -103,10 +103,18 @@ describe('Navbar Component', () => {
     const links = (): (string | undefined)[] => comp.menu().flatMap(group => group.items.map(item => item.link));
 
     it('should hide admin items and empty groups from non-admin users', () => {
-      accountService.authenticate(account);
+      accountService.authenticate({ ...account, authorities: ['ROLE_USER', 'ROLE_LISTING_VIEW'] });
       expect(links()).toContain('/listing');
       expect(links()).not.toContain('/user-management');
       expect(links()).not.toContain('/listing-import');
+    });
+
+    it('should show only the sections a staff account has permission for', () => {
+      accountService.authenticate({ ...account, authorities: ['ROLE_USER', 'ROLE_POST_EDIT'] });
+      expect(links()).toContain('/blog-post');
+      expect(links()).toContain('/tag');
+      expect(links()).not.toContain('/listing');
+      expect(links()).not.toContain('/gallery');
     });
 
     it('should show admin items to admins, API docs only when OpenAPI is enabled', () => {

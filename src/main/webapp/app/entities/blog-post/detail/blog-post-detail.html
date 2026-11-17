@@ -55,6 +55,7 @@
         <a
           [routerLink]="['/blog-post', post.id, 'edit']"
           class="btn btn-primary px-4"
+          *jhiHasAnyAuthority="editAuthorities"
           data-cy="entityEditButton"
           [title]="'javaSpringBootBackEndApp.blogPost.detail.editShortcut' | translate"
         >
@@ -81,7 +82,14 @@
               <fa-icon icon="arrow-left" [fixedWidth]="true" class="me-2" /><span jhiTranslate="entity.action.back">Quay lại</span>
             </button>
             <div class="dropdown-divider"></div>
-            <button ngbDropdownItem type="button" class="text-danger" data-cy="entityDeleteButton" (click)="delete(post)">
+            <button
+              ngbDropdownItem
+              type="button"
+              class="text-danger"
+              *jhiHasAnyAuthority="editAuthorities"
+              data-cy="entityDeleteButton"
+              (click)="delete(post)"
+            >
               <fa-icon icon="trash-alt" [fixedWidth]="true" class="me-2" /><span jhiTranslate="entity.action.delete">Xóa</span>
             </button>
           </div>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay (2026-11-17): quyền theo từng mục cho tài khoản nhân viên (xem AuthoritiesConstants).
+        Mỗi mục 2 mức: _VIEW chỉ xem, _EDIT thêm/sửa/xóa. Chạy ở mọi môi trường (dev và prod).
+    -->
+    <changeSet id="20261117100000-1" author="claude">
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_LISTING_VIEW"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_LISTING_EDIT"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_CATALOG_VIEW"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_CATALOG_EDIT"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_POST_VIEW"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_POST_EDIT"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_BANNER_VIEW"/></insert>
+        <insert tableName="jhi_authority"><column name="name" value="ROLE_BANNER_EDIT"/></insert>
+    </changeSet>
+</databaseChangeLog>

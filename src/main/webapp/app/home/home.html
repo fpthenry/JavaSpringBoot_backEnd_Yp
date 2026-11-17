@@ -11,7 +11,7 @@
     </div>
 
     <div class="stat-grid mb-4">
-      @for (stat of stats; track stat.key) {
+      @for (stat of stats(); track stat.key) {
         <a class="stat-card surface" [routerLink]="stat.link" [attr.data-cy]="'stat-' + stat.key">
           <span class="stat-label"><fa-icon [icon]="stat.icon" [fixedWidth]="true" />{{ stat.label | translate }}</span>
           <span class="stat-value">{{ formatCount(counts()[stat.key]) }}</span>
@@ -21,18 +21,11 @@
 
     <h2 class="home-section-title" jhiTranslate="home.quick.title">Việc hay làm</h2>
     <div class="quick-grid">
-      @for (action of quickActions; track action.link) {
-        @if (action.adminOnly) {
-          <a *jhiHasAnyAuthority="'ROLE_ADMIN'" class="quick-action surface" [routerLink]="action.link">
-            <span class="quick-icon"><fa-icon [icon]="action.icon" /></span>
-            <span>{{ action.label | translate }}</span>
-          </a>
-        } @else {
-          <a class="quick-action surface" [routerLink]="action.link">
-            <span class="quick-icon"><fa-icon [icon]="action.icon" /></span>
-            <span>{{ action.label | translate }}</span>
-          </a>
-        }
+      @for (action of quickActions(); track action.link) {
+        <a class="quick-action surface" [routerLink]="action.link">
+          <span class="quick-icon"><fa-icon [icon]="action.icon" /></span>
+          <span>{{ action.label | translate }}</span>
+        </a>
       }
     </div>
   </div>

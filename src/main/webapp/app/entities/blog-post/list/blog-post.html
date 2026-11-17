@@ -14,6 +14,7 @@
       </button>
       <button
         id="jh-create-entity"
+        *jhiHasAnyAuthority="editAuthorities"
         data-cy="entityCreateButton"
         class="btn btn-primary jh-create-entity create-blog-post"
         [routerLink]="['/blog-post/new']"
@@ -225,6 +226,7 @@
                 <a
                   [routerLink]="['/blog-post', blogPost.id, 'edit']"
                   class="btn btn-icon btn-light text-primary ms-1"
+                  *jhiHasAnyAuthority="editAuthorities"
                   data-cy="entityEditButton"
                   [title]="'entity.action.edit' | translate"
                 >
@@ -234,6 +236,7 @@
                   type="button"
                   (click)="delete(blogPost)"
                   class="btn btn-icon btn-light text-danger ms-1"
+                  *jhiHasAnyAuthority="editAuthorities"
                   data-cy="entityDeleteButton"
                   [title]="'entity.action.delete' | translate"
                 >

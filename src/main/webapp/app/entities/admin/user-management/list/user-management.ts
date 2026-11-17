@@ -13,6 +13,8 @@ import { combineLatest, filter, map, tap } from 'rxjs';
 import { DEFAULT_SORT_DATA, ITEMS_PER_PAGE, ITEM_DELETED_EVENT, PAGE_HEADER, SORT, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config';
 import { AccountService } from 'app/core/auth';
 import { Alert, AlertError } from 'app/shared/alert';
+import { PERMISSION_MODULES, PermissionLevel, levelOf } from 'app/shared/auth/permissions';
+import { Authority } from 'app/shared/jhipster/constants';
 import { FormatMediumDatetimePipe } from 'app/shared/date';
 import { TranslateDirective } from 'app/shared/language';
 import { ItemCount } from 'app/shared/pagination';
@@ -24,6 +26,7 @@ import { IUserManagement } from '../user-management.model';
 @Component({
   selector: 'jhi-user-management',
   templateUrl: './user-management.html',
+  styleUrl: './user-management.scss',
   imports: [
     RouterLink,
     FormsModule,
@@ -87,6 +90,32 @@ export class UserManagement {
   }
 
   trackLogin = (item: IUserManagement): string => this.userManagementService.getUserManagementIdentifier(item);
+
+  /** Sửa tay: tên hiển thị = họ tên; chưa có thì email, cuối cùng mới đến tên đăng nhập. */
+  displayName(user: IUserManagement): string {
+    const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    return name !== '' ? name : (user.email ?? user.login);
+  }
+
+  /** Chữ cái đầu cho ô ảnh đại diện. */
+  initials(user: IUserManagement): string {
+    const words = this.displayName(user)
+      .split(/[\s@.]+/)
+      .filter(Boolean);
+    const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? '?').slice(0, 2);
+    return letters.toUpperCase();
+  }
+
+  isAdmin(user: IUserManagement): boolean {
+    return user.authorities?.includes(Authority.ADMIN) ?? false;
+  }
+
+  /** Tóm tắt quyền theo mục để hiện thành nhãn: [{ mục, mức }] với các mục có quyền. */
+  permissionSummary(user: IUserManagement): { label: string; level: PermissionLevel }[] {
+    return PERMISSION_MODULES.map(module => ({ label: module.label, level: levelOf(user.authorities, module) })).filter(
+      item => item.level !== 'none',
+    );
+  }
 
   search(query: string): void {
     this.page.set(1);

@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { ASC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 import { unsavedChangesGuard } from 'app/shared/form';
 
 import ListingResolve from './route/listing-routing-resolve.service';
@@ -25,6 +26,7 @@ const listingRoute: Routes = [
   },
   {
     path: 'new',
+    data: { authorities: canEditAuthorities('listing') },
     loadComponent: () => import('./update/listing-update').then(m => m.ListingUpdate),
     resolve: {
       listing: ListingResolve,
@@ -34,6 +36,7 @@ const listingRoute: Routes = [
   },
   {
     path: ':id/edit',
+    data: { authorities: canEditAuthorities('listing') },
     loadComponent: () => import('./update/listing-update').then(m => m.ListingUpdate),
     resolve: {
       listing: ListingResolve,

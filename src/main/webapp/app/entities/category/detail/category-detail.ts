@@ -25,6 +25,8 @@ import { CategoryRef, loadCategoryPath } from '../category-path';
 import { ICategory } from '../category.model';
 import { CategoryDeleteDialog } from '../delete/category-delete-dialog';
 import { CategoryService } from '../service/category.service';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 /** Số doanh nghiệp mới cập nhật hiện trên trang xem. */
 export const RECENT_LISTINGS = 5;
@@ -40,6 +42,7 @@ export const RECENT_LISTINGS = 5;
   selector: 'jhi-category-detail',
   templateUrl: './category-detail.html',
   imports: [
+    HasAnyAuthorityDirective,
     FontAwesomeModule,
     Alert,
     AlertError,
@@ -58,6 +61,8 @@ export const RECENT_LISTINGS = 5;
   host: { '(document:keydown)': 'onKeydown($event)' },
 })
 export class CategoryDetail {
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('catalog');
   readonly category = input<ICategory | null>(null);
 
   /** Số ngành con hiện trước khi bấm "Xem thêm". */

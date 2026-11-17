@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { ASC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 import { unsavedChangesGuard } from 'app/shared/form';
 
 import CategoryResolve from './route/category-routing-resolve.service';
@@ -37,6 +38,7 @@ const categoryRoute: Routes = [
   },
   {
     path: 'new',
+    data: { authorities: canEditAuthorities('catalog') },
     loadComponent: () => import('./update/category-update').then(m => m.CategoryUpdate),
     resolve: {
       category: CategoryResolve,
@@ -46,6 +48,7 @@ const categoryRoute: Routes = [
   },
   {
     path: ':id/edit',
+    data: { authorities: canEditAuthorities('catalog') },
     loadComponent: () => import('./update/category-update').then(m => m.CategoryUpdate),
     resolve: {
       category: CategoryResolve,

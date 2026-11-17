@@ -25,11 +25,14 @@ import { BLOG_POST_STATUSES, CategoryOption, blogStatusLabelKey, categoryTreeOpt
 import { IBlogPost } from '../blog-post.model';
 import { BlogPostDeleteDialog } from '../delete/blog-post-delete-dialog';
 import { BlogPostService } from '../service/blog-post.service';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 @Component({
   selector: 'jhi-blog-post',
   templateUrl: './blog-post.html',
   imports: [
+    HasAnyAuthorityDirective,
     RouterLink,
     FormsModule,
     FontAwesomeModule,
@@ -57,6 +60,8 @@ export class BlogPost {
     'status',
     'authorName',
   ];
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('post');
 
   readonly blogPosts = signal<IBlogPost[]>([]);
 

@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { ASC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 import GalleryImageResolve from './route/gallery-image-routing-resolve.service';
 
@@ -24,6 +25,7 @@ const galleryImageRoute: Routes = [
   },
   {
     path: 'new',
+    data: { authorities: canEditAuthorities('banner') },
     loadComponent: () => import('./update/gallery-image-update').then(m => m.GalleryImageUpdate),
     resolve: {
       galleryImage: GalleryImageResolve,
@@ -32,6 +34,7 @@ const galleryImageRoute: Routes = [
   },
   {
     path: ':id/edit',
+    data: { authorities: canEditAuthorities('banner') },
     loadComponent: () => import('./update/gallery-image-update').then(m => m.GalleryImageUpdate),
     resolve: {
       galleryImage: GalleryImageResolve,

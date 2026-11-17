@@ -23,12 +23,15 @@ import { VSIC_LEVELS } from '../category-code';
 import { ICategory } from '../category.model';
 import { CategoryDeleteDialog } from '../delete/category-delete-dialog';
 import { CategoryService } from '../service/category.service';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 /** Sửa tay: danh sách ngành nghề VSIC 2025: cột mã ngành, cấp; nút lọc theo cấp (filter level.equals); xếp theo mã. */
 @Component({
   selector: 'jhi-category',
   templateUrl: './category.html',
   imports: [
+    HasAnyAuthorityDirective,
     RouterLink,
     FormsModule,
     FontAwesomeModule,
@@ -47,6 +50,8 @@ import { CategoryService } from '../service/category.service';
 export class Category {
   private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['name', 'slug', 'description', 'parent.name'];
   private static readonly LEVEL_FILTER = 'level.equals';
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('catalog');
 
   readonly levels = VSIC_LEVELS;
 

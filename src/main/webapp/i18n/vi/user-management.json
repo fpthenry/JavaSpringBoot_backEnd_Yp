@@ -1,31 +1,92 @@
 {
   "userManagement": {
     "home": {
-      "title": "Tài khoản",
-      "refreshListLabel": "Refresh list",
-      "createLabel": "Tạo tài khoản mới",
-      "createOrEditLabel": "Tạo hoặc sửa tài khoản"
+      "title": "Người dùng",
+      "refreshListLabel": "Tải lại",
+      "createLabel": "Thêm người dùng",
+      "createOrEditLabel": "Tạo hoặc sửa người dùng",
+      "notFound": "Không có người dùng nào",
+      "search": "Tìm theo tên hoặc email"
     },
-    "created": "Một tài khoản mới đã được tạo với định danh {{ param }}",
-    "updated": "Một tài khoản đã được cập nhật với định danh {{ param }}",
-    "deleted": "Một tài khoản đã bị xóa với định danh {{ param }}",
+    "created": "Đã tạo người dùng {{ param }}",
+    "updated": "Đã cập nhật người dùng {{ param }}",
+    "deleted": "Đã xóa người dùng {{ param }}",
     "delete": {
-      "question": "Bạn có chắc chắn muốn xóa tài khoản {{ login }}?"
+      "question": "Bạn có chắc chắn muốn xóa người dùng {{ login }}?"
     },
     "detail": {
-      "title": "Tài khoản"
+      "title": "Người dùng"
     },
+    "list": {
+      "user": "Người dùng",
+      "status": "Trạng thái",
+      "clickToLock": "Bấm để khóa tài khoản",
+      "clickToUnlock": "Bấm để mở khóa tài khoản"
+    },
+    "form": {
+      "createTitle": "Thêm người dùng",
+      "editTitle": "Sửa người dùng",
+      "accountSection": "Thông tin tài khoản",
+      "fullName": "Họ và tên",
+      "fullNamePlaceholder": "Ví dụ: Nguyễn Văn An",
+      "email": "Email đăng nhập",
+      "emailHint": "Người dùng đăng nhập bằng email này.",
+      "password": "Mật khẩu",
+      "newPassword": "Đặt mật khẩu mới",
+      "passwordPlaceholder": "Tối thiểu 8 ký tự",
+      "keepPassword": "Để trống nếu không đổi mật khẩu",
+      "passwordHint": "Tối thiểu {{ min }} ký tự. Sao chép và gửi cho người dùng; họ có thể tự đổi sau khi đăng nhập.",
+      "showPassword": "Hiện mật khẩu",
+      "hidePassword": "Ẩn mật khẩu",
+      "copyPassword": "Sao chép mật khẩu",
+      "generatePassword": "Tạo ngẫu nhiên",
+      "active": "Đang hoạt động",
+      "activeHint": "Tắt để khóa tài khoản: người dùng không đăng nhập được."
+    },
+    "permissions": {
+      "title": "Quyền truy cập",
+      "module": "Mục",
+      "admin": "Quản trị viên",
+      "adminHint": "Toàn quyền, gồm cả quản lý người dùng, nhập dữ liệu và giám sát hệ thống.",
+      "noAccess": "Chưa có quyền",
+      "reloginHint": "Quyền mới có hiệu lực từ lần đăng nhập tiếp theo của người dùng.",
+      "levels": {
+        "none": "Không",
+        "view": "Chỉ xem",
+        "edit": "Quản lý"
+      },
+      "modules": {
+        "listing": "Doanh nghiệp",
+        "catalog": "Ngành nghề & địa giới",
+        "post": "Bài viết",
+        "banner": "Banner"
+      },
+      "hints": {
+        "listing": "Danh sách doanh nghiệp",
+        "catalog": "Cây ngành nghề, tỉnh/thành, phường/xã",
+        "post": "Bài viết, chuyên mục, tag",
+        "banner": "Nhóm banner và ảnh"
+      },
+      "presets": {
+        "title": "Mẫu nhanh:",
+        "editor": "Biên tập nội dung",
+        "dataEntry": "Nhập liệu",
+        "viewer": "Chỉ xem"
+      }
+    },
+    "id": "ID",
     "login": "Tên đăng nhập",
     "firstName": "Tên",
     "lastName": "Họ",
     "email": "Email",
-    "activated": "Kích hoạt",
-    "deactivated": "Khóa",
+    "imageUrl": "Ảnh",
+    "activated": "Hoạt động",
+    "deactivated": "Đã khóa",
     "profiles": "Các quyền",
     "langKey": "Ngôn ngữ",
     "createdBy": "Người tạo",
     "createdDate": "Ngày tạo",
     "lastModifiedBy": "Người sửa",
-    "lastModifiedDate": "Ngày sửa"
+    "lastModifiedDate": "Sửa lần cuối"
   }
 }

@@ -16,6 +16,7 @@
 
       <button
         id="jh-create-entity"
+        *jhiHasAnyAuthority="editAuthorities"
         data-cy="entityCreateButton"
         class="btn btn-primary jh-create-entity create-category"
         [routerLink]="['/category/new']"
@@ -179,12 +180,23 @@
                     <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
                   </a>
 
-                  <a [routerLink]="['/category', category.id, 'edit']" class="btn btn-primary btn-sm" data-cy="entityEditButton">
+                  <a
+                    [routerLink]="['/category', category.id, 'edit']"
+                    class="btn btn-primary btn-sm"
+                    *jhiHasAnyAuthority="editAuthorities"
+                    data-cy="entityEditButton"
+                  >
                     <fa-icon icon="pencil-alt" />
                     <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
                   </a>
 
-                  <button type="submit" (click)="delete(category)" class="btn btn-danger btn-sm" data-cy="entityDeleteButton">
+                  <button
+                    type="submit"
+                    (click)="delete(category)"
+                    class="btn btn-danger btn-sm"
+                    *jhiHasAnyAuthority="editAuthorities"
+                    data-cy="entityDeleteButton"
+                  >
                     <fa-icon icon="times" />
                     <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
                   </button>

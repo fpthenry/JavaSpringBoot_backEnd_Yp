@@ -20,11 +20,14 @@ import { SortByDirective, SortDirective, SortService, type SortState, sortStateS
 import { IBlogCategory } from '../blog-category.model';
 import { BlogCategoryDeleteDialog } from '../delete/blog-category-delete-dialog';
 import { BlogCategoryService } from '../service/blog-category.service';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 @Component({
   selector: 'jhi-blog-category',
   templateUrl: './blog-category.html',
   imports: [
+    HasAnyAuthorityDirective,
     RouterLink,
     FormsModule,
     FontAwesomeModule,
@@ -41,6 +44,8 @@ import { BlogCategoryService } from '../service/blog-category.service';
 })
 export class BlogCategory {
   private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['name', 'slug', 'description'];
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('post');
 
   readonly blogCategories = signal<IBlogCategory[]>([]);
 

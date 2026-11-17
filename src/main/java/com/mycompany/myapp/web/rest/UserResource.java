@@ -10,6 +10,7 @@ import com.mycompany.myapp.service.dto.AdminUserDTO;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import com.mycompany.myapp.web.rest.errors.EmailAlreadyUsedException;
 import com.mycompany.myapp.web.rest.errors.LoginAlreadyUsedException;
+import com.mycompany.myapp.web.rest.vm.ManagedUserVM;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import java.net.URI;
@@ -90,6 +91,19 @@ public class UserResource {
         this.mailService = mailService;
     }
 
+    /** Sửa tay: mật khẩu admin đặt cho tài khoản (khi tạo hoặc đặt lại) tối thiểu 8 ký tự; bỏ trống = không đổi. */
+    static final int ADMIN_PASSWORD_MIN_LENGTH = 8;
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static void checkAdminPassword(String password) {
+        if (!isBlank(password) && password.length() < ADMIN_PASSWORD_MIN_LENGTH) {
+            throw new BadRequestAlertException("Mật khẩu tối thiểu 8 ký tự", "userManagement", "passwordtooshort");
+        }
+    }
+
     /**
      * {@code POST  /admin/users}  : Creates a new user.
      * <p>
@@ -104,8 +118,9 @@ public class UserResource {
      */
     @PostMapping("/users")
     @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
-    public ResponseEntity<User> createUser(@Valid @RequestBody AdminUserDTO userDTO) throws URISyntaxException {
+    public ResponseEntity<User> createUser(@Valid @RequestBody ManagedUserVM userDTO) throws URISyntaxException {
         LOG.debug("REST request to save User : {}", userDTO);
+        checkAdminPassword(userDTO.getPassword());
 
         if (userDTO.getId() != null) {
             throw new BadRequestAlertException("A new user cannot already have an ID", "userManagement", "idexists");
@@ -115,8 +130,11 @@ public class UserResource {
         } else if (userRepository.findOneByEmailIgnoreCase(userDTO.getEmail()).isPresent()) {
             throw new EmailAlreadyUsedException();
         } else {
-            User newUser = userService.createUser(userDTO);
-            mailService.sendCreationEmail(newUser);
+            // Sửa tay: admin đặt mật khẩu ngay trong form thì không gửi mail kích hoạt (máy chủ chưa cấu hình mail).
+            User newUser = userService.createUser(userDTO, userDTO.getPassword());
+            if (isBlank(userDTO.getPassword())) {
+                mailService.sendCreationEmail(newUser);
+            }
             return ResponseEntity.created(new URI("/api/admin/users/" + newUser.getLogin()))
                 .headers(HeaderUtil.createAlert(applicationName, "userManagement.created", newUser.getLogin()))
                 .body(newUser);
@@ -135,9 +153,10 @@ public class UserResource {
     @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
     public ResponseEntity<AdminUserDTO> updateUser(
         @PathVariable(name = "login", required = false) @Pattern(regexp = Constants.LOGIN_REGEX) String login,
-        @Valid @RequestBody AdminUserDTO userDTO
+        @Valid @RequestBody ManagedUserVM userDTO
     ) {
         LOG.debug("REST request to update User : {}", userDTO);
+        checkAdminPassword(userDTO.getPassword());
         Optional<User> existingUser = userRepository.findOneByEmailIgnoreCase(userDTO.getEmail());
         if (existingUser.isPresent() && !existingUser.orElseThrow().getId().equals(userDTO.getId())) {
             throw new EmailAlreadyUsedException();
@@ -146,7 +165,7 @@ public class UserResource {
         if (existingUser.isPresent() && !existingUser.orElseThrow().getId().equals(userDTO.getId())) {
             throw new LoginAlreadyUsedException();
         }
-        Optional<AdminUserDTO> updatedUser = userService.updateUser(userDTO);
+        Optional<AdminUserDTO> updatedUser = userService.updateUser(userDTO, userDTO.getPassword());
 
         return ResponseUtil.wrapOrNotFound(
             updatedUser,

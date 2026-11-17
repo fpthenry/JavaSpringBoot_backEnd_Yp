@@ -25,11 +25,14 @@ import { TreeFilter, createTreeSource } from 'app/shared/tree';
 import { ListingDeleteDialog } from '../delete/listing-delete-dialog';
 import { IListing } from '../listing.model';
 import { ListingService } from '../service/listing.service';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 @Component({
   selector: 'jhi-listing',
   templateUrl: './listing.html',
   imports: [
+    HasAnyAuthorityDirective,
     RouterLink,
     FormsModule,
     FontAwesomeModule,
@@ -77,6 +80,8 @@ export class Listing {
     'images',
     'status',
   ];
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('listing');
 
   readonly listings = signal<IListing[]>([]);
 

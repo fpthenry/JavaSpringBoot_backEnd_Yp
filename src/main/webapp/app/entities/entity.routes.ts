@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { canViewAuthorities } from 'app/shared/auth/permissions';
+
 const routes: Routes = [
   {
     path: 'user-management',
@@ -13,41 +15,57 @@ const routes: Routes = [
   },
   {
     path: 'listing',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem listing.routes.ts)
+    data: { authorities: canViewAuthorities('listing') },
     title: 'javaSpringBootBackEndApp.listing.home.title',
     loadChildren: () => import('./listing/listing.routes'),
   },
   {
     path: 'category',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem category.routes.ts)
+    data: { authorities: canViewAuthorities('catalog') },
     title: 'javaSpringBootBackEndApp.category.home.title',
     loadChildren: () => import('./category/category.routes'),
   },
   {
     path: 'location',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem location.routes.ts)
+    data: { authorities: canViewAuthorities('catalog') },
     title: 'javaSpringBootBackEndApp.location.home.title',
     loadChildren: () => import('./location/location.routes'),
   },
   {
     path: 'blog-post',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem blog-post.routes.ts)
+    data: { authorities: canViewAuthorities('post') },
     title: 'javaSpringBootBackEndApp.blogPost.home.title',
     loadChildren: () => import('./blog-post/blog-post.routes'),
   },
   {
     path: 'tag',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem tag.routes.ts)
+    data: { authorities: canViewAuthorities('post') },
     title: 'javaSpringBootBackEndApp.tag.home.title',
     loadChildren: () => import('./tag/tag.routes'),
   },
   {
     path: 'gallery',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem gallery.routes.ts)
+    data: { authorities: canViewAuthorities('banner') },
     title: 'javaSpringBootBackEndApp.gallery.home.title',
     loadChildren: () => import('./gallery/gallery.routes'),
   },
   {
     path: 'gallery-image',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem gallery-image.routes.ts)
+    data: { authorities: canViewAuthorities('banner') },
     title: 'javaSpringBootBackEndApp.galleryImage.home.title',
     loadChildren: () => import('./gallery-image/gallery-image.routes'),
   },
   {
     path: 'blog-category',
+    // Sửa tay: quyền theo mục; trang con kế thừa, trang tạo/sửa đòi quyền quản lý (xem blog-category.routes.ts)
+    data: { authorities: canViewAuthorities('post') },
     title: 'javaSpringBootBackEndApp.blogCategory.home.title',
     loadChildren: () => import('./blog-category/blog-category.routes'),
   },

@@ -27,9 +27,7 @@
   <form name="searchForm" class="row row-cols-sm-auto align-items-center">
     <div class="col-sm-12">
       <div class="input-group w-100 mt-3">
-        <label class="visually-hidden" for="currentSearch" jhiTranslate="userManagement.home.search"
-          >Translation missing for userManagement.home.search</label
-        >
+        <label class="visually-hidden" for="currentSearch" jhiTranslate="userManagement.home.search">Tìm theo tên, email</label>
         <input
           type="text"
           class="form-control"
@@ -61,54 +59,29 @@
       <table class="table table-striped" aria-describedby="page-heading">
         <thead>
           <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
-            <th scope="col" jhiSortBy="login">
+            <th scope="col" jhiSortBy="firstName">
               <div class="d-flex">
-                <span jhiTranslate="userManagement.login">Login</span>
+                <span jhiTranslate="userManagement.list.user">Người dùng</span>
                 @if (!currentSearch()) {
                   <fa-icon class="p-1" icon="sort" />
                 }
               </div>
             </th>
-            <th scope="col" jhiSortBy="email">
+            <th scope="col" jhiSortBy="activated">
               <div class="d-flex">
-                <span jhiTranslate="userManagement.email">Email</span>
+                <span jhiTranslate="userManagement.list.status">Trạng thái</span>
                 @if (!currentSearch()) {
                   <fa-icon class="p-1" icon="sort" />
                 }
               </div>
             </th>
-            <th scope="col"></th>
-            <th scope="col" jhiSortBy="langKey">
-              <div class="d-flex">
-                <span jhiTranslate="userManagement.langKey">Language</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="createdDate">
-              <div class="d-flex">
-                <span jhiTranslate="userManagement.createdDate">Created date</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="lastModifiedBy">
-              <div class="d-flex">
-                <span jhiTranslate="userManagement.lastModifiedBy">Modified by</span>
-                @if (!currentSearch()) {
-                  <fa-icon class="p-1" icon="sort" />
-                }
-              </div>
+            <th scope="col">
+              <span jhiTranslate="userManagement.permissions.title">Quyền truy cập</span>
             </th>
             <th scope="col" jhiSortBy="lastModifiedDate">
               <div class="d-flex">
                 <span jhiTranslate="userManagement.lastModifiedDate">Modified date</span>
                 <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col">
-              <div class="d-flex">
-                <span jhiTranslate="userManagement.profiles">Profiles</span>
               </div>
             </th>
             <th scope="col"></th>
@@ -118,35 +91,63 @@
           @for (userManagement of userManagements(); track trackLogin(userManagement)) {
             <tr data-cy="entityTable">
               <td>
-                <a [routerLink]="['/user-management', userManagement.login, 'view']">{{ userManagement.login }}</a>
+                <a
+                  class="d-flex align-items-center gap-2 text-decoration-none"
+                  [routerLink]="['/user-management', userManagement.login, 'edit']"
+                >
+                  <span class="avatar rounded-circle d-inline-flex align-items-center justify-content-center fw-semibold flex-shrink-0">{{
+                    initials(userManagement)
+                  }}</span>
+                  <span class="d-flex flex-column lh-sm">
+                    <span class="fw-semibold">{{ displayName(userManagement) }}</span>
+                    <span class="small text-body-secondary">{{ userManagement.email }}</span>
+                  </span>
+                </a>
               </td>
-              <td>{{ userManagement.email }}</td>
               <td>
                 @if (!userManagement.activated) {
-                  <button class="btn btn-danger btn-sm" (click)="setActive(userManagement, true)" jhiTranslate="userManagement.deactivated">
-                    Deactivated
+                  <button
+                    class="btn btn-outline-danger btn-sm"
+                    (click)="setActive(userManagement, true)"
+                    [title]="'userManagement.list.clickToUnlock' | translate"
+                  >
+                    <fa-icon icon="lock" />&nbsp;<span jhiTranslate="userManagement.deactivated">Deactivated</span>
                   </button>
                 } @else {
                   <button
-                    class="btn btn-success btn-sm"
+                    class="btn btn-outline-success btn-sm"
                     (click)="setActive(userManagement, false)"
                     [disabled]="!currentAccount() || currentAccount()?.login === userManagement.login"
-                    jhiTranslate="userManagement.activated"
+                    [title]="'userManagement.list.clickToLock' | translate"
                   >
-                    Activated
+                    <fa-icon icon="circle-check" />&nbsp;<span jhiTranslate="userManagement.activated">Activated</span>
                   </button>
                 }
               </td>
-              <td>{{ userManagement.langKey }}</td>
-              <td>{{ userManagement.createdDate | formatMediumDatetime }}</td>
-              <td>{{ userManagement.lastModifiedBy }}</td>
-              <td>{{ userManagement.lastModifiedDate | formatMediumDatetime }}</td>
               <td>
-                @for (authority of userManagement.authorities; track $index; let last = $last) {
-                  <span>
-                    <a class="badge bg-info" [routerLink]="['/authority', authority, 'view']">{{ authority }}</a
-                    >{{ last ? '' : ', ' }}
-                  </span>
+                @if (isAdmin(userManagement)) {
+                  <span class="badge text-bg-warning"
+                    ><fa-icon icon="user-shield" />&nbsp;<span jhiTranslate="userManagement.permissions.admin">Quản trị viên</span></span
+                  >
+                } @else {
+                  @for (item of permissionSummary(userManagement); track item.label) {
+                    <span
+                      class="badge me-1"
+                      [class.text-bg-primary]="item.level === 'edit'"
+                      [class.text-bg-light]="item.level === 'view'"
+                      [class.border]="item.level === 'view'"
+                    >
+                      {{ item.label | translate }}: {{ 'userManagement.permissions.levels.' + item.level | translate }}
+                    </span>
+                  } @empty {
+                    <span class="small text-body-secondary" jhiTranslate="userManagement.permissions.noAccess">Chưa có quyền</span>
+                  }
+                }
+              </td>
+              <td>
+                <div class="lh-sm">{{ userManagement.lastModifiedDate | formatMediumDatetime }}</div>
+                @if (userManagement.lastModifiedBy) {
+                  <div class="small text-body-secondary">{{ userManagement.lastModifiedBy }}</div>
                 }
               </td>
               <td class="text-end">

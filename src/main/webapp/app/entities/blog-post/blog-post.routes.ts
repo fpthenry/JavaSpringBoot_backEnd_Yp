@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { DESC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 import BlogPostResolve from './route/blog-post-routing-resolve.service';
 
@@ -25,6 +26,7 @@ const blogPostRoute: Routes = [
   },
   {
     path: 'new',
+    data: { authorities: canEditAuthorities('post') },
     // Sửa tay: trang soạn bài kiểu WordPress thay cho form JHipster
     loadComponent: () => import('./editor/blog-post-editor').then(m => m.BlogPostEditor),
     resolve: {
@@ -34,6 +36,7 @@ const blogPostRoute: Routes = [
   },
   {
     path: ':id/edit',
+    data: { authorities: canEditAuthorities('post') },
     // Sửa tay: trang soạn bài kiểu WordPress thay cho form JHipster
     loadComponent: () => import('./editor/blog-post-editor').then(m => m.BlogPostEditor),
     resolve: {

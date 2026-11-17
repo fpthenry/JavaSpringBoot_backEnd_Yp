@@ -74,6 +74,7 @@
           <button
             type="button"
             class="btn btn-light btn-icon text-danger"
+            *jhiHasAnyAuthority="editAuthorities"
             data-cy="entityDeleteButton"
             (click)="delete(listingRef)"
             [title]="'entity.action.delete' | translate"
@@ -83,6 +84,7 @@
           <a
             [routerLink]="['/listing', listingRef.id, 'edit']"
             class="btn btn-primary px-4"
+            *jhiHasAnyAuthority="editAuthorities"
             data-cy="entityEditButton"
             [title]="'javaSpringBootBackEndApp.listing.detail.editShortcut' | translate"
           >

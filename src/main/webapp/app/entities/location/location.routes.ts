@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { ASC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 import LocationResolve from './route/location-routing-resolve.service';
 
@@ -34,6 +35,7 @@ const locationRoute: Routes = [
   },
   {
     path: 'new',
+    data: { authorities: canEditAuthorities('catalog') },
     loadComponent: () => import('./update/location-update').then(m => m.LocationUpdate),
     resolve: {
       location: LocationResolve,
@@ -42,6 +44,7 @@ const locationRoute: Routes = [
   },
   {
     path: ':id/edit',
+    data: { authorities: canEditAuthorities('catalog') },
     loadComponent: () => import('./update/location-update').then(m => m.LocationUpdate),
     resolve: {
       location: LocationResolve,

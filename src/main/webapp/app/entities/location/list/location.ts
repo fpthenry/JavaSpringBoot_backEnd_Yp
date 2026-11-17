@@ -20,11 +20,14 @@ import { SortByDirective, SortDirective, SortService, type SortState, sortStateS
 import { LocationDeleteDialog } from '../delete/location-delete-dialog';
 import { ILocation } from '../location.model';
 import { LocationService } from '../service/location.service';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 @Component({
   selector: 'jhi-location',
   templateUrl: './location.html',
   imports: [
+    HasAnyAuthorityDirective,
     RouterLink,
     FormsModule,
     FontAwesomeModule,
@@ -42,6 +45,8 @@ import { LocationService } from '../service/location.service';
 })
 export class Location {
   private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['name', 'slug', 'type', 'code'];
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('catalog');
 
   readonly locations = signal<ILocation[]>([]);
 

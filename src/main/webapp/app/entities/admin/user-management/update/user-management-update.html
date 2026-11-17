@@ -1,151 +1,235 @@
-<div class="d-flex justify-content-center">
-  <div class="col-8">
-    <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
-      <h2 id="jhi-user-management-heading" data-cy="UserManagementCreateUpdateHeading" jhiTranslate="userManagement.home.createOrEditLabel">
-        Create or edit a user
-      </h2>
-
-      <div>
-        <jhi-alert-error />
-
-        @let loginRef = editForm.get('login')!;
-        <div class="mb-3">
-          <label class="form-label" for="field_login" jhiTranslate="userManagement.login">Login</label>
-          <input type="text" class="form-control" name="login" id="field_login" data-cy="login" formControlName="login" />
-          @if (loginRef.invalid && (loginRef.dirty || loginRef.touched)) {
-            <div>
-              @if (loginRef.errors?.required) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
-              }
-              @if (loginRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '50' }"
-                  >This field cannot be longer than 50 characters.</small
-                >
-              }
-              @if (loginRef.errors?.pattern) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.patternLogin"
-                  >This field can only contain letters, digits and e-mail addresses.</small
-                >
-              }
-            </div>
-          }
-        </div>
-
-        @let firstNameRef = editForm.get('firstName')!;
-        <div class="mb-3">
-          <label class="form-label" for="field_firstName" jhiTranslate="userManagement.firstName">First name</label>
-          <input type="text" class="form-control" name="firstName" id="field_firstName" data-cy="firstName" formControlName="firstName" />
-          @if (firstNameRef.invalid && (firstNameRef.dirty || firstNameRef.touched)) {
-            <div>
-              @if (firstNameRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '50' }"
-                  >This field cannot be longer than 50 characters.</small
-                >
-              }
-            </div>
-          }
-        </div>
-
-        @let lastNameRef = editForm.get('lastName')!;
-        <div class="mb-3">
-          <label class="form-label" for="field_lastName" jhiTranslate="userManagement.lastName">Last name</label>
-          <input type="text" class="form-control" name="lastName" id="field_lastName" data-cy="lastName" formControlName="lastName" />
-          @if (lastNameRef.invalid && (lastNameRef.dirty || lastNameRef.touched)) {
-            <div>
-              @if (lastNameRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '50' }"
-                  >This field cannot be longer than 50 characters.</small
-                >
-              }
-            </div>
-          }
-        </div>
-
-        @let emailRef = editForm.get('email')!;
-        <div class="mb-3">
-          <label class="form-label" for="field_email" jhiTranslate="userManagement.email">Email</label>
-          <input type="text" class="form-control" name="email" id="field_email" data-cy="email" formControlName="email" />
-          @if (emailRef.invalid && (emailRef.dirty || emailRef.touched)) {
-            <div>
-              @if (emailRef.errors?.required) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.required">This field is required.</small>
-              }
-              @if (emailRef.errors?.minlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.minlength" [translateValues]="{ min: '5' }"
-                  >This field is required to be at least 5 characters.</small
-                >
-              }
-              @if (emailRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '191' }"
-                  >This field cannot be longer than 191 characters.</small
-                >
-              }
-              @if (emailRef.errors?.email) {
-                <small class="form-text text-danger" jhiTranslate="global.messages.validate.email.invalid">Your email is invalid.</small>
-              }
-            </div>
-          }
-        </div>
-
-        @if (editForm.controls.activated.value !== null) {
-          <div class="mb-3 form-check">
-            <input
-              type="checkbox"
-              class="form-check-input"
-              name="activated"
-              id="field_activated"
-              data-cy="activated"
-              formControlName="activated"
-            />
-            <label class="form-check-label" for="field_activated" jhiTranslate="userManagement.activated">Activated</label>
-          </div>
+<div class="user-form mx-auto">
+  <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <h2 id="jhi-user-management-heading" data-cy="UserManagementCreateUpdateHeading" class="mb-0">
+        @if (isNew) {
+          <span jhiTranslate="userManagement.form.createTitle">Thêm người dùng</span>
+        } @else {
+          <span jhiTranslate="userManagement.form.editTitle">Sửa người dùng</span>
+          <span class="text-body-secondary fw-normal">· {{ displayName }}</span>
         }
+      </h2>
+    </div>
 
-        @let langKeyRef = editForm.get('langKey')!;
+    <jhi-alert-error />
+
+    <!-- Thông tin tài khoản -->
+    <section class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title mb-3" jhiTranslate="userManagement.form.accountSection">Thông tin tài khoản</h5>
+
+        @let firstNameRef = editForm.controls.firstName;
         <div class="mb-3">
-          <label class="form-label" for="field_langKey" jhiTranslate="userManagement.langKey">Language</label>
-          <select class="form-control" name="langKey" formControlName="langKey" id="field_langKey" data-cy="langKey">
-            <option [ngValue]="null"></option>
-            @for (langKey of langKeyValues; track $index) {
-              <option [value]="langKey">{{ langKey | findLanguageFromKey }}</option>
-            }
-          </select>
-          @if (langKeyRef.invalid && (langKeyRef.dirty || langKeyRef.touched)) {
-            <div>
-              @if (langKeyRef.errors?.maxlength) {
-                <small class="form-text text-danger" jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '10' }"
-                  >This field cannot be longer than 10 characters.</small
+          <label class="form-label" for="field_firstName">
+            <span jhiTranslate="userManagement.form.fullName">Họ và tên</span> <span class="text-danger">*</span>
+          </label>
+          <input
+            type="text"
+            class="form-control"
+            [class.is-invalid]="isInvalid(firstNameRef)"
+            id="field_firstName"
+            data-cy="firstName"
+            formControlName="firstName"
+            maxlength="50"
+            autocomplete="off"
+            [placeholder]="'userManagement.form.fullNamePlaceholder' | translate"
+          />
+          @if (isInvalid(firstNameRef)) {
+            <div class="invalid-feedback d-block">
+              @if (firstNameRef.errors?.required) {
+                <span jhiTranslate="entity.validation.required">This field is required.</span>
+              }
+              @if (firstNameRef.errors?.maxlength) {
+                <span jhiTranslate="entity.validation.maxlength" [translateValues]="{ max: '50' }"
+                  >This field cannot be longer than 50 characters.</span
                 >
               }
             </div>
           }
         </div>
 
+        @let emailRef = editForm.controls.email;
         <div class="mb-3">
-          <label class="form-label" for="field_authority" jhiTranslate="userManagement.profiles">Profiles</label>
-          <select class="form-control" id="field_authority" multiple name="authority" formControlName="authorities">
-            @for (authority of authorities(); track $index) {
-              <option [value]="authority">{{ authority }}</option>
+          <label class="form-label" for="field_email">
+            <span jhiTranslate="userManagement.form.email">Email đăng nhập</span> <span class="text-danger">*</span>
+          </label>
+          <input
+            type="email"
+            class="form-control"
+            [class.is-invalid]="isInvalid(emailRef)"
+            id="field_email"
+            data-cy="email"
+            formControlName="email"
+            maxlength="191"
+            autocomplete="off"
+            placeholder="ten@yp.vn"
+          />
+          @if (isInvalid(emailRef)) {
+            <div class="invalid-feedback d-block">
+              @if (emailRef.errors?.required) {
+                <span jhiTranslate="entity.validation.required">This field is required.</span>
+              } @else if (emailRef.errors?.email) {
+                <span jhiTranslate="global.messages.validate.email.invalid">Your email is invalid.</span>
+              }
+            </div>
+          } @else {
+            <div class="form-text" jhiTranslate="userManagement.form.emailHint">Người dùng đăng nhập bằng email này.</div>
+          }
+        </div>
+
+        <div [formGroup]="accessForm">
+          @let passwordRef = accessForm.controls.password;
+          <div class="mb-3">
+            <label class="form-label" for="field_password">
+              @if (isNew) {
+                <span jhiTranslate="userManagement.form.password">Mật khẩu</span> <span class="text-danger">*</span>
+              } @else {
+                <span jhiTranslate="userManagement.form.newPassword">Đặt mật khẩu mới</span>
+              }
+            </label>
+            <div class="input-group">
+              <input
+                [type]="showPassword() ? 'text' : 'password'"
+                class="form-control font-monospace"
+                [class.is-invalid]="isInvalid(passwordRef)"
+                id="field_password"
+                data-cy="password"
+                formControlName="password"
+                autocomplete="new-password"
+                [placeholder]="(isNew ? 'userManagement.form.passwordPlaceholder' : 'userManagement.form.keepPassword') | translate"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="togglePassword()"
+                [title]="(showPassword() ? 'userManagement.form.hidePassword' : 'userManagement.form.showPassword') | translate"
+              >
+                <fa-icon [icon]="showPassword() ? 'eye-slash' : 'eye'" />
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="copyPassword()"
+                [disabled]="!passwordRef.value"
+                [title]="'userManagement.form.copyPassword' | translate"
+              >
+                <fa-icon [icon]="copied() ? 'check' : 'copy'" />
+              </button>
+              <button type="button" class="btn btn-outline-primary" (click)="generatePassword()">
+                <fa-icon icon="wand-magic-sparkles" />
+                <span class="d-none d-sm-inline ms-1" jhiTranslate="userManagement.form.generatePassword">Tạo ngẫu nhiên</span>
+              </button>
+            </div>
+            @if (isInvalid(passwordRef)) {
+              <div class="invalid-feedback d-block">
+                @if (passwordRef.errors?.required) {
+                  <span jhiTranslate="entity.validation.required">This field is required.</span>
+                } @else if (passwordRef.errors?.minlength) {
+                  <span jhiTranslate="entity.validation.minlength" [translateValues]="{ min: passwordMinLength }"
+                    >This field is required to be at least 8 characters.</span
+                  >
+                }
+              </div>
+            } @else {
+              <div class="form-text" jhiTranslate="userManagement.form.passwordHint" [translateValues]="{ min: passwordMinLength }">
+                Tối thiểu 8 ký tự. Sao chép và gửi cho người dùng; họ có thể tự đổi sau khi đăng nhập.
+              </div>
             }
-          </select>
+          </div>
+        </div>
+
+        <div class="form-check form-switch">
+          <input
+            type="checkbox"
+            role="switch"
+            class="form-check-input"
+            id="field_activated"
+            data-cy="activated"
+            formControlName="activated"
+          />
+          <label class="form-check-label" for="field_activated" jhiTranslate="userManagement.form.active">Đang hoạt động</label>
+          <div class="form-text mt-0" jhiTranslate="userManagement.form.activeHint">
+            Tắt để khóa tài khoản: người dùng không đăng nhập được.
+          </div>
         </div>
       </div>
+    </section>
 
-      <div>
-        <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-secondary" (click)="previousState()">
-          <fa-icon icon="ban" />&nbsp;<span jhiTranslate="entity.action.cancel">Cancel</span>
-        </button>
+    <!-- Quyền truy cập -->
+    <section class="card mb-3" [formGroup]="accessForm">
+      <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <h5 class="card-title mb-0 me-auto" jhiTranslate="userManagement.permissions.title">Quyền truy cập</h5>
+          <span class="small text-body-secondary" jhiTranslate="userManagement.permissions.presets.title">Mẫu nhanh:</span>
+          @for (preset of presets; track preset.label) {
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="applyPreset(preset)">
+              {{ preset.label | translate }}
+            </button>
+          }
+        </div>
 
-        <button
-          type="submit"
-          id="save-entity"
-          data-cy="entityCreateSaveButton"
-          [disabled]="editForm.invalid || isSaving()"
-          class="btn btn-primary"
-        >
-          <fa-icon icon="save" />&nbsp;<span jhiTranslate="entity.action.save">Save</span>
-        </button>
+        <div class="admin-switch rounded p-3 mb-3" [class.active]="accessForm.controls.isAdmin.value">
+          <div class="form-check form-switch mb-0">
+            <input type="checkbox" role="switch" class="form-check-input" id="field_isAdmin" formControlName="isAdmin" />
+            <label class="form-check-label fw-semibold" for="field_isAdmin">
+              <fa-icon icon="user-shield" class="me-1" /><span jhiTranslate="userManagement.permissions.admin">Quản trị viên</span>
+            </label>
+            <div class="form-text mt-0" jhiTranslate="userManagement.permissions.adminHint">
+              Toàn quyền, gồm cả quản lý người dùng, nhập dữ liệu và giám sát hệ thống.
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive" formGroupName="levels">
+          <table class="table align-middle mb-0 permission-table" [class.opacity-50]="accessForm.controls.isAdmin.value">
+            <thead>
+              <tr>
+                <th scope="col" jhiTranslate="userManagement.permissions.module">Mục</th>
+                @for (level of levels; track level) {
+                  <th scope="col" class="text-center level-col">{{ 'userManagement.permissions.levels.' + level | translate }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (module of modules; track module.key) {
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ module.label | translate }}</div>
+                    <div class="small text-body-secondary">{{ module.hint | translate }}</div>
+                  </td>
+                  @for (level of levels; track level) {
+                    <td class="text-center">
+                      <input
+                        type="radio"
+                        class="form-check-input"
+                        [id]="'perm_' + module.key + '_' + level"
+                        [formControlName]="module.key"
+                        [value]="level"
+                        [attr.aria-label]="(module.label | translate) + ': ' + ('userManagement.permissions.levels.' + level | translate)"
+                      />
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="form-text mt-2" jhiTranslate="userManagement.permissions.reloginHint">
+          Quyền mới có hiệu lực từ lần đăng nhập tiếp theo của người dùng.
+        </div>
       </div>
-    </form>
-  </div>
+    </section>
+
+    <div class="d-flex gap-2 justify-content-end">
+      <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-outline-secondary" (click)="previousState()">
+        <fa-icon icon="ban" />&nbsp;<span jhiTranslate="entity.action.cancel">Cancel</span>
+      </button>
+      <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" [disabled]="isSaving()" class="btn btn-primary">
+        <fa-icon [icon]="isSaving() ? 'spinner' : 'save'" [animation]="isSaving() ? 'spin' : undefined" />&nbsp;<span
+          jhiTranslate="entity.action.save"
+          >Save</span
+        >
+      </button>
+    </div>
+  </form>
 </div>

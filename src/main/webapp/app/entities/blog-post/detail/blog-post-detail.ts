@@ -30,6 +30,8 @@ import {
 } from '../blog-post-display';
 import { IBlogPost } from '../blog-post.model';
 import { BlogPostDeleteDialog } from '../delete/blog-post-delete-dialog';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 /** Tiêu đề dài hơn mức này dễ bị Google cắt. */
 export const TITLE_MAX = 70;
@@ -44,6 +46,7 @@ export const TITLE_MAX = 70;
   selector: 'jhi-blog-post-detail',
   templateUrl: './blog-post-detail.html',
   imports: [
+    HasAnyAuthorityDirective,
     FontAwesomeModule,
     Alert,
     AlertError,
@@ -63,6 +66,8 @@ export const TITLE_MAX = 70;
   host: { '(document:keydown)': 'onKeydown($event)' },
 })
 export class BlogPostDetail {
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('post');
   readonly blogPost = input<IBlogPost | null>(null);
 
   readonly title = computed(() => decodeEntities(this.blogPost()?.title));

@@ -71,6 +71,26 @@ public class SecurityConfiguration {
                     // (vd user/user) thêm/sửa/xóa được doanh nghiệp, bài viết, banner… Nay chỉ tài khoản của chính mình
                     // (xem, sửa thông tin, đổi mật khẩu) cho người đã đăng nhập; mọi API dữ liệu cần ROLE_ADMIN.
                     .requestMatchers("/api/account", "/api/account/**").authenticated()
+                    // Sửa tay (2026-11-17): quyền theo từng mục (AuthoritiesConstants). GET cần quyền xem hoặc quản lý của mục đó;
+                    // thêm/sửa/xóa cần quyền quản lý. Dữ liệu tra cứu dùng chung (ngành nghề, địa giới, chuyên mục, tag, danh sách
+                    // user) cho mọi nhân viên đọc, vì form doanh nghiệp/bài viết cần chọn từ đó. Các API còn lại vẫn chỉ ROLE_ADMIN.
+                    .requestMatchers(HttpMethod.GET, "/api/listings/**")
+                        .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.LISTING_VIEW, AuthoritiesConstants.LISTING_EDIT)
+                    .requestMatchers("/api/listings/**").hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.LISTING_EDIT)
+                    .requestMatchers(HttpMethod.GET, "/api/categories/**", "/api/locations/**", "/api/category-index/**", "/api/location-index/**")
+                        .hasAnyAuthority(AuthoritiesConstants.STAFF)
+                    .requestMatchers("/api/categories/**", "/api/locations/**")
+                        .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.CATALOG_EDIT)
+                    .requestMatchers(HttpMethod.GET, "/api/blog-posts/**")
+                        .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.POST_VIEW, AuthoritiesConstants.POST_EDIT)
+                    .requestMatchers(HttpMethod.GET, "/api/blog-categories/**", "/api/tags/**", "/api/users/**")
+                        .hasAnyAuthority(AuthoritiesConstants.STAFF)
+                    .requestMatchers("/api/blog-posts/**", "/api/blog-categories/**", "/api/tags/**")
+                        .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.POST_EDIT)
+                    .requestMatchers(HttpMethod.GET, "/api/galleries/**", "/api/gallery-images/**")
+                        .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.BANNER_VIEW, AuthoritiesConstants.BANNER_EDIT)
+                    .requestMatchers("/api/galleries/**", "/api/gallery-images/**")
+                        .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.BANNER_EDIT)
                     .requestMatchers("/api/**").hasAuthority(AuthoritiesConstants.ADMIN)
                     .requestMatchers("/v3/api-docs/**").hasAuthority(AuthoritiesConstants.ADMIN)
                     .requestMatchers("/management/health").permitAll()

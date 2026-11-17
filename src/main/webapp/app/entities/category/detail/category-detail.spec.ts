@@ -11,6 +11,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { Subject, of } from 'rxjs';
 
 import { ITEM_DELETED_EVENT } from 'app/config';
+import { AccountService } from 'app/core/auth';
 import { fontAwesomeIcons } from 'app/config/font-awesome-icons';
 import { ListingService } from 'app/entities/listing/service/listing.service';
 import { ICategory } from '../category.model';
@@ -57,6 +58,17 @@ describe('Category Management Detail Component', () => {
       ],
     });
     TestBed.inject(FaIconLibrary).addIcons(...fontAwesomeIcons);
+    // Nút thêm/sửa/xóa chỉ hiện với quyền quản lý ngành nghề (ROLE_CATALOG_EDIT hoặc ROLE_ADMIN).
+    TestBed.inject(AccountService).authenticate({
+      activated: true,
+      authorities: ['ROLE_ADMIN'],
+      email: 'admin@localhost',
+      firstName: 'Admin',
+      langKey: 'vi',
+      lastName: null,
+      login: 'admin',
+      imageUrl: null,
+    });
     categoryService = TestBed.inject(CategoryService);
     listingService = TestBed.inject(ListingService);
     vi.spyOn(categoryService, 'find').mockImplementation((id: number) => of(TREE[id]));

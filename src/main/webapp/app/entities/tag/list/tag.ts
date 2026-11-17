@@ -18,11 +18,14 @@ import { SortByDirective, SortDirective, SortService, type SortState, sortStateS
 import { TagDeleteDialog } from '../delete/tag-delete-dialog';
 import { TagService } from '../service/tag.service';
 import { ITag } from '../tag.model';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 @Component({
   selector: 'jhi-tag',
   templateUrl: './tag.html',
   imports: [
+    HasAnyAuthorityDirective,
     RouterLink,
     FormsModule,
     FontAwesomeModule,
@@ -37,6 +40,8 @@ import { ITag } from '../tag.model';
 })
 export class Tag {
   private static readonly NOT_SORTABLE_FIELDS_AFTER_SEARCH = ['name', 'slug'];
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('post');
 
   readonly tags = signal<ITag[]>([]);
 

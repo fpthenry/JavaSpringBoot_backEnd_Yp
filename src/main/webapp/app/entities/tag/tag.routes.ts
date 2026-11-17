@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { ASC } from 'app/config';
 import { userRouteAccessService } from 'app/core/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 import TagResolve from './route/tag-routing-resolve.service';
 
@@ -24,6 +25,7 @@ const tagRoute: Routes = [
   },
   {
     path: 'new',
+    data: { authorities: canEditAuthorities('post') },
     loadComponent: () => import('./update/tag-update').then(m => m.TagUpdate),
     resolve: {
       tag: TagResolve,
@@ -32,6 +34,7 @@ const tagRoute: Routes = [
   },
   {
     path: ':id/edit',
+    data: { authorities: canEditAuthorities('post') },
     loadComponent: () => import('./update/tag-update').then(m => m.TagUpdate),
     resolve: {
       tag: TagResolve,

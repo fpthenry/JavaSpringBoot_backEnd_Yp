@@ -1,5 +1,7 @@
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 
+import { canViewAuthorities } from 'app/shared/auth/permissions';
+
 /** Sửa tay: một mục menu bên trái. Có `children` thì bấm để mở/đóng nhóm con, không có đường dẫn riêng. */
 export interface MenuItem {
   label: string;
@@ -8,6 +10,8 @@ export interface MenuItem {
   /** Chỉ sáng khi đúng đường dẫn, không sáng ở trang con (vd. /category không sáng ở /category/tree). */
   exact?: boolean;
   adminOnly?: boolean;
+  /** Chỉ hiện khi tài khoản có một trong các quyền này (quyền theo mục, xem shared/auth/permissions.ts). */
+  authorities?: string[];
   /** Chỉ hiện khi backend bật OpenAPI. */
   openApi?: boolean;
   children?: MenuItem[];
@@ -23,7 +27,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     label: 'global.menu.groups.data',
     items: [
-      { label: 'global.menu.entities.listing', icon: 'building', link: '/listing' },
+      { label: 'global.menu.entities.listing', icon: 'building', link: '/listing', authorities: canViewAuthorities('listing') },
       {
         label: 'global.menu.entities.listingImport',
         icon: 'file-import',
@@ -36,6 +40,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       {
         label: 'global.menu.entities.categoryGroup',
         icon: 'briefcase',
+        authorities: canViewAuthorities('catalog'),
         children: [
           { label: 'global.menu.sidebar.lookup', link: '/category/tree', exact: true },
           { label: 'global.menu.sidebar.index', link: '/category/index', exact: true },
@@ -45,6 +50,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       {
         label: 'global.menu.entities.locationGroup',
         icon: 'map',
+        authorities: canViewAuthorities('catalog'),
         children: [
           { label: 'global.menu.sidebar.lookup', link: '/location/tree', exact: true },
           { label: 'global.menu.sidebar.index', link: '/location/index', exact: true },
@@ -56,12 +62,13 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     label: 'global.menu.groups.content',
     items: [
-      { label: 'global.menu.entities.blogPost', icon: 'newspaper', link: '/blog-post' },
-      { label: 'global.menu.entities.blogCategory', icon: 'folder', link: '/blog-category' },
-      { label: 'global.menu.entities.tag', icon: 'tags', link: '/tag' },
+      { label: 'global.menu.entities.blogPost', icon: 'newspaper', link: '/blog-post', authorities: canViewAuthorities('post') },
+      { label: 'global.menu.entities.blogCategory', icon: 'folder', link: '/blog-category', authorities: canViewAuthorities('post') },
+      { label: 'global.menu.entities.tag', icon: 'tags', link: '/tag', authorities: canViewAuthorities('post') },
       {
         label: 'global.menu.entities.galleryGroup',
         icon: 'images',
+        authorities: canViewAuthorities('banner'),
         children: [
           { label: 'global.menu.entities.gallery', link: '/gallery' },
           { label: 'global.menu.entities.galleryImage', link: '/gallery-image' },

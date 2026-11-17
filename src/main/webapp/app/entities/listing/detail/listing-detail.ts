@@ -30,6 +30,8 @@ import {
   websiteHref,
 } from '../listing-display';
 import { IListing } from '../listing.model';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 /** Địa phương đã gắn, kèm cấp cha và thuộc bộ mới hay cũ (đọc thêm bằng /api/locations?id.in=…). */
 export interface LinkedLocation {
@@ -68,6 +70,7 @@ export const LISTING_SECTIONS: DetailSection[] = [
   selector: 'jhi-listing-detail',
   templateUrl: './listing-detail.html',
   imports: [
+    HasAnyAuthorityDirective,
     FontAwesomeModule,
     Alert,
     AlertError,
@@ -82,6 +85,8 @@ export const LISTING_SECTIONS: DetailSection[] = [
   host: { '(document:keydown)': 'onKeydown($event)' },
 })
 export class ListingDetail {
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('listing');
   readonly listing = input<IListing | null>(null);
 
   readonly sections = LISTING_SECTIONS;

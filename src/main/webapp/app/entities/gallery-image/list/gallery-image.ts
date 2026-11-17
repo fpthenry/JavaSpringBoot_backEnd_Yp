@@ -19,11 +19,14 @@ import { SortByDirective, SortDirective, SortService, type SortState, sortStateS
 import { GalleryImageDeleteDialog } from '../delete/gallery-image-delete-dialog';
 import { IGalleryImage } from '../gallery-image.model';
 import { GalleryImageService } from '../service/gallery-image.service';
+import { HasAnyAuthorityDirective } from 'app/shared/auth';
+import { canEditAuthorities } from 'app/shared/auth/permissions';
 
 @Component({
   selector: 'jhi-gallery-image',
   templateUrl: './gallery-image.html',
   imports: [
+    HasAnyAuthorityDirective,
     RouterLink,
     FontAwesomeModule,
     AlertError,
@@ -38,6 +41,8 @@ import { GalleryImageService } from '../service/gallery-image.service';
   ],
 })
 export class GalleryImage {
+  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+  readonly editAuthorities = canEditAuthorities('banner');
   readonly galleryImages = signal<IGalleryImage[]>([]);
 
   sortState = sortStateSignal({});

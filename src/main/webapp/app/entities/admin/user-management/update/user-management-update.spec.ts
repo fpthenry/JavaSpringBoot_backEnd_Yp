@@ -52,6 +52,12 @@ describe('UserManagement Management Update Component', () => {
     });
   });
 
+  /** Form mới bắt buộc họ tên, email và (khi tạo) mật khẩu. */
+  const fillValidForm = (): void => {
+    comp.editForm.patchValue({ firstName: 'Nguyễn Văn An', email: 'An@YP.vn' });
+    comp.accessForm.controls.password.setValue('matkhau123');
+  };
+
   describe('save', () => {
     it('should call update service on save for existing entity', () => {
       // GIVEN
@@ -62,6 +68,7 @@ describe('UserManagement Management Update Component', () => {
       vi.spyOn(comp, 'previousState');
       activatedRoute.data = of({ userManagement });
       comp.ngOnInit();
+      fillValidForm();
 
       // WHEN
       comp.save();
@@ -85,6 +92,7 @@ describe('UserManagement Management Update Component', () => {
       vi.spyOn(comp, 'previousState');
       activatedRoute.data = of({ userManagement: null });
       comp.ngOnInit();
+      fillValidForm();
 
       // WHEN
       comp.save();
@@ -107,6 +115,7 @@ describe('UserManagement Management Update Component', () => {
       vi.spyOn(comp, 'previousState');
       activatedRoute.data = of({ userManagement });
       comp.ngOnInit();
+      fillValidForm();
 
       // WHEN
       comp.save();
@@ -117,6 +126,46 @@ describe('UserManagement Management Update Component', () => {
       expect(userManagementService.update).toHaveBeenCalled();
       expect(comp.isSaving()).toEqual(false);
       expect(comp.previousState).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('permissions', () => {
+    it('should not save when required fields are missing', () => {
+      vi.spyOn(userManagementService, 'create');
+      activatedRoute.data = of({ userManagement: null });
+      comp.ngOnInit();
+
+      comp.save();
+
+      expect(userManagementService.create).not.toHaveBeenCalled();
+      expect(comp.isSaving()).toEqual(false);
+    });
+
+    it('should create with login from email, password and authorities from the permission table', () => {
+      vi.spyOn(userManagementService, 'create').mockReturnValue(new Subject<IUserManagement>());
+      activatedRoute.data = of({ userManagement: null });
+      comp.ngOnInit();
+      fillValidForm();
+      comp.accessForm.controls.levels.patchValue({ post: 'edit', listing: 'view' });
+
+      comp.save();
+
+      expect(userManagementService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          login: 'an@yp.vn',
+          email: 'an@yp.vn',
+          password: 'matkhau123',
+          authorities: ['ROLE_USER', 'ROLE_LISTING_VIEW', 'ROLE_POST_EDIT'],
+        }),
+      );
+    });
+
+    it('should read the permission table from existing authorities', () => {
+      activatedRoute.data = of({ userManagement: { id: 1, login: 'an', authorities: ['ROLE_USER', 'ROLE_BANNER_VIEW'] } });
+      comp.ngOnInit();
+
+      expect(comp.accessForm.controls.levels.getRawValue()).toEqual({ listing: 'none', catalog: 'none', post: 'none', banner: 'view' });
+      expect(comp.accessForm.controls.isAdmin.value).toBe(false);
     });
   });
 });

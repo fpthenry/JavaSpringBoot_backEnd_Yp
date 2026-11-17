@@ -137,6 +137,14 @@ public class UserService {
     }
 
     public User createUser(AdminUserDTO userDTO) {
+        return createUser(userDTO, null);
+    }
+
+    /**
+     * Sửa tay: tạo tài khoản từ trang quản trị. {@code rawPassword} có giá trị thì đặt luôn mật khẩu đó (người dùng đăng nhập
+     * được ngay, không cần mail kích hoạt); bỏ trống thì như JHipster gốc: mật khẩu ngẫu nhiên + khóa đặt lại mật khẩu.
+     */
+    public User createUser(AdminUserDTO userDTO, String rawPassword) {
         User user = new User();
         user.setLogin(userDTO.getLogin().toLowerCase());
         user.setFirstName(userDTO.getFirstName());
@@ -150,11 +158,16 @@ public class UserService {
         } else {
             user.setLangKey(userDTO.getLangKey());
         }
-        String encryptedPassword = passwordEncoder.encode(RandomUtil.generatePassword());
-        user.setPassword(encryptedPassword);
-        user.setResetKey(RandomUtil.generateResetKey());
-        user.setResetDate(Instant.now());
-        user.setActivated(true);
+        if (rawPassword == null || rawPassword.isBlank()) {
+            user.setPassword(passwordEncoder.encode(RandomUtil.generatePassword()));
+            user.setResetKey(RandomUtil.generateResetKey());
+            user.setResetDate(Instant.now());
+            user.setActivated(true);
+        } else {
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            // Form có ô "Đang hoạt động": tôn trọng lựa chọn của admin (mặc định bật).
+            user.setActivated(userDTO.isActivated());
+        }
         if (userDTO.getAuthorities() != null) {
             Set<Authority> authorities = userDTO
                 .getAuthorities()
@@ -178,10 +191,18 @@ public class UserService {
      * @return updated user.
      */
     public Optional<AdminUserDTO> updateUser(AdminUserDTO userDTO) {
+        return updateUser(userDTO, null);
+    }
+
+    /** Sửa tay: như {@link #updateUser(AdminUserDTO)}; {@code newPassword} có giá trị thì đặt lại mật khẩu, bỏ trống = giữ nguyên. */
+    public Optional<AdminUserDTO> updateUser(AdminUserDTO userDTO, String newPassword) {
         return Optional.of(userRepository.findById(userDTO.getId()))
             .filter(Optional::isPresent)
             .map(Optional::get)
             .map(user -> {
+                if (newPassword != null && !newPassword.isBlank()) {
+                    user.setPassword(passwordEncoder.encode(newPassword));
+                }
                 user.setLogin(userDTO.getLogin().toLowerCase());
                 user.setFirstName(userDTO.getFirstName());
                 user.setLastName(userDTO.getLastName());

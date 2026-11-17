@@ -62,6 +62,7 @@
         <a
           [routerLink]="['/category', categoryRef.id, 'edit']"
           class="btn btn-primary px-4"
+          *jhiHasAnyAuthority="editAuthorities"
           data-cy="entityEditButton"
           [title]="'javaSpringBootBackEndApp.category.detail.editShortcut' | translate"
         >
@@ -102,6 +103,7 @@
               ngbDropdownItem
               type="button"
               class="text-danger"
+              *jhiHasAnyAuthority="editAuthorities"
               data-cy="entityDeleteButton"
               [disabled]="childCount() === null || (childCount() ?? 0) > 0"
               (click)="delete(categoryRef)"

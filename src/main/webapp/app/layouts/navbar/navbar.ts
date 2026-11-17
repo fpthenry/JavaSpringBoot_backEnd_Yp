@@ -50,10 +50,16 @@ export default class Navbar implements OnInit {
     const isAdmin = this.account()?.authorities.includes(Authority.ADMIN) ?? false;
     return MENU_GROUPS.map(group => ({
       ...group,
-      items: group.items.filter(item => (!item.adminOnly || isAdmin) && (!item.openApi || this.openAPIEnabled())),
+      items: group.items.filter(
+        item =>
+          (!item.adminOnly || isAdmin) &&
+          (!item.authorities || this.accountService.hasAnyAuthority(item.authorities)) &&
+          (!item.openApi || this.openAPIEnabled()),
+      ),
     })).filter(group => group.items.length > 0);
   });
 
+  private readonly accountService = inject(AccountService);
   private readonly loginService = inject(LoginService);
   private readonly translateService = inject(TranslateService);
   private readonly stateStorageService = inject(StateStorageService);

@@ -3,18 +3,76 @@
     "home": {
       "title": "Users",
       "refreshListLabel": "Refresh list",
-      "createLabel": "Create a new user",
+      "createLabel": "Add user",
       "createOrEditLabel": "Create or edit a user",
-      "notFound": "No user found"
+      "notFound": "No user found",
+      "search": "Search by name or email"
     },
-    "created": "A new user is created with identifier {{ param }}",
-    "updated": "A user is updated with identifier {{ param }}",
-    "deleted": "A user is deleted with identifier {{ param }}",
+    "created": "User {{ param }} has been created",
+    "updated": "User {{ param }} has been updated",
+    "deleted": "User {{ param }} has been deleted",
     "delete": {
       "question": "Are you sure you want to delete user {{ login }}?"
     },
     "detail": {
       "title": "User"
+    },
+    "list": {
+      "user": "User",
+      "status": "Status",
+      "clickToLock": "Click to lock this account",
+      "clickToUnlock": "Click to unlock this account"
+    },
+    "form": {
+      "createTitle": "Add user",
+      "editTitle": "Edit user",
+      "accountSection": "Account",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "e.g. Nguyen Van An",
+      "email": "Sign-in email",
+      "emailHint": "The user signs in with this email.",
+      "password": "Password",
+      "newPassword": "Set a new password",
+      "passwordPlaceholder": "At least 8 characters",
+      "keepPassword": "Leave empty to keep the current password",
+      "passwordHint": "At least {{ min }} characters. Copy it and send it to the user; they can change it after signing in.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "copyPassword": "Copy password",
+      "generatePassword": "Generate",
+      "active": "Active",
+      "activeHint": "Turn off to lock the account: the user cannot sign in."
+    },
+    "permissions": {
+      "title": "Access",
+      "module": "Section",
+      "admin": "Administrator",
+      "adminHint": "Full access, including user management, data import and system monitoring.",
+      "noAccess": "No access",
+      "reloginHint": "Permission changes take effect the next time the user signs in.",
+      "levels": {
+        "none": "None",
+        "view": "View",
+        "edit": "Manage"
+      },
+      "modules": {
+        "listing": "Companies",
+        "catalog": "Industries & administrative units",
+        "post": "Posts",
+        "banner": "Banners"
+      },
+      "hints": {
+        "listing": "Company listings",
+        "catalog": "Industry tree, provinces, wards",
+        "post": "Posts, post categories, tags",
+        "banner": "Banner groups and images"
+      },
+      "presets": {
+        "title": "Quick presets:",
+        "editor": "Content editor",
+        "dataEntry": "Data entry",
+        "viewer": "View only"
+      }
     },
     "id": "ID",
     "login": "Login",
@@ -22,13 +80,13 @@
     "lastName": "Last name",
     "email": "Email",
     "imageUrl": "Image",
-    "activated": "Activated",
-    "deactivated": "Deactivated",
+    "activated": "Active",
+    "deactivated": "Locked",
     "profiles": "Profiles",
     "langKey": "Language",
     "createdBy": "Created by",
     "createdDate": "Created date",
     "lastModifiedBy": "Modified by",
-    "lastModifiedDate": "Modified date"
+    "lastModifiedDate": "Last modified"
   }
 }

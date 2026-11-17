@@ -2384,6 +2384,60 @@ Thay thanh menu ngang và dropdown "Thực thể" bằng menu bên trái chia 3 
 - **Màn hình hẹp hơn 992px:** menu trái thành ngăn kéo, bấm mục nào tự đóng.
 - Bỏ 3 link lọc cấp Tỉnh thành, Quận huyện, Phường xã khỏi menu. Lọc vẫn dùng được qua URL `/location?filter[type.equals]=province`; tra cứu theo cấp ở mục Đơn vị hành chính > Tra cứu.
 
+### 16.5 Người dùng và phân quyền theo mục (2026-11-17)
+
+**Mục tiêu:**
+- Admin tạo tài khoản cho nhân viên và đặt mật khẩu ngay trên form, không cần mail kích hoạt.
+- Mỗi tài khoản chỉ được xem hoặc quản lý đúng những mục được giao.
+
+**Form Thêm/Sửa người dùng** (`entities/admin/user-management/update`):
+- Gồm: **Họ và tên** (lưu vào `firstName`), **Email đăng nhập**, **Mật khẩu**, **Đang hoạt động**.
+  - Mật khẩu tối thiểu 8 ký tự, có nút hiện/ẩn, sao chép và tạo ngẫu nhiên.
+  - Khi sửa, để trống mật khẩu là giữ nguyên.
+- **Tên đăng nhập không hiện trên form.** Khi tạo, nó được sinh từ email (chính là email viết thường; nếu email dài hơn 50 ký tự thì lấy phần trước `@`). Người dùng đăng nhập bằng email: JHipster `DomainUserDetailsService` đã hỗ trợ sẵn.
+- **Bảng "Quyền truy cập":**
+  - Công tắc **Quản trị viên**: toàn quyền. Bật lên thì bảng quyền bên dưới bị khóa.
+  - Mỗi mục chọn một mức: Không / Chỉ xem / Quản lý.
+  - Có 3 mẫu nhanh: Biên tập nội dung, Nhập liệu, Chỉ xem.
+- **Danh sách người dùng:**
+  - Hiện họ tên và email thay cho tên đăng nhập, kèm nhãn tóm tắt quyền.
+  - Bấm nút trạng thái để khóa hoặc mở khóa tài khoản.
+  - Bỏ cột Ngôn ngữ.
+  - Sửa luôn lỗi `translation-not-found[userManagement.home.search]`.
+
+**Các quyền** (`AuthoritiesConstants`; Liquibase `20261117100000_permission_roles.xml` thêm vào bảng `jhi_authority`, chạy ở cả dev và prod):
+
+| Mục | Chỉ xem | Quản lý (thêm, sửa, xóa) | API |
+|---|---|---|---|
+| Doanh nghiệp | `ROLE_LISTING_VIEW` | `ROLE_LISTING_EDIT` | `/api/listings/**` |
+| Ngành nghề & địa giới | `ROLE_CATALOG_VIEW` | `ROLE_CATALOG_EDIT` | `/api/categories/**`, `/api/locations/**`, `/api/category-index/**`, `/api/location-index/**` |
+| Bài viết | `ROLE_POST_VIEW` | `ROLE_POST_EDIT` | `/api/blog-posts/**`, `/api/blog-categories/**`, `/api/tags/**` |
+| Banner | `ROLE_BANNER_VIEW` | `ROLE_BANNER_EDIT` | `/api/galleries/**`, `/api/gallery-images/**` |
+
+**Luật ở backend** (`SecurityConfiguration`, đặt trước dòng `/api/**` → ROLE_ADMIN):
+- `GET` cần quyền xem hoặc quản lý của mục đó. `POST`/`PUT`/`PATCH`/`DELETE` cần quyền quản lý.
+- **Dữ liệu tra cứu dùng chung cho mọi nhân viên đọc** (`AuthoritiesConstants.STAFF`). Gồm `GET` ngành nghề, địa giới, chuyên mục bài viết, tag và `/api/users`. Lý do: form doanh nghiệp và bài viết phải chọn từ các danh sách này. Vì vậy mức "Không" của mục Ngành nghề chỉ ẩn menu, API đọc vẫn mở cho nhân viên.
+- Các API khác vẫn **chỉ ROLE_ADMIN**: `/api/admin/**` (người dùng, nhập doanh nghiệp, reindex, đồng bộ WordPress…), `/api/authorities`, `/management/**`.
+- `POST`/`PUT /api/admin/users` nhận thêm trường `password` (`ManagedUserVM`). Có mật khẩu thì đặt luôn, không gửi mail. Mật khẩu ngắn hơn 8 ký tự trả lỗi 400 `passwordtooshort`.
+
+**Ở frontend:**
+- Tất cả định nghĩa quyền nằm ở `app/shared/auth/permissions.ts`: `PERMISSION_MODULES`, `canViewAuthorities`, `canEditAuthorities`.
+- **Menu:** thêm trường `authorities` cho mục menu trong `navbar-menu.ts`.
+- **Route:**
+  - `entity.routes.ts` đặt `data.authorities` = quyền xem cho route cha. Các trang con kế thừa.
+  - Trang `new` và `:id/edit` trong từng `*.routes.ts` đòi quyền quản lý.
+  - Không đủ quyền thì chuyển sang trang `accessdenied`.
+- **Nút bấm:** các nút Thêm/Sửa/Xóa có `data-cy="entity…Button"` trên trang danh sách và trang chi tiết được bọc `*jhiHasAnyAuthority="editAuthorities"`.
+- **Trang chủ:** chỉ hiện ô số liệu và "việc hay làm" ứng với quyền của tài khoản.
+
+**Lưu ý:**
+- Quyền nằm trong JWT. Đổi quyền thì người dùng phải **đăng xuất rồi đăng nhập lại** mới có hiệu lực.
+- Thêm mục quyền mới thì làm 3 chỗ:
+  1. `AuthoritiesConstants` cùng một changeset Liquibase mới;
+  2. luật trong `SecurityConfiguration`;
+  3. `PERMISSION_MODULES` cùng i18n `userManagement.permissions.*` (en, vi).
+- **Việc còn lại:** trang chi tiết vẫn còn vài link phụ dẫn tới trang sửa (ví dụ "Bổ sung" ở chi tiết doanh nghiệp/bài viết, nút sửa trong cây ngành nghề). Người chỉ có quyền xem bấm vào sẽ gặp trang "không có quyền"; dữ liệu không bị sửa.
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.
