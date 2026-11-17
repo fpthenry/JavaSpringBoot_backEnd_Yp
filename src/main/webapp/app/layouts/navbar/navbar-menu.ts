@@ -74,6 +74,7 @@ export const MENU_GROUPS: MenuGroup[] = [
           { label: 'global.menu.entities.gallery', link: '/gallery' },
         ],
       },
+      { label: 'global.menu.entities.siteEffects', icon: 'spa', link: '/site-effects', authorities: canViewAuthorities('banner') },
     ],
   },
   {

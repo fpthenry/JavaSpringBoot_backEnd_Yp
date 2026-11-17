@@ -91,6 +91,9 @@ public class SecurityConfiguration {
                         .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.BANNER_VIEW, AuthoritiesConstants.BANNER_EDIT)
                     .requestMatchers("/api/galleries/**", "/api/gallery-images/**")
                         .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.BANNER_EDIT)
+                    // Sửa tay (2026-11-17): hiệu ứng website (Tết hoa đào) đi cùng nhóm Banner: xem cho mọi nhân viên, bật/tắt cần quản lý banner.
+                    .requestMatchers(HttpMethod.GET, "/api/site-settings/**").hasAnyAuthority(AuthoritiesConstants.STAFF)
+                    .requestMatchers("/api/site-settings/**").hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.BANNER_EDIT)
                     .requestMatchers("/api/**").hasAuthority(AuthoritiesConstants.ADMIN)
                     .requestMatchers("/v3/api-docs/**").hasAuthority(AuthoritiesConstants.ADMIN)
                     .requestMatchers("/management/health").permitAll()

@@ -1,0 +1,20 @@
+{
+  "siteEffect": {
+    "title": "Tet effect",
+    "tet": {
+      "name": "Lunar New Year peach blossoms",
+      "description": "Peach blossom petals gently fall across the whole yp.vn website, with a blossom branch in the corner. Content stays clickable; no impact on speed or SEO."
+    },
+    "status": {
+      "on": "Live on yp.vn",
+      "off": "Off"
+    },
+    "updated": "Changed at {{ at }} by {{ by }}",
+    "turnOn": "Turn on Tet effect",
+    "turnOff": "Turn off",
+    "delayNote": "Saved. yp.vn will update within about 1 minute.",
+    "noPermission": "View only. Banner management permission is needed to turn it on or off.",
+    "preview": "Preview",
+    "previewNote": "Visitors get a small button to hide the effect; petals do not fall when the device asks for reduced motion."
+  }
+}

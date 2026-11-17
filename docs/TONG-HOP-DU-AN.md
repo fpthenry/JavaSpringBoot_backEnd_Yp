@@ -2533,6 +2533,34 @@ Trang soạn bài (`entities/blog-post/editor`) có thêm khung **SEO** dưới 
 
 **Muốn đổi ngưỡng:** sửa các hằng `TITLE_RANGE`, `DESCRIPTION_RANGE`, `CONTENT_WORDS`, `DENSITY_RANGE` ở đầu `seo-analyzer.ts`. Câu thông báo nằm ở i18n `blogPost.seo.checks.<mục>.<good|ok|bad>` (vi, en).
 
+### 16.8 Hiệu ứng Tết hoa đào trên website (2026-11-17)
+
+Trong trang quản trị, vào **Hiệu ứng Tết** (menu Nội dung) và bấm **Bật hiệu ứng Tết**. Toàn bộ yp.vn sẽ có hoa đào rơi và một cành đào ở góc. Bấm **Tắt hiệu ứng** thì không còn hiện nữa. Website thấy thay đổi sau khoảng 1 phút.
+
+**Backend:**
+- Bảng mới `site_setting(setting_key PK, setting_value, updated_at, updated_by)` (Liquibase `20261117120000_site_setting.xml`).
+  - Đây là bảng dùng chung cho mọi cấu hình website dạng khóa/giá trị.
+  - Khóa đầu tiên là `tet_effect`. Chưa có dòng nào = tắt.
+- API quản trị `GET /api/site-settings/effects`: trả `{ tetEffect, updatedAt, updatedBy }`. Mọi nhân viên đều xem được.
+- API quản trị `PUT /api/site-settings/effects/tet` với thân `{ "enabled": true|false }`: chỉ **ROLE_ADMIN** và **ROLE_BANNER_EDIT** được gọi. Luật nằm trong `SecurityConfiguration`.
+- API công khai `GET /api/public/v1/site-settings`: trả `{ tetEffect }`, cần `X-API-Key`, có `Cache-Control` 1 phút. API này không trả ra ai đã sửa.
+
+**Trang quản trị** (`entities/site-effect`):
+- Một thẻ màu đỏ-vàng có nút bật/tắt lớn, hiện trạng thái và người sửa gần nhất.
+- Có khung xem trước: một trang giả có hoa rơi.
+- Tài khoản chỉ có quyền xem Banner thì thấy nút nhưng không bấm được.
+
+**Website Next.js** (`d:\nextyp-v2`, nhánh `edit_seo`):
+- Thành phần: `src/components/effects/TetEffect.tsx`, gắn vào `app/layout.tsx`. Proxy `/api/v1` được thêm `site-settings` vào danh sách cho phép.
+- **Cách tải:** chỉ chạy trên trình duyệt sau khi trang đã hiện, nên HTML máy chủ trả về không đổi, không ảnh hưởng SEO hay tốc độ tải trang. Nếu backend lỗi thì không có hiệu ứng, trang vẫn chạy bình thường.
+- **Hoa rơi:** vẽ trên một `<canvas>` phủ màn hình, `pointer-events: none` nên không chặn bấm hay cuộn. Có hai loại: bông đào 5 cánh nhụy vàng và cánh rời.
+  - Chuyển động: rơi chậm, lắc ngang, lật nhẹ, có gió đổi chiều.
+  - Số lượng tùy độ rộng màn hình: điện thoại khoảng 12, màn hình rộng tối đa 38.
+  - Dừng vẽ khi tab bị ẩn.
+- **Cành đào:** hình SVG ở góc dưới bên trái, chỉ hiện trên màn hình từ 1024px.
+- **Người xem tự ẩn:** có nút "🌸 Ẩn hoa" ở góc dưới bên trái. Ẩn đến hết phiên (`sessionStorage`).
+- Máy bật chế độ **giảm chuyển động** thì hoa không rơi, chỉ còn cành đào.
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.

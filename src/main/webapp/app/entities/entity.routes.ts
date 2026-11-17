@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { userRouteAccessService } from 'app/core/auth';
 import { canViewAuthorities } from 'app/shared/auth/permissions';
 
 const routes: Routes = [
@@ -74,6 +75,14 @@ const routes: Routes = [
     path: 'listing-import',
     title: 'javaSpringBootBackEndApp.listingImport.home.title',
     loadChildren: () => import('./listing-import/listing-import.routes'),
+  },
+  {
+    // Sửa tay (2026-11-17): bật/tắt hiệu ứng Tết hoa đào trên website (đi cùng quyền Banner)
+    path: 'site-effects',
+    title: 'siteEffect.title',
+    data: { authorities: canViewAuthorities('banner') },
+    canActivate: [userRouteAccessService],
+    loadComponent: () => import('./site-effect/site-effect').then(m => m.SiteEffect),
   },
   // jhipster-needle-add-entity-route - JHipster will add entity modules routes here
 ];
