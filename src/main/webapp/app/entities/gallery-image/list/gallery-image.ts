@@ -1,182 +1,215 @@
-import { HttpHeaders } from '@angular/common/http';
-import { Component, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Data, ParamMap, Router, RouterLink } from '@angular/router';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal';
-import { NgbPagination } from '@ng-bootstrap/ng-bootstrap/pagination';
-import { combineLatest, filter, map, tap } from 'rxjs';
+import { TranslatePipe } from '@ngx-translate/core';
+import dayjs from 'dayjs/esm';
+import { filter, finalize } from 'rxjs';
 
-import { DEFAULT_SORT_DATA, ITEMS_PER_PAGE, ITEM_DELETED_EVENT, PAGE_HEADER, SORT, TOTAL_COUNT_RESPONSE_HEADER } from 'app/config';
-import { DataUtils } from 'app/core/util';
+import { ITEM_DELETED_EVENT } from 'app/config';
+import { AccountService } from 'app/core/auth';
+import { IGalleryBanner, IGalleryWithImages } from 'app/entities/gallery/gallery.model';
+import { GalleryService } from 'app/entities/gallery/service/gallery.service';
 import { Alert, AlertError } from 'app/shared/alert';
-import { FormatMediumDatetimePipe } from 'app/shared/date';
-import { Filter, FilterOptions, IFilterOption, IFilterOptions } from 'app/shared/filter';
-import { TranslateDirective } from 'app/shared/language';
-import { ItemCount } from 'app/shared/pagination';
-import { SortByDirective, SortDirective, SortService, type SortState, sortStateSignal } from 'app/shared/sort';
-import { GalleryImageDeleteDialog } from '../delete/gallery-image-delete-dialog';
-import { IGalleryImage } from '../gallery-image.model';
-import { GalleryImageService } from '../service/gallery-image.service';
 import { HasAnyAuthorityDirective } from 'app/shared/auth';
 import { canEditAuthorities } from 'app/shared/auth/permissions';
+import { TranslateDirective } from 'app/shared/language';
+import { GalleryImageDeleteDialog } from '../delete/gallery-image-delete-dialog';
+import { GalleryImageService } from '../service/gallery-image.service';
 
+/** Trạng thái một banner nhìn từ website. */
+export type BannerStatus = 'showing' | 'scheduled' | 'expired' | 'off' | 'noImage';
+
+export const BANNER_STATUSES: BannerStatus[] = ['showing', 'scheduled', 'expired', 'off', 'noImage'];
+
+/** Một banner kèm vị trí của nó, đã tính sẵn trạng thái. */
+export interface BannerRow extends IGalleryBanner {
+  position: Pick<IGalleryWithImages, 'id' | 'name' | 'code' | 'active'>;
+  status: BannerStatus;
+}
+
+export function bannerStatus(banner: IGalleryBanner, positionActive: boolean | null | undefined, now = dayjs()): BannerStatus {
+  if (!banner.active || positionActive === false) {
+    return 'off';
+  }
+  if (!banner.previewUrl) {
+    return 'noImage';
+  }
+  if (banner.startAt && dayjs(banner.startAt).isAfter(now)) {
+    return 'scheduled';
+  }
+  if (banner.endAt && dayjs(banner.endAt).isBefore(now)) {
+    return 'expired';
+  }
+  return 'showing';
+}
+
+/**
+ * Sửa tay: trang quản lý banner thay cho bảng JHipster. Lấy mọi vị trí kèm mọi ảnh một lần (GET /api/galleries/with-images,
+ * vài chục banner nên không cần phân trang), lọc theo vị trí, trạng thái, tên ngay trên trình duyệt. Bộ lọc nằm trên URL
+ * (?position=&status=&q=) để tải lại hay gửi link vẫn giữ nguyên.
+ */
 @Component({
   selector: 'jhi-gallery-image',
   templateUrl: './gallery-image.html',
-  imports: [
-    HasAnyAuthorityDirective,
-    RouterLink,
-    FontAwesomeModule,
-    AlertError,
-    Alert,
-    SortDirective,
-    SortByDirective,
-    TranslateDirective,
-    FormatMediumDatetimePipe,
-    Filter,
-    NgbPagination,
-    ItemCount,
-  ],
+  styleUrl: './gallery-image.scss',
+  imports: [RouterLink, FormsModule, FontAwesomeModule, AlertError, Alert, TranslateDirective, TranslatePipe, HasAnyAuthorityDirective],
 })
-export class GalleryImage {
-  /** Sửa tay: nút thêm/sửa/xóa chỉ hiện với quyền quản lý mục này. */
+export class GalleryImage implements OnInit {
+  /** Nút thêm/sửa/xóa, công tắc bật/tắt chỉ có với quyền quản lý banner. */
   readonly editAuthorities = canEditAuthorities('banner');
-  readonly galleryImages = signal<IGalleryImage[]>([]);
+  readonly statuses = BANNER_STATUSES;
 
-  sortState = sortStateSignal({});
-  filters: IFilterOptions = new FilterOptions();
+  readonly positions = signal<IGalleryWithImages[]>([]);
+  readonly isLoading = signal(false);
+  readonly loadError = signal(false);
+  /** Banner đang bật/tắt (khóa công tắc trong lúc chờ server). */
+  readonly toggling = signal<number | null>(null);
 
-  readonly itemsPerPage = signal(ITEMS_PER_PAGE);
-  readonly totalItems = signal(0);
-  readonly page = signal(1);
+  readonly positionFilter = signal<number | null>(null);
+  readonly statusFilter = signal<BannerStatus | null>(null);
+  readonly search = signal('');
 
-  readonly router = inject(Router);
-  protected readonly galleryImageService = inject(GalleryImageService);
+  readonly canEdit = computed(() => !!this.account() && this.accountService.hasAnyAuthority(this.editAuthorities));
+
+  /** Mọi banner của mọi vị trí, sắp theo vị trí rồi thứ tự hiển thị. */
+  readonly banners = computed<BannerRow[]>(() => {
+    const now = dayjs();
+    return this.positions().flatMap(position =>
+      [...position.images]
+        .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER) || a.id - b.id)
+        .map(image => ({
+          ...image,
+          position: { id: position.id, name: position.name, code: position.code, active: position.active },
+          status: bannerStatus(image, position.active, now),
+        })),
+    );
+  });
+
+  /** Banner sau khi lọc vị trí và tên (chưa lọc trạng thái): dùng để đếm số trên các nút trạng thái. */
+  readonly inPosition = computed(() => {
+    const position = this.positionFilter();
+    const query = this.search().trim().toLowerCase();
+    return this.banners().filter(
+      banner =>
+        (position === null || banner.position.id === position) &&
+        (!query || `${banner.title ?? ''} ${banner.linkUrl ?? ''}`.toLowerCase().includes(query)),
+    );
+  });
+
+  readonly visible = computed(() => {
+    const status = this.statusFilter();
+    return status === null ? this.inPosition() : this.inPosition().filter(banner => banner.status === status);
+  });
+
+  /** Số banner theo trạng thái trong phạm vi vị trí đang chọn. */
+  readonly statusCounts = computed(() => {
+    const counts: Record<BannerStatus, number> = { showing: 0, scheduled: 0, expired: 0, off: 0, noImage: 0 };
+    for (const banner of this.inPosition()) {
+      counts[banner.status]++;
+    }
+    return counts;
+  });
+
+  readonly showingTotal = computed(() => this.banners().filter(banner => banner.status === 'showing').length);
+
+  /** Số banner đang hiện trên website theo từng vị trí. */
+  readonly showingByPosition = computed(() => {
+    const counts = new Map<number, number>();
+    for (const banner of this.banners()) {
+      if (banner.status === 'showing') {
+        counts.set(banner.position.id, (counts.get(banner.position.id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  });
+
+  readonly selectedPosition = computed(() => this.positions().find(position => position.id === this.positionFilter()) ?? null);
+
+  private readonly accountService = inject(AccountService);
   // eslint-disable-next-line @typescript-eslint/member-ordering
-  readonly isLoading = this.galleryImageService.galleryImagesResource.isLoading;
-  protected readonly activatedRoute = inject(ActivatedRoute);
-  protected readonly activatedRouteState = toSignal(
-    combineLatest([this.activatedRoute.queryParamMap, this.activatedRoute.data]).pipe(
-      map(([queryParamMap, data]) => ({ queryParamMap, data })),
-    ),
-    { initialValue: { queryParamMap: this.activatedRoute.snapshot.queryParamMap, data: this.activatedRoute.snapshot.data } },
-  );
-  protected readonly sortService = inject(SortService);
-  protected readonly filterOptions = toSignal(this.filters.filterChanges);
-  protected dataUtils = inject(DataUtils);
-  protected modalService = inject(NgbModal);
+  readonly account = this.accountService.account;
+  private readonly galleryService = inject(GalleryService);
+  private readonly galleryImageService = inject(GalleryImageService);
+  private readonly modalService = inject(NgbModal);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
-  constructor() {
-    effect(() => {
-      const headers = this.galleryImageService.galleryImagesResource.headers();
-      if (headers) {
-        this.fillComponentAttributesFromResponseHeader(headers);
-      }
+  ngOnInit(): void {
+    this.route.queryParamMap.subscribe(params => {
+      const position = Number(params.get('position'));
+      this.positionFilter.set(Number.isInteger(position) && position > 0 ? position : null);
+      const status = params.get('status') as BannerStatus | null;
+      this.statusFilter.set(status && BANNER_STATUSES.includes(status) ? status : null);
+      this.search.set(params.get('q') ?? '');
     });
-    effect(() => {
-      this.galleryImages.set(this.fillComponentAttributesFromResponseBody([...this.galleryImageService.galleryImages()]));
-    });
-    effect(() => {
-      const activatedRouteState = this.activatedRouteState();
-      untracked(() => {
-        // Only watch for route changes. Other signals should be ignored.
-        this.fillComponentAttributeFromRoute(activatedRouteState.queryParamMap, activatedRouteState.data);
-        this.load();
-      });
-    });
-
-    effect(() => {
-      const filterOptions = this.filterOptions();
-      if (filterOptions) {
-        untracked(() => {
-          // Only watch for filter changes. Other signals should be ignored.
-          this.handleNavigation(1, this.sortState(), filterOptions);
-        });
-      }
-    });
-  }
-
-  trackId = (item: IGalleryImage): number => this.galleryImageService.getGalleryImageIdentifier(item);
-
-  byteSize(base64String: string): string {
-    return this.dataUtils.byteSize(base64String);
-  }
-
-  openFile(base64String: string, contentType: string | null | undefined): void {
-    return this.dataUtils.openFile(base64String, contentType);
-  }
-
-  delete(galleryImage: IGalleryImage): void {
-    const modalRef = this.modalService.open(GalleryImageDeleteDialog, { size: 'lg', backdrop: 'static' });
-    modalRef.componentInstance.galleryImage = galleryImage;
-    // unsubscribe not needed because closed completes on modal close
-    modalRef.closed
-      .pipe(
-        filter(reason => reason === ITEM_DELETED_EVENT),
-        tap(() => this.load()),
-      )
-      .subscribe();
+    this.load();
   }
 
   load(): void {
-    this.queryBackend();
+    this.isLoading.set(true);
+    this.loadError.set(false);
+    this.galleryService
+      .withImages()
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe({
+        next: positions => this.positions.set(positions),
+        error: () => this.loadError.set(true),
+      });
   }
 
-  navigateToWithComponentValues(event: SortState): void {
-    this.handleNavigation(this.page(), event, this.filters.filterOptions);
+  setPosition(id: number | null): void {
+    this.navigate({ position: id });
   }
 
-  navigateToPage(page: number): void {
-    this.handleNavigation(page, this.sortState(), this.filters.filterOptions);
+  setStatus(status: BannerStatus | null): void {
+    this.navigate({ status: this.statusFilter() === status ? null : status });
   }
 
-  protected fillComponentAttributeFromRoute(params: ParamMap, data: Data): void {
-    const page = params.get(PAGE_HEADER);
-    this.page.set(+(page ?? 1));
-    this.sortState.set(this.sortService.parseSortParam(params.get(SORT) ?? data[DEFAULT_SORT_DATA]));
-    this.filters.initializeFromParams(params);
+  setSearch(query: string): void {
+    this.navigate({ q: query.trim() || null });
   }
 
-  protected fillComponentAttributesFromResponseBody(data: IGalleryImage[]): IGalleryImage[] {
-    return data;
+  countIn(position: IGalleryWithImages): number {
+    return position.images.length;
   }
 
-  protected fillComponentAttributesFromResponseHeader(headers: HttpHeaders): void {
-    this.totalItems.set(Number(headers.get(TOTAL_COUNT_RESPONSE_HEADER)));
-  }
-
-  protected queryBackend(): void {
-    const pageToLoad: number = this.page();
-    const queryObject: any = {
-      page: pageToLoad - 1,
-      size: this.itemsPerPage(),
-      eagerload: true,
-      sort: this.sortService.buildSortParam(this.sortState()),
+  /** Khoảng ngày hiển thị gọn: "05/10/2026 → 31/12/2026", "Từ 05/10/2026", "Không giới hạn". */
+  dateRange(banner: IGalleryBanner): { from: string | null; to: string | null } {
+    return {
+      from: banner.startAt ? dayjs(banner.startAt).format('DD/MM/YYYY') : null,
+      to: banner.endAt ? dayjs(banner.endAt).format('DD/MM/YYYY') : null,
     };
-    for (const filterOption of this.filters.filterOptions) {
-      queryObject[filterOption.name] = filterOption.values;
-    }
-    this.galleryImageService.galleryImagesParams.set(queryObject);
   }
 
-  protected handleNavigation(page: number, sortState: SortState, filterOptions?: IFilterOption[]): void {
-    const queryParamsObj: any = {
-      page,
-      size: this.itemsPerPage(),
-      sort: this.sortService.buildSortParam(sortState),
-    };
-
-    if (filterOptions) {
-      for (const filterOption of filterOptions) {
-        queryParamsObj[filterOption.nameAsQueryParam()] = filterOption.values;
-      }
+  linkHost(url: string | null | undefined): string {
+    if (!url) {
+      return '';
     }
+    try {
+      return new URL(url, globalThis.location.origin).host;
+    } catch {
+      return url;
+    }
+  }
 
-    this.router.navigate(['./'], {
-      relativeTo: this.activatedRoute,
-      queryParams: queryParamsObj,
-    });
+  toggleActive(banner: BannerRow): void {
+    this.toggling.set(banner.id);
+    this.galleryImageService
+      .partialUpdate({ id: banner.id, active: !banner.active })
+      .pipe(finalize(() => this.toggling.set(null)))
+      .subscribe(() => this.load());
+  }
+
+  delete(banner: BannerRow): void {
+    const modalRef = this.modalService.open(GalleryImageDeleteDialog, { size: 'lg', backdrop: 'static' });
+    modalRef.componentInstance.galleryImage = { id: banner.id, title: banner.title };
+    modalRef.closed.pipe(filter(reason => reason === ITEM_DELETED_EVENT)).subscribe(() => this.load());
+  }
+
+  private navigate(change: Record<string, string | number | null>): void {
+    this.router.navigate([], { relativeTo: this.route, queryParams: change, queryParamsHandling: 'merge', replaceUrl: true });
   }
 }

@@ -2,17 +2,17 @@
   "javaSpringBootBackEndApp": {
     "galleryImage": {
       "home": {
-        "title": "Gallery Images",
-        "refreshListLabel": "Refresh list",
-        "createLabel": "Create a new Gallery Image",
+        "title": "Banners",
+        "refreshListLabel": "Refresh",
+        "createLabel": "Add banner",
         "createOrEditLabel": "Create or edit a Gallery Image",
-        "notFound": "No Gallery Images found"
+        "notFound": "No matching banners"
       },
       "created": "A new Gallery Image is created with identifier {{ param }}",
       "updated": "A Gallery Image is updated with identifier {{ param }}",
       "deleted": "A Gallery Image is deleted with identifier {{ param }}",
       "delete": {
-        "question": "Are you sure you want to delete Gallery Image {{ id }}?"
+        "question": "Are you sure you want to delete banner {{ id }}?"
       },
       "detail": {
         "title": "Gallery Image"
@@ -36,6 +36,51 @@
         "displayOrder": "Thứ tự hiển thị, nhỏ đứng trước",
         "startAt": "Hẹn giờ: chỉ hiển thị từ thời điểm này (bỏ trống = ngay)",
         "endAt": "Hẹn giờ: ngừng hiển thị sau thời điểm này (bỏ trống = không hết hạn)"
+      },
+      "status": {
+        "all": "All",
+        "showing": "Live",
+        "scheduled": "Scheduled",
+        "expired": "Expired",
+        "off": "Off",
+        "noImage": "No image"
+      },
+      "board": {
+        "allPositions": "All positions",
+        "managePositions": "Positions",
+        "positionOff": "Position off",
+        "search": "Search by banner name",
+        "loadError": "Could not load banners.",
+        "untitled": "(Untitled)",
+        "toggle": "Turn banner on/off",
+        "now": "Now",
+        "noEnd": "No end date",
+        "always": "Always shown"
+      },
+      "form": {
+        "createTitle": "Add banner",
+        "editTitle": "Edit banner",
+        "name": "Banner name",
+        "namePlaceholder": "e.g. Lunar New Year sale 2027",
+        "image": "Image",
+        "replace": "Replace",
+        "remove": "Remove",
+        "dropHint": "Drop an image here or click to choose",
+        "imageTypes": "JPG, PNG, WebP, GIF",
+        "imageRequired": "Upload an image or paste an image link.",
+        "useLink": "Or paste an image link",
+        "hideLink": "Hide image link",
+        "position": "Position",
+        "choosePosition": "Choose a position...",
+        "startDate": "Start date",
+        "startHint": "Empty = show now",
+        "endDate": "End date",
+        "optional": "(optional)",
+        "endHint": "Empty = no end date",
+        "endBeforeStart": "End date must be after the start date.",
+        "more": "More options",
+        "autoOrder": "Auto",
+        "altPlaceholder": "Empty = use the banner name"
       }
     }
   }

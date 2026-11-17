@@ -1,0 +1,206 @@
+// Sửa tay: trang quản lý banner dạng lưới thẻ.
+$showing: #12b76a;
+$scheduled: #2e90fa;
+$expired: #f79009;
+$off: #98a2b3;
+$no-image: #f04438;
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.position-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:hover {
+    border-color: var(--bs-primary-border-subtle);
+  }
+
+  &.active {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 3px var(--bs-primary-bg-subtle);
+  }
+
+  &.inactive .position-name {
+    color: var(--bs-secondary-color);
+  }
+}
+
+.position-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.position-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.position-sub {
+  font-size: 0.78rem;
+  color: var(--bs-secondary-color);
+}
+
+.dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+
+.dot-showing {
+  background: $showing;
+}
+.dot-scheduled {
+  background: $scheduled;
+}
+.dot-expired {
+  background: $expired;
+}
+.dot-off {
+  background: $off;
+}
+.dot-noImage {
+  background: $no-image;
+}
+
+.status-pill {
+  border: 1px solid var(--bs-border-color);
+  background: var(--bs-body-bg);
+
+  &.selected {
+    border-color: var(--bs-dark);
+    background: var(--bs-dark);
+    color: #fff;
+  }
+}
+
+.search-box {
+  max-width: 280px;
+}
+
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.banner-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  &.dimmed .banner-thumb img {
+    opacity: 0.55;
+  }
+}
+
+.banner-thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  // nền ô cờ để thấy ảnh PNG trong suốt
+  background-color: var(--bs-tertiary-bg);
+  background-image:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%), linear-gradient(-45deg, rgba(0, 0, 0, 0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%), linear-gradient(-45deg, transparent 75%, rgba(0, 0, 0, 0.04) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .no-image {
+    color: var(--bs-tertiary-color);
+  }
+}
+
+.status-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  background: $off;
+
+  &[data-status='showing'] {
+    background: $showing;
+  }
+  &[data-status='scheduled'] {
+    background: $scheduled;
+  }
+  &[data-status='expired'] {
+    background: $expired;
+  }
+  &[data-status='noImage'] {
+    background: $no-image;
+  }
+}
+
+.banner-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 0.9rem 0.5rem;
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.banner-meta {
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+}
+
+.position-badge {
+  font-weight: 500;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 0.9rem 0.8rem;
+
+  .btn:first-child {
+    flex: 1;
+  }
+}

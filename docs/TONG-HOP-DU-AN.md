@@ -2438,6 +2438,51 @@ Thay thanh menu ngang và dropdown "Thực thể" bằng menu bên trái chia 3 
   3. `PERMISSION_MODULES` cùng i18n `userManagement.permissions.*` (en, vi).
 - **Việc còn lại:** trang chi tiết vẫn còn vài link phụ dẫn tới trang sửa (ví dụ "Bổ sung" ở chi tiết doanh nghiệp/bài viết, nút sửa trong cây ngành nghề). Người chỉ có quyền xem bấm vào sẽ gặp trang "không có quyền"; dữ liệu không bị sửa.
 
+### 16.6 Trang quản lý banner (2026-11-17)
+
+Trang `/gallery-image` (menu Banner > Danh sách banner) thay bảng JHipster bằng lưới thẻ ảnh. Chỉ sửa frontend; backend dùng API có sẵn.
+
+**Danh sách** (`entities/gallery-image/list`):
+- **Nguồn dữ liệu:** gọi một lần `GET /api/galleries/with-images`. API này trả mọi vị trí kèm mọi ảnh, gồm cả ảnh đang tắt và ảnh hết hạn. Ảnh upload được trả về dạng URL media, không phải base64. Số banner chỉ vài chục nên không phân trang.
+- **Hàng ô vị trí:** mỗi vị trí hiện tổng số banner và số banner đang hiển thị. Bấm vào ô nào thì lọc theo vị trí đó.
+- **Lọc trạng thái:**
+
+  | Trạng thái | Điều kiện |
+  |---|---|
+  | Đang hiển thị | Banner và vị trí đều bật, có ảnh, đang trong khoảng ngày |
+  | Hẹn lịch | `startAt` ở tương lai |
+  | Hết hạn | `endAt` đã qua |
+  | Đang tắt | Banner hoặc vị trí bị tắt |
+  | Thiếu ảnh | Chưa có ảnh |
+
+  Hàm tính trạng thái là `bannerStatus()`.
+- **Tìm theo tên:** có ô tìm theo tên banner.
+- **Bộ lọc nằm trên URL** (`?position=&status=&q=`), nên tải lại trang hoặc gửi link cho người khác vẫn giữ nguyên.
+- **Mỗi thẻ banner** gồm: ảnh xem trước, nhãn trạng thái, tên, vị trí, khoảng ngày, link khi bấm, công tắc bật/tắt nhanh (`PATCH`), nút Sửa và Xóa.
+- **Quyền:** chỉ tài khoản có quyền quản lý banner mới thấy công tắc và các nút.
+
+**Form thêm/sửa** (`entities/gallery-image/update`). Chỉ có 5 ô:
+
+| Ô | Ghi chú |
+|---|---|
+| Tên banner* | |
+| Ảnh* | Kéo thả hoặc chọn file, có xem trước. Có thể dán link ảnh thay cho tải lên |
+| Vị trí hiển thị* | Thêm từ danh sách đang lọc một vị trí thì vị trí đó được chọn sẵn |
+| Ngày hiển thị | Mặc định là hôm nay; bỏ trống là hiển thị ngay. Lưu thành 00:00 của ngày đó |
+| Ngày kết thúc | Không bắt buộc; bỏ trống là không giới hạn. Lưu thành 23:59:59 của ngày đó. Phải sau ngày hiển thị |
+
+- Phần **"Tùy chọn thêm"** đóng sẵn, gồm: link khi bấm, mở tab mới, đang bật, thứ tự, mô tả ảnh (alt).
+- Giá trị tự điền khi bỏ trống:
+  - thứ tự: xếp cuối vị trí;
+  - mô tả ảnh: lấy theo tên banner;
+  - đang bật: mặc định bật khi thêm mới.
+- Khi tải ảnh lên, link ảnh cũ bị xóa để không có hai nguồn ảnh cùng lúc.
+
+**Khác:**
+- Menu Banner đổi thành "Danh sách banner" (đứng đầu) và "Vị trí hiển thị".
+- Ô "Banner" trên trang chủ đếm số banner (`/api/gallery-images/count`), không còn đếm số vị trí.
+- **Lưu ý khi sửa form:** sau `addValidators`/`clearValidators` phải gọi `updateValueAndValidity()`. Nếu không, trạng thái hợp lệ vẫn tính theo luật cũ, ví dụ ô bắt buộc để trống vẫn được coi là hợp lệ. Đã sửa lỗi này ở cả form banner và form người dùng.
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.

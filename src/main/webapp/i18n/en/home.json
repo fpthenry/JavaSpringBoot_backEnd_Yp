@@ -11,13 +11,13 @@
       "categories": "Industries",
       "locations": "Administrative units",
       "blogPosts": "Posts",
-      "galleries": "Banner slots"
+      "galleries": "Banners"
     },
     "quick": {
       "title": "Quick actions",
       "newListing": "Add business",
       "newPost": "Write a post",
-      "newBanner": "Add banner image",
+      "newBanner": "Add banner",
       "importListing": "Import companies"
     }
   }

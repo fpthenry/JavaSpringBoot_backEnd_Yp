@@ -1,216 +1,128 @@
-import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 
 import { FaIconLibrary } from '@fortawesome/angular-fontawesome';
-import { faEye, faPencilAlt, faPlus, faSort, faSortDown, faSortUp, faSync, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap/modal';
 import { provideTranslateService } from '@ngx-translate/core';
-import { Subject, of } from 'rxjs';
+import dayjs from 'dayjs/esm';
+import { BehaviorSubject, Subject, of } from 'rxjs';
 
-import { sampleWithRequiredData } from '../gallery-image.test-samples';
+import { ITEM_DELETED_EVENT } from 'app/config';
+import { fontAwesomeIcons } from 'app/config/font-awesome-icons';
+import { IGalleryBanner, IGalleryWithImages } from 'app/entities/gallery/gallery.model';
+import { GalleryService } from 'app/entities/gallery/service/gallery.service';
+import { IGalleryImage } from '../gallery-image.model';
 import { GalleryImageService } from '../service/gallery-image.service';
 
-import { GalleryImage } from './gallery-image';
+import { GalleryImage, bannerStatus } from './gallery-image';
 
-vi.useFakeTimers();
+const now = dayjs('2026-11-17T10:00');
+const banner = (patch: Partial<IGalleryBanner>): IGalleryBanner => ({
+  id: 1,
+  uploaded: false,
+  previewUrl: 'https://cdn.yp.vn/a.png',
+  active: true,
+  showingNow: true,
+  ...patch,
+});
 
-describe('GalleryImage Management Component', () => {
-  let httpMock: HttpTestingController;
+const POSITIONS: IGalleryWithImages[] = [
+  {
+    id: 1,
+    name: 'Đầu trang',
+    active: true,
+    imageCount: 3,
+    images: [
+      banner({ id: 1, title: 'Tết', displayOrder: 1 }),
+      banner({ id: 2, title: 'Hè', displayOrder: 0, active: false }),
+      banner({ id: 3, title: 'Năm sau', startAt: dayjs().add(30, 'day').toISOString() }),
+    ],
+  },
+  { id: 2, name: 'Chân trang', active: true, imageCount: 1, images: [banner({ id: 4, title: 'Cũ', endAt: '2020-01-01T00:00:00Z' })] },
+];
+
+describe('bannerStatus', () => {
+  it('tells live, scheduled, expired, off and missing image apart', () => {
+    expect(bannerStatus(banner({}), true, now)).toBe('showing');
+    expect(bannerStatus(banner({ active: false }), true, now)).toBe('off');
+    expect(bannerStatus(banner({}), false, now)).toBe('off');
+    expect(bannerStatus(banner({ previewUrl: null }), true, now)).toBe('noImage');
+    expect(bannerStatus(banner({ startAt: '2026-12-01T00:00:00Z' }), true, now)).toBe('scheduled');
+    expect(bannerStatus(banner({ endAt: '2026-11-01T00:00:00Z' }), true, now)).toBe('expired');
+  });
+});
+
+describe('GalleryImage list (trang quản lý banner)', () => {
   let comp: GalleryImage;
   let fixture: ComponentFixture<GalleryImage>;
-  let service: GalleryImageService;
-  let routerNavigateSpy: MockInstance;
+  let queryParamMap: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
+  let galleryImageService: GalleryImageService;
 
   beforeEach(() => {
+    queryParamMap = new BehaviorSubject(convertToParamMap({}));
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
+        provideHttpClient(),
         provideHttpClientTesting(),
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            data: of({
-              defaultSort: 'id,asc',
-            }),
-            queryParamMap: of(
-              convertToParamMap({
-                page: '1',
-                size: '1',
-                sort: 'id,desc',
-                'filter[someId.in]': 'dc4279ea-cfb9-11ec-9d64-0242ac120002',
-              }),
-            ),
-            snapshot: {
-              queryParams: {},
-              queryParamMap: convertToParamMap({
-                page: '1',
-                size: '1',
-                sort: 'id,desc',
-                'filter[someId.in]': 'dc4279ea-cfb9-11ec-9d64-0242ac120002',
-              }),
-            },
-          },
-        },
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { queryParamMap } },
       ],
     });
-
+    TestBed.inject(FaIconLibrary).addIcons(...fontAwesomeIcons);
+    vi.spyOn(TestBed.inject(GalleryService), 'withImages').mockReturnValue(of(POSITIONS));
+    galleryImageService = TestBed.inject(GalleryImageService);
     fixture = TestBed.createComponent(GalleryImage);
     comp = fixture.componentInstance;
-    service = TestBed.inject(GalleryImageService);
-    routerNavigateSpy = vi.spyOn(comp.router, 'navigate');
-
-    const library = TestBed.inject(FaIconLibrary);
-    library.addIcons(faEye, faPencilAlt, faPlus, faSort, faSortDown, faSortUp, faSync, faTimes);
-    httpMock = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
   });
 
-  afterEach(() => {
-    TestBed.resetTestingModule();
-    httpMock.verify();
+  it('loads every banner of every position, ordered by display order', () => {
+    expect(comp.banners().map(item => item.id)).toEqual([2, 1, 3, 4]);
+    expect(comp.showingTotal()).toBe(1);
+    expect(comp.showingByPosition().get(1)).toBe(1);
   });
 
-  it('should call load all on init', async () => {
-    // WHEN
-    TestBed.tick();
-    const req = httpMock.expectOne({ method: 'GET' });
-    req.flush([{ id: 21370 }], { headers: { link: '<http://localhost/api/foo?page=1&size=20>; rel="next"' } });
-    await vi.runAllTimersAsync();
+  it('filters by position and status from the URL', () => {
+    queryParamMap.next(convertToParamMap({ position: '1' }));
+    expect(comp.visible().map(item => item.id)).toEqual([2, 1, 3]);
+    expect(comp.statusCounts()).toEqual({ showing: 1, scheduled: 1, expired: 0, off: 1, noImage: 0 });
 
-    // THEN
-    expect(comp.isLoading()).toEqual(false);
-    expect(comp.galleryImages()[0]).toEqual(expect.objectContaining({ id: 21370 }));
+    queryParamMap.next(convertToParamMap({ position: '1', status: 'scheduled' }));
+    expect(comp.visible().map(item => item.id)).toEqual([3]);
+
+    queryParamMap.next(convertToParamMap({ status: 'expired' }));
+    expect(comp.visible().map(item => item.id)).toEqual([4]);
   });
 
-  it('should cancel previous requests when loading a new page', async () => {
-    // WHEN
-    TestBed.tick();
-    const req = httpMock.expectOne({ method: 'GET' });
-    await vi.runAllTimersAsync();
-
-    comp.page.set(3);
-    comp.load();
-    await vi.runAllTimersAsync();
-    const req2 = httpMock.expectOne({ method: 'GET' });
-    req2.flush([{ id: 21370 }], { headers: { link: '<http://localhost/api/foo?page=1&size=20>; rel="next"' } });
-    await vi.runAllTimersAsync();
-
-    // THEN
-    expect(req.cancelled).toBeTruthy();
-    expect(comp.isLoading()).toEqual(false);
-    expect(comp.galleryImages()[0]).toEqual(expect.objectContaining({ id: 21370 }));
+  it('searches by name', () => {
+    queryParamMap.next(convertToParamMap({ q: 'tết' }));
+    expect(comp.visible().map(item => item.id)).toEqual([1]);
   });
 
-  it('should not fail on resource error state', async () => {
-    // GIVEN - first load triggers an HTTP error
-    TestBed.tick();
-    const errorReq = httpMock.expectOne({ method: 'GET' });
-    errorReq.flush('error', { status: 500, statusText: 'Server Error' });
-    await vi.runAllTimersAsync();
-
-    // THEN - loading state was reset and list is empty
-    expect(comp.isLoading()).toBe(false);
-    expect(comp.galleryImages()).toEqual([]);
-
-    // WHEN - second load should still work
-    comp.load();
-    TestBed.tick();
-    const successReq = httpMock.expectOne({ method: 'GET' });
-    successReq.flush([{ id: 21370 }], { headers: { link: '<http://localhost/api/foo?page=1&size=20>; rel="next"' } });
-    await vi.runAllTimersAsync();
-
-    // THEN - subscription is still alive and second load succeeds
-    expect(comp.galleryImages()[0]).toEqual(expect.objectContaining({ id: 21370 }));
+  it('writes the filters to the URL', () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    comp.setPosition(2);
+    expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: { position: 2 }, queryParamsHandling: 'merge' }));
   });
 
-  describe('trackId', () => {
-    it('should forward to galleryImageService', () => {
-      const entity = { id: 21370 };
-      vi.spyOn(service, 'getGalleryImageIdentifier');
-      const id = comp.trackId(entity);
-      expect(service.getGalleryImageIdentifier).toHaveBeenCalledWith(entity);
-      expect(id).toBe(entity.id);
-    });
+  it('turns a banner on/off and reloads', () => {
+    const patch = vi.spyOn(galleryImageService, 'partialUpdate').mockReturnValue(of({ id: 2 } as IGalleryImage));
+    comp.toggleActive(comp.banners()[0]);
+    expect(patch).toHaveBeenCalledWith({ id: 2, active: true });
+    expect(comp.toggling()).toBeNull();
   });
 
-  it('should calculate the sort attribute for a non-id attribute', () => {
-    // WHEN
-    comp.navigateToWithComponentValues({ predicate: 'non-existing-column', order: 'asc' });
-
-    // THEN
-    expect(routerNavigateSpy).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        queryParams: expect.objectContaining({
-          sort: ['non-existing-column,asc'],
-        }),
-      }),
-    );
-  });
-
-  it('should load a page', () => {
-    // WHEN
-    comp.navigateToPage(1);
-
-    // THEN
-    expect(routerNavigateSpy).toHaveBeenCalled();
-  });
-
-  it('should calculate the sort attribute for an id', () => {
-    // WHEN
-    TestBed.tick();
-    httpMock.expectOne({ method: 'GET' });
-
-    // THEN
-    expect(service.galleryImagesParams()).toMatchObject({ sort: ['id,desc'] });
-  });
-
-  it('should calculate the filter attribute', () => {
-    // WHEN
-    TestBed.tick();
-    httpMock.expectOne({ method: 'GET' });
-
-    // THEN
-    expect(service.galleryImagesParams()).toMatchObject({ 'someId.in': ['dc4279ea-cfb9-11ec-9d64-0242ac120002'] });
-  });
-
-  describe('delete', () => {
-    let ngbModal: NgbModal;
-    let deleteModalMock: any;
-
-    beforeEach(() => {
-      deleteModalMock = { componentInstance: {}, closed: new Subject() };
-      // NgbModal is not a singleton using TestBed.inject.
-      // ngbModal = TestBed.inject(NgbModal);
-      ngbModal = (comp as unknown as { modalService: NgbModal }).modalService;
-      vi.spyOn(ngbModal, 'open').mockReturnValue(deleteModalMock);
-    });
-
-    it('on confirm should call load', () => {
-      // GIVEN
-      vi.spyOn(comp, 'load');
-
-      // WHEN
-      comp.delete(sampleWithRequiredData);
-      deleteModalMock.closed.next('deleted');
-
-      // THEN
-      expect(ngbModal.open).toHaveBeenCalled();
-      expect(comp.load).toHaveBeenCalled();
-    });
-
-    it('on dismiss should call load', () => {
-      // GIVEN
-      vi.spyOn(comp, 'load');
-
-      // WHEN
-      comp.delete(sampleWithRequiredData);
-      deleteModalMock.closed.next();
-
-      // THEN
-      expect(ngbModal.open).toHaveBeenCalled();
-      expect(comp.load).not.toHaveBeenCalled();
-    });
+  it('reloads after a confirmed delete', () => {
+    const closed = new Subject<string>();
+    vi.spyOn(TestBed.inject(NgbModal), 'open').mockReturnValue({ componentInstance: {}, closed } as unknown as NgbModalRef);
+    const withImages = vi.spyOn(TestBed.inject(GalleryService), 'withImages');
+    withImages.mockClear();
+    comp.delete(comp.banners()[1]);
+    closed.next(ITEM_DELETED_EVENT);
+    expect(withImages).toHaveBeenCalledTimes(1);
   });
 });

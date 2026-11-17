@@ -2,17 +2,17 @@
   "javaSpringBootBackEndApp": {
     "galleryImage": {
       "home": {
-        "title": "Ảnh banner",
-        "refreshListLabel": "Làm mới",
-        "createLabel": "Thêm ảnh banner",
+        "title": "Banner",
+        "refreshListLabel": "Tải lại",
+        "createLabel": "Thêm banner",
         "createOrEditLabel": "Thêm hoặc sửa ảnh banner",
-        "notFound": "Chưa có ảnh banner nào"
+        "notFound": "Không có banner nào phù hợp"
       },
       "created": "Đã tạo ảnh banner {{ param }}",
       "updated": "Đã cập nhật ảnh banner {{ param }}",
       "deleted": "Đã xóa ảnh banner {{ param }}",
       "delete": {
-        "question": "Bạn có chắc muốn xóa ảnh banner {{ id }}?"
+        "question": "Bạn có chắc muốn xóa banner {{ id }}?"
       },
       "detail": {
         "title": "Ảnh banner"
@@ -36,6 +36,51 @@
         "displayOrder": "Thứ tự hiển thị, nhỏ đứng trước",
         "startAt": "Hẹn giờ: chỉ hiển thị từ thời điểm này (bỏ trống = ngay)",
         "endAt": "Hẹn giờ: ngừng hiển thị sau thời điểm này (bỏ trống = không hết hạn)"
+      },
+      "status": {
+        "all": "Tất cả",
+        "showing": "Đang hiển thị",
+        "scheduled": "Hẹn lịch",
+        "expired": "Hết hạn",
+        "off": "Đang tắt",
+        "noImage": "Thiếu ảnh"
+      },
+      "board": {
+        "allPositions": "Tất cả vị trí",
+        "managePositions": "Vị trí hiển thị",
+        "positionOff": "Vị trí đang tắt",
+        "search": "Tìm theo tên banner",
+        "loadError": "Không tải được danh sách banner.",
+        "untitled": "(Chưa đặt tên)",
+        "toggle": "Bật/tắt banner",
+        "now": "Ngay",
+        "noEnd": "Không giới hạn",
+        "always": "Luôn hiển thị"
+      },
+      "form": {
+        "createTitle": "Thêm banner",
+        "editTitle": "Sửa banner",
+        "name": "Tên banner",
+        "namePlaceholder": "Ví dụ: Khuyến mãi Tết 2027",
+        "image": "Ảnh",
+        "replace": "Đổi ảnh",
+        "remove": "Bỏ ảnh",
+        "dropHint": "Kéo thả ảnh vào đây hoặc bấm để chọn",
+        "imageTypes": "JPG, PNG, WebP, GIF",
+        "imageRequired": "Chọn ảnh tải lên hoặc dán link ảnh.",
+        "useLink": "Hoặc dán link ảnh",
+        "hideLink": "Ẩn ô link ảnh",
+        "position": "Vị trí hiển thị",
+        "choosePosition": "Chọn vị trí...",
+        "startDate": "Ngày hiển thị",
+        "startHint": "Bỏ trống = hiển thị ngay",
+        "endDate": "Ngày kết thúc",
+        "optional": "(không bắt buộc)",
+        "endHint": "Bỏ trống = không giới hạn",
+        "endBeforeStart": "Ngày kết thúc phải sau ngày hiển thị.",
+        "more": "Tùy chọn thêm",
+        "autoOrder": "Tự động",
+        "altPlaceholder": "Bỏ trống = dùng tên banner"
       }
     }
   }

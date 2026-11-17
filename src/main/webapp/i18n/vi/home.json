@@ -11,13 +11,13 @@
       "categories": "Ngành nghề",
       "locations": "Đơn vị hành chính",
       "blogPosts": "Bài viết",
-      "galleries": "Vị trí banner"
+      "galleries": "Banner"
     },
     "quick": {
       "title": "Việc hay làm",
       "newListing": "Thêm doanh nghiệp",
       "newPost": "Viết bài mới",
-      "newBanner": "Thêm ảnh banner",
+      "newBanner": "Thêm banner",
       "importListing": "Nhập doanh nghiệp"
     }
   }

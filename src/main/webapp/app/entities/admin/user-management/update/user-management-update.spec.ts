@@ -130,6 +130,19 @@ describe('UserManagement Management Update Component', () => {
   });
 
   describe('permissions', () => {
+    it('should not save without a full name', () => {
+      vi.spyOn(userManagementService, 'create');
+      activatedRoute.data = of({ userManagement: null });
+      comp.ngOnInit();
+      comp.editForm.patchValue({ email: 'an@yp.vn' });
+      comp.accessForm.controls.password.setValue('matkhau123');
+
+      comp.save();
+
+      expect(comp.editForm.controls.firstName.hasError('required')).toBe(true);
+      expect(userManagementService.create).not.toHaveBeenCalled();
+    });
+
     it('should not save when required fields are missing', () => {
       vi.spyOn(userManagementService, 'create');
       activatedRoute.data = of({ userManagement: null });

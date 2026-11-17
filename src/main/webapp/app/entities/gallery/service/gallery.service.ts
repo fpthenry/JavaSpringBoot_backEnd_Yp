@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 
 import { serverApiUrl } from 'app/config';
 import { createRequestOption } from 'app/core/request';
-import { IGallery, NewGallery } from '../gallery.model';
+import { IGallery, IGalleryWithImages, NewGallery } from '../gallery.model';
 
 export type PartialUpdateGallery = Partial<IGallery> & Pick<IGallery, 'id'>;
 
@@ -32,6 +32,11 @@ export class GalleriesService {
 @Service()
 export class GalleryService extends GalleriesService {
   protected readonly http = inject(HttpClient);
+
+  /** Sửa tay: mọi vị trí banner kèm mọi ảnh (kể cả đang tắt, hết hạn), cho trang quản lý banner. */
+  withImages(): Observable<IGalleryWithImages[]> {
+    return this.http.get<IGalleryWithImages[]>(`${this.resourceUrl}/with-images`);
+  }
 
   create(gallery: NewGallery): Observable<IGallery> {
     return this.http.post<IGallery>(this.resourceUrl, gallery);

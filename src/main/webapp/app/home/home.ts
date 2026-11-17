@@ -62,8 +62,8 @@ export const DASHBOARD_STATS: DashboardStat[] = [
     key: 'gallery',
     label: 'home.stats.galleries',
     icon: 'images',
-    link: '/gallery',
-    countUrl: 'api/galleries/count',
+    link: '/gallery-image',
+    countUrl: 'api/gallery-images/count',
     authorities: canViewAuthorities('banner'),
   },
 ];

@@ -113,6 +113,9 @@ export class UserManagementUpdate implements OnInit {
     login.updateValueAndValidity();
     firstName.addValidators([Validators.required]);
     email.addValidators([Validators.required, Validators.email]);
+    // Thêm luật xong phải tính lại, không thì ô trống vẫn được coi là hợp lệ.
+    firstName.updateValueAndValidity();
+    email.updateValueAndValidity();
     // Quản trị viên đã có toàn quyền: khóa bảng quyền theo mục cho khỏi nhầm.
     const { isAdmin, levels } = this.accessForm.controls;
     isAdmin.valueChanges.subscribe(admin => (admin ? levels.disable({ emitEvent: false }) : levels.enable({ emitEvent: false })));

@@ -1,0 +1,62 @@
+// Sửa tay: form banner tinh gọn.
+.banner-form {
+  max-width: 720px;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 170px;
+  padding: 1.5rem;
+  border: 2px dashed var(--bs-border-color);
+  border-radius: 0.75rem;
+  color: var(--bs-secondary-color);
+  background: var(--bs-tertiary-bg);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+
+  &:hover,
+  &.drag-over {
+    border-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary);
+  }
+
+  &.is-invalid {
+    border-color: var(--bs-danger);
+  }
+}
+
+.image-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  max-height: 320px;
+  padding: 0.5rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  background: var(--bs-tertiary-bg);
+  overflow: hidden;
+
+  img {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+  }
+
+  .image-preview-actions {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    display: flex;
+    gap: 0.4rem;
+  }
+}

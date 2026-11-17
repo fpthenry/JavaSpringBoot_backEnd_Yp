@@ -1,164 +1,147 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HttpResponse } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
 import { provideTranslateService } from '@ngx-translate/core';
-import { Subject, from, of } from 'rxjs';
+import dayjs from 'dayjs/esm';
+import { Subject, of } from 'rxjs';
 
-import { IGallery } from 'app/entities/gallery/gallery.model';
+import { IGalleryWithImages } from 'app/entities/gallery/gallery.model';
 import { GalleryService } from 'app/entities/gallery/service/gallery.service';
 import { IGalleryImage } from '../gallery-image.model';
 import { GalleryImageService } from '../service/gallery-image.service';
 
-import { GalleryImageFormService } from './gallery-image-form.service';
 import { GalleryImageUpdate } from './gallery-image-update';
 
-describe('GalleryImage Management Update Component', () => {
+const POSITIONS: IGalleryWithImages[] = [
+  {
+    id: 1,
+    name: 'Đầu trang',
+    code: 'top',
+    active: true,
+    imageCount: 2,
+    images: [
+      { id: 10, uploaded: false, displayOrder: 0, showingNow: true },
+      { id: 11, uploaded: false, displayOrder: 4, showingNow: true },
+    ],
+  },
+  { id: 2, name: 'Chân trang', code: 'footer', active: true, imageCount: 0, images: [] },
+];
+
+describe('GalleryImage Update Component (form banner tinh gọn)', () => {
   let comp: GalleryImageUpdate;
   let fixture: ComponentFixture<GalleryImageUpdate>;
-  let activatedRoute: ActivatedRoute;
-  let galleryImageFormService: GalleryImageFormService;
+  let activatedRoute: { data: unknown; snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } };
   let galleryImageService: GalleryImageService;
-  let galleryService: GalleryService;
 
   beforeEach(() => {
+    activatedRoute = { data: of({ galleryImage: null }), snapshot: { queryParamMap: convertToParamMap({}) } };
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
+        provideHttpClient(),
         provideHttpClientTesting(),
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            params: from([{}]),
-          },
-        },
+        { provide: ActivatedRoute, useValue: activatedRoute },
       ],
     });
-
-    fixture = TestBed.createComponent(GalleryImageUpdate);
-    activatedRoute = TestBed.inject(ActivatedRoute);
-    galleryImageFormService = TestBed.inject(GalleryImageFormService);
+    vi.spyOn(TestBed.inject(GalleryService), 'withImages').mockReturnValue(of(POSITIONS));
     galleryImageService = TestBed.inject(GalleryImageService);
-    galleryService = TestBed.inject(GalleryService);
-
+    fixture = TestBed.createComponent(GalleryImageUpdate);
     comp = fixture.componentInstance;
   });
 
-  describe('ngOnInit', () => {
-    it('should call Gallery query and add missing value', () => {
-      const galleryImage: IGalleryImage = { id: 4556 };
-      const gallery: IGallery = { id: 16173 };
-      galleryImage.gallery = gallery;
+  const fill = (): void => {
+    comp.editForm.patchValue({ title: '  Khuyến mãi Tết  ', imageUrl: 'https://cdn.yp.vn/tet.png', gallery: { id: 1, name: 'Đầu trang' } });
+  };
 
-      const galleryCollection: IGallery[] = [{ id: 16173 }];
-      vi.spyOn(galleryService, 'query').mockReturnValue(of(new HttpResponse({ body: galleryCollection })));
-      const additionalGalleries = [gallery];
-      const expectedCollection: IGallery[] = [...additionalGalleries, ...galleryCollection];
-      vi.spyOn(galleryService, 'addGalleryToCollectionIfMissing').mockReturnValue(expectedCollection);
-
-      activatedRoute.data = of({ galleryImage });
-      comp.ngOnInit();
-
-      expect(galleryService.query).toHaveBeenCalled();
-      expect(galleryService.addGalleryToCollectionIfMissing).toHaveBeenCalledWith(
-        galleryCollection,
-        ...additionalGalleries.map(i => expect.objectContaining(i) as typeof i),
-      );
-      expect(comp.galleriesSharedCollection()).toEqual(expectedCollection);
-    });
-
-    it('should update editForm', () => {
-      const galleryImage: IGalleryImage = { id: 4556 };
-      const gallery: IGallery = { id: 16173 };
-      galleryImage.gallery = gallery;
-
-      activatedRoute.data = of({ galleryImage });
-      comp.ngOnInit();
-
-      expect(comp.galleriesSharedCollection()).toContainEqual(gallery);
-      expect(comp.galleryImage).toEqual(galleryImage);
-    });
+  it('new banner: active, start date today, no end date', () => {
+    comp.ngOnInit();
+    expect(comp.isNew).toBe(true);
+    expect(comp.editForm.controls.active.value).toBe(true);
+    expect(comp.startDate.value).toBe(dayjs().format('YYYY-MM-DD'));
+    expect(comp.endDate.value).toBe('');
   });
 
-  describe('save', () => {
-    it('should call update service on save for existing entity', () => {
-      // GIVEN
-      const saveSubject = new Subject<IGalleryImage>();
-      const galleryImage = { id: 21370 };
-      vi.spyOn(galleryImageFormService, 'getGalleryImage').mockReturnValue(galleryImage);
-      vi.spyOn(galleryImageService, 'update').mockReturnValue(saveSubject);
-      vi.spyOn(comp, 'previousState');
-      activatedRoute.data = of({ galleryImage });
-      comp.ngOnInit();
-
-      // WHEN
-      comp.save();
-      expect(comp.isSaving()).toEqual(true);
-      saveSubject.next(galleryImage);
-      saveSubject.complete();
-
-      // THEN
-      expect(galleryImageFormService.getGalleryImage).toHaveBeenCalled();
-      expect(comp.previousState).toHaveBeenCalled();
-      expect(galleryImageService.update).toHaveBeenCalledWith(expect.objectContaining(galleryImage));
-      expect(comp.isSaving()).toEqual(false);
-    });
-
-    it('should call create service on save for new entity', () => {
-      // GIVEN
-      const saveSubject = new Subject<IGalleryImage>();
-      const galleryImage = { id: 21370 };
-      vi.spyOn(galleryImageFormService, 'getGalleryImage').mockReturnValue({ id: null });
-      vi.spyOn(galleryImageService, 'create').mockReturnValue(saveSubject);
-      vi.spyOn(comp, 'previousState');
-      activatedRoute.data = of({ galleryImage: null });
-      comp.ngOnInit();
-
-      // WHEN
-      comp.save();
-      expect(comp.isSaving()).toEqual(true);
-      saveSubject.next(galleryImage);
-      saveSubject.complete();
-
-      // THEN
-      expect(galleryImageFormService.getGalleryImage).toHaveBeenCalled();
-      expect(galleryImageService.create).toHaveBeenCalled();
-      expect(comp.isSaving()).toEqual(false);
-      expect(comp.previousState).toHaveBeenCalled();
-    });
-
-    it('should set isSaving to false on error', () => {
-      // GIVEN
-      const saveSubject = new Subject<IGalleryImage>();
-      const galleryImage = { id: 21370 };
-      vi.spyOn(galleryImageService, 'update').mockReturnValue(saveSubject);
-      vi.spyOn(comp, 'previousState');
-      activatedRoute.data = of({ galleryImage });
-      comp.ngOnInit();
-
-      // WHEN
-      comp.save();
-      expect(comp.isSaving()).toEqual(true);
-      saveSubject.error('This is an error!');
-
-      // THEN
-      expect(galleryImageService.update).toHaveBeenCalled();
-      expect(comp.isSaving()).toEqual(false);
-      expect(comp.previousState).not.toHaveBeenCalled();
-    });
+  it('preselects the position from ?position=', () => {
+    activatedRoute.snapshot.queryParamMap = convertToParamMap({ position: '2' });
+    comp.ngOnInit();
+    expect(comp.editForm.controls.gallery.value).toEqual({ id: 2, name: 'Chân trang' });
   });
 
-  describe('Compare relationships', () => {
-    describe('compareGallery', () => {
-      it('should forward to galleryService', () => {
-        const entity = { id: 16173 };
-        const entity2 = { id: 7807 };
-        vi.spyOn(galleryService, 'compareGallery');
-        comp.compareGallery(entity, entity2);
-        expect(galleryService.compareGallery).toHaveBeenCalledWith(entity, entity2);
-      });
+  it('does not save without name, image and position', () => {
+    const create = vi.spyOn(galleryImageService, 'create');
+    comp.ngOnInit();
+    comp.save();
+    expect(create).not.toHaveBeenCalled();
+    expect(comp.missingImage).toBe(true);
+  });
+
+  it('rejects an end date before the start date', () => {
+    comp.ngOnInit();
+    comp.startDate.setValue('2026-12-10');
+    comp.endDate.setValue('2026-12-01');
+    expect(comp.endDate.hasError('endBeforeStart')).toBe(true);
+    comp.endDate.setValue('2026-12-31');
+    expect(comp.endDate.valid).toBe(true);
+  });
+
+  it('saves a new banner with day bounds, next order and alt from the name', () => {
+    const create = vi.spyOn(galleryImageService, 'create').mockReturnValue(new Subject<IGalleryImage>());
+    comp.ngOnInit();
+    fill();
+    comp.startDate.setValue('2026-12-01');
+    comp.endDate.setValue('2026-12-31');
+
+    comp.save();
+
+    expect(create).toHaveBeenCalledTimes(1);
+    const payload = create.mock.calls[0][0];
+    expect(payload.title).toBe('Khuyến mãi Tết');
+    expect(payload.altText).toBe('Khuyến mãi Tết');
+    expect(payload.displayOrder).toBe(5);
+    expect(payload.active).toBe(true);
+    expect(payload.startAt?.format('YYYY-MM-DD HH:mm')).toBe('2026-12-01 00:00');
+    expect(payload.endAt?.format('YYYY-MM-DD HH:mm:ss')).toBe('2026-12-31 23:59:59');
+  });
+
+  it('empty end date saves no end, empty start date saves "show now"', () => {
+    const create = vi.spyOn(galleryImageService, 'create').mockReturnValue(new Subject<IGalleryImage>());
+    comp.ngOnInit();
+    fill();
+    comp.editForm.patchValue({ gallery: { id: 2, name: 'Chân trang' } });
+    comp.startDate.setValue('');
+
+    comp.save();
+
+    const payload = create.mock.calls[0][0];
+    expect(payload.startAt).toBeNull();
+    expect(payload.endAt).toBeNull();
+    expect(payload.displayOrder).toBe(0);
+  });
+
+  it('edit: loads dates and keeps the existing order', () => {
+    const update = vi.spyOn(galleryImageService, 'update').mockReturnValue(new Subject<IGalleryImage>());
+    activatedRoute.data = of({
+      galleryImage: {
+        id: 7,
+        title: 'Cũ',
+        imageUrl: 'https://cdn.yp.vn/a.png',
+        displayOrder: 3,
+        active: false,
+        startAt: dayjs('2026-11-01T00:00'),
+        endAt: null,
+        gallery: { id: 1, name: 'Đầu trang' },
+      },
     });
+    comp.ngOnInit();
+    expect(comp.isNew).toBe(false);
+    expect(comp.startDate.value).toBe('2026-11-01');
+    expect(comp.showMore()).toBe(true);
+
+    comp.save();
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ id: 7, displayOrder: 3, active: false, endAt: null }));
   });
 });

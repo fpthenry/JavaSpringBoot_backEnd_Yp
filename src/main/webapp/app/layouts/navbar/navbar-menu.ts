@@ -70,8 +70,8 @@ export const MENU_GROUPS: MenuGroup[] = [
         icon: 'images',
         authorities: canViewAuthorities('banner'),
         children: [
-          { label: 'global.menu.entities.gallery', link: '/gallery' },
           { label: 'global.menu.entities.galleryImage', link: '/gallery-image' },
+          { label: 'global.menu.entities.gallery', link: '/gallery' },
         ],
       },
     ],

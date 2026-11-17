@@ -1,202 +1,199 @@
-<div>
-  <h2 id="page-heading" data-cy="GalleryImageHeading">
-    <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.title">Gallery Images</span>
-
-    <div class="d-flex justify-content-end">
-      <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading()">
-        <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
-        <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.refreshListLabel">Refresh list</span>
-      </button>
-
-      <button
-        id="jh-create-entity"
-        *jhiHasAnyAuthority="editAuthorities"
-        data-cy="entityCreateButton"
-        class="btn btn-primary jh-create-entity create-gallery-image"
-        [routerLink]="['/gallery-image/new']"
+<div class="banner-page">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 id="page-heading" data-cy="GalleryImageHeading" class="mb-0 me-auto">
+      <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.title">Banner</span>
+    </h2>
+    <button
+      class="btn btn-outline-secondary"
+      (click)="load()"
+      [disabled]="isLoading()"
+      [title]="'javaSpringBootBackEndApp.galleryImage.home.refreshListLabel' | translate"
+    >
+      <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+    </button>
+    <a class="btn btn-outline-secondary" routerLink="/gallery">
+      <fa-icon icon="table-cells-large" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.galleryImage.board.managePositions"
+        >Vị trí hiển thị</span
       >
-        <fa-icon icon="plus" />
-        <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.createLabel">Create a new Gallery Image</span>
-      </button>
-    </div>
-  </h2>
+    </a>
+    <button
+      id="jh-create-entity"
+      *jhiHasAnyAuthority="editAuthorities"
+      data-cy="entityCreateButton"
+      class="btn btn-primary"
+      [routerLink]="['/gallery-image/new']"
+      [queryParams]="positionFilter() ? { position: positionFilter() } : {}"
+    >
+      <fa-icon icon="plus" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.createLabel">Thêm banner</span>
+    </button>
+  </div>
 
   <jhi-alert-error />
-
   <jhi-alert />
 
-  <jhi-filter [filters]="filters" />
+  <!-- Vị trí hiển thị: mỗi ô là một vị trí, số đang hiện / tổng -->
+  <div class="position-grid mb-3">
+    <button type="button" class="position-card surface" [class.active]="positionFilter() === null" (click)="setPosition(null)">
+      <span class="position-name" jhiTranslate="javaSpringBootBackEndApp.galleryImage.board.allPositions">Tất cả vị trí</span>
+      <span class="position-count">{{ banners().length }}</span>
+      <span class="position-sub">
+        <span class="dot dot-showing"></span>{{ showingTotal() }}
+        <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.status.showing">Đang hiển thị</span>
+      </span>
+    </button>
+    @for (position of positions(); track position.id) {
+      <button
+        type="button"
+        class="position-card surface"
+        [class.active]="positionFilter() === position.id"
+        [class.inactive]="position.active === false"
+        (click)="setPosition(position.id)"
+        [title]="position.code ?? ''"
+      >
+        <span class="position-name">{{ position.name }}</span>
+        <span class="position-count">{{ countIn(position) }}</span>
+        <span class="position-sub">
+          @if (position.active === false) {
+            <fa-icon icon="lock" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.galleryImage.board.positionOff">Vị trí đang tắt</span>
+          } @else {
+            <span class="dot dot-showing"></span>{{ showingByPosition().get(position.id) ?? 0 }}
+            <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.status.showing">Đang hiển thị</span>
+          }
+        </span>
+      </button>
+    }
+  </div>
 
-  @if (galleryImages().length === 0) {
-    <div class="alert alert-warning" id="no-result">
-      <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.notFound">No Gallery Images found</span>
+  <!-- Trạng thái + tìm theo tên -->
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-1">
+      <button
+        type="button"
+        class="btn btn-sm rounded-pill"
+        [class.btn-dark]="statusFilter() === null"
+        [class.btn-outline-secondary]="statusFilter() !== null"
+        (click)="setStatus(null)"
+      >
+        <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.status.all">Tất cả</span> · {{ inPosition().length }}
+      </button>
+      @for (status of statuses; track status) {
+        @if (statusCounts()[status] > 0 || statusFilter() === status) {
+          <button
+            type="button"
+            class="btn btn-sm rounded-pill status-pill"
+            [attr.data-status]="status"
+            [class.selected]="statusFilter() === status"
+            (click)="setStatus(status)"
+          >
+            <span [class]="'dot dot-' + status"></span>
+            {{ 'javaSpringBootBackEndApp.galleryImage.status.' + status | translate }} · {{ statusCounts()[status] }}
+          </button>
+        }
+      }
+    </div>
+    <div class="input-group input-group-sm ms-auto search-box">
+      <span class="input-group-text"><fa-icon icon="search" /></span>
+      <input
+        type="search"
+        class="form-control"
+        [ngModel]="search()"
+        (ngModelChange)="setSearch($event)"
+        [ngModelOptions]="{ updateOn: 'blur' }"
+        (keyup.enter)="setSearch($any($event.target).value)"
+        [placeholder]="'javaSpringBootBackEndApp.galleryImage.board.search' | translate"
+      />
+    </div>
+  </div>
+
+  @if (loadError()) {
+    <div class="alert alert-danger" jhiTranslate="javaSpringBootBackEndApp.galleryImage.board.loadError">
+      Không tải được danh sách banner.
+    </div>
+  } @else if (visible().length === 0 && !isLoading()) {
+    <div class="empty surface text-center py-5" id="no-result">
+      <fa-icon icon="images" size="2x" class="text-body-tertiary mb-2" />
+      <p class="mb-3 text-body-secondary" jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.notFound">Chưa có banner nào</p>
+      <a
+        *jhiHasAnyAuthority="editAuthorities"
+        class="btn btn-primary btn-sm"
+        [routerLink]="['/gallery-image/new']"
+        [queryParams]="positionFilter() ? { position: positionFilter() } : {}"
+      >
+        <fa-icon icon="plus" />&nbsp;<span jhiTranslate="javaSpringBootBackEndApp.galleryImage.home.createLabel">Thêm banner</span>
+      </a>
     </div>
   } @else {
-    <div class="table-responsive table-entities" id="entities">
-      <table class="table table-striped" aria-describedby="page-heading">
-        <thead>
-          <tr jhiSort [(sortState)]="sortState" (sortChange)="navigateToWithComponentValues($event)">
-            <th scope="col" jhiSortBy="id">
-              <div class="d-flex">
-                <span jhiTranslate="global.field.id">ID</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="title">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.title">Title</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="image">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.image">Image</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="imageUrl">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.imageUrl">Image Url</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="linkUrl">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.linkUrl">Link Url</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="altText">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.altText">Alt Text</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="displayOrder">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.displayOrder">Display Order</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="active">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.active">Active</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="startAt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.startAt">Start At</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="endAt">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.endAt">End At</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="openInNewTab">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.openInNewTab">Open In New Tab</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col" jhiSortBy="gallery.name">
-              <div class="d-flex">
-                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.gallery">Gallery</span>
-                <fa-icon class="p-1" icon="sort" />
-              </div>
-            </th>
-            <th scope="col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (galleryImage of galleryImages(); track trackId(galleryImage)) {
-            <tr data-cy="entityTable">
-              <td>
-                <a [routerLink]="['/gallery-image', galleryImage.id, 'view']">{{ galleryImage.id }}</a>
-              </td>
-              <td>{{ galleryImage.title }}</td>
-              <td>
-                @if (galleryImage.image) {
-                  <a (click)="openFile(galleryImage.image, galleryImage.imageContentType)">
-                    <img
-                      [src]="'data:' + galleryImage.imageContentType + ';base64,' + galleryImage.image"
-                      style="max-height: 30px"
-                      alt="galleryImage"
-                    />
-                  </a>
-                  <span>{{ galleryImage.imageContentType }}, {{ byteSize(galleryImage.image) }}</span>
-                }
-              </td>
-              <td>{{ galleryImage.imageUrl }}</td>
-              <td>{{ galleryImage.linkUrl }}</td>
-              <td>{{ galleryImage.altText }}</td>
-              <td>{{ galleryImage.displayOrder }}</td>
-              <td>{{ galleryImage.active }}</td>
-              <td>{{ galleryImage.startAt | formatMediumDatetime }}</td>
-              <td>{{ galleryImage.endAt | formatMediumDatetime }}</td>
-              <td>{{ galleryImage.openInNewTab }}</td>
-              <td>
-                @if (galleryImage.gallery) {
-                  <div>
-                    <a [routerLink]="['/gallery', galleryImage.gallery.id, 'view']">{{ galleryImage.gallery.name }}</a>
-                  </div>
-                }
-              </td>
-              <td class="text-end">
-                <div class="btn-group">
-                  <a [routerLink]="['/gallery-image', galleryImage.id, 'view']" class="btn btn-info btn-sm" data-cy="entityDetailsButton">
-                    <fa-icon icon="eye" />
-                    <span class="d-none d-md-inline" jhiTranslate="entity.action.view">View</span>
-                  </a>
-
-                  <a
-                    [routerLink]="['/gallery-image', galleryImage.id, 'edit']"
-                    class="btn btn-primary btn-sm"
-                    *jhiHasAnyAuthority="editAuthorities"
-                    data-cy="entityEditButton"
-                  >
-                    <fa-icon icon="pencil-alt" />
-                    <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Edit</span>
-                  </a>
-
-                  <button
-                    type="submit"
-                    (click)="delete(galleryImage)"
-                    class="btn btn-danger btn-sm"
-                    *jhiHasAnyAuthority="editAuthorities"
-                    data-cy="entityDeleteButton"
-                  >
-                    <fa-icon icon="times" />
-                    <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Delete</span>
-                  </button>
+    <div class="banner-grid" id="entities">
+      @for (banner of visible(); track banner.id) {
+        <article class="banner-card surface" data-cy="entityTable" [class.dimmed]="banner.status !== 'showing'">
+          <a class="banner-thumb" [routerLink]="canEdit() ? ['/gallery-image', banner.id, 'edit'] : ['/gallery-image', banner.id, 'view']">
+            @if (banner.previewUrl) {
+              <img [src]="banner.previewUrl" [alt]="banner.altText || banner.title || ''" loading="lazy" />
+            } @else {
+              <span class="no-image"><fa-icon icon="image" size="2x" /></span>
+            }
+            <span class="status-badge" [attr.data-status]="banner.status">
+              {{ 'javaSpringBootBackEndApp.galleryImage.status.' + banner.status | translate }}
+            </span>
+          </a>
+          <div class="banner-body">
+            <div class="d-flex align-items-start gap-2">
+              <h3 class="banner-title me-auto" [title]="banner.title ?? ''">
+                {{ banner.title || ('javaSpringBootBackEndApp.galleryImage.board.untitled' | translate) }}
+              </h3>
+              @if (canEdit()) {
+                <div class="form-check form-switch m-0" [title]="'javaSpringBootBackEndApp.galleryImage.board.toggle' | translate">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    class="form-check-input"
+                    [checked]="banner.active"
+                    [disabled]="toggling() === banner.id"
+                    (change)="toggleActive(banner)"
+                    [attr.aria-label]="'javaSpringBootBackEndApp.galleryImage.board.toggle' | translate"
+                  />
                 </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
-  @if (galleryImages().length > 0) {
-    <div>
-      <div class="d-flex justify-content-center">
-        <jhi-item-count [params]="{ page: page(), totalItems: totalItems(), itemsPerPage: itemsPerPage() }" />
-      </div>
-
-      <div class="d-flex justify-content-center">
-        <ngb-pagination
-          [collectionSize]="totalItems()"
-          [page]="page()"
-          [pageSize]="itemsPerPage()"
-          [maxSize]="5"
-          [rotate]="true"
-          [boundaryLinks]="true"
-          (pageChange)="navigateToPage($event)"
-        />
-      </div>
+              }
+            </div>
+            <div class="banner-meta">
+              <span class="badge text-bg-light border position-badge">
+                <fa-icon icon="table-cells-large" />&nbsp;{{ banner.position.name }}
+              </span>
+            </div>
+            <div class="banner-meta">
+              <fa-icon icon="calendar-alt" [fixedWidth]="true" />
+              @let range = dateRange(banner);
+              @if (range.from || range.to) {
+                <span>{{ range.from ?? ('javaSpringBootBackEndApp.galleryImage.board.now' | translate) }}</span>
+                <span class="mx-1">→</span>
+                <span>{{ range.to ?? ('javaSpringBootBackEndApp.galleryImage.board.noEnd' | translate) }}</span>
+              } @else {
+                <span jhiTranslate="javaSpringBootBackEndApp.galleryImage.board.always">Luôn hiển thị</span>
+              }
+            </div>
+            @if (banner.linkUrl) {
+              <div class="banner-meta text-truncate">
+                <fa-icon icon="arrow-up-right-from-square" [fixedWidth]="true" />
+                <a [href]="banner.linkUrl" target="_blank" rel="noopener" class="text-reset">{{ linkHost(banner.linkUrl) }}</a>
+              </div>
+            }
+          </div>
+          <div class="banner-actions" *jhiHasAnyAuthority="editAuthorities">
+            <a class="btn btn-sm btn-outline-primary" data-cy="entityEditButton" [routerLink]="['/gallery-image', banner.id, 'edit']">
+              <fa-icon icon="pencil-alt" />&nbsp;<span jhiTranslate="entity.action.edit">Sửa</span>
+            </a>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-danger"
+              data-cy="entityDeleteButton"
+              (click)="delete(banner)"
+              [title]="'entity.action.delete' | translate"
+            >
+              <fa-icon icon="trash-alt" />
+            </button>
+          </div>
+        </article>
+      }
     </div>
   }
 </div>
