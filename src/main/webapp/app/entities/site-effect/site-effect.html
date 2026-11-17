@@ -10,7 +10,8 @@
       <div class="flex-grow-1">
         <h3 class="tet-title" jhiTranslate="siteEffect.tet.name">Hoa đào ngày Tết</h3>
         <p class="tet-desc mb-2" jhiTranslate="siteEffect.tet.description">
-          Cánh hoa đào rơi nhẹ trên toàn bộ website yp.vn, kèm cành đào ở góc màn hình. Không che nội dung, không ảnh hưởng tốc độ và SEO.
+          Cánh hoa đào rơi nhẹ trên toàn bộ website yp.vn, kèm hai cành đào rủ ở hai góc trên. Không che nội dung, không ảnh hưởng tốc độ và
+          SEO.
         </p>
         @if (effects(); as state) {
           <div class="d-flex flex-wrap align-items-center gap-2 small">
@@ -51,7 +52,7 @@
       </div>
     </div>
     @if (justSaved()) {
-      <div class="tet-note" jhiTranslate="siteEffect.delayNote">Đã lưu. Website yp.vn sẽ cập nhật trong khoảng 1 phút.</div>
+      <div class="tet-note" jhiTranslate="siteEffect.delayNote">Đã lưu. Tải lại trang yp.vn là thấy thay đổi.</div>
     }
     @if (!canEdit()) {
       <div class="tet-note" jhiTranslate="siteEffect.noPermission">Bạn chỉ có quyền xem. Cần quyền quản lý Banner để bật/tắt.</div>
@@ -73,6 +74,7 @@
       <span class="mock-line w-60"></span>
     </div>
     <svg class="mock-branch" viewBox="0 0 220 160" aria-hidden="true"><use href="#peach-branch" /></svg>
+    <svg class="mock-branch right" viewBox="0 0 220 160" aria-hidden="true"><use href="#peach-branch" /></svg>
     @for (petal of petals; track $index) {
       <span
         class="petal"

@@ -3,7 +3,7 @@
     "title": "Hiệu ứng Tết",
     "tet": {
       "name": "Hoa đào ngày Tết",
-      "description": "Cánh hoa đào rơi nhẹ trên toàn bộ website yp.vn, kèm cành đào ở góc màn hình. Không che nội dung, không ảnh hưởng tốc độ và SEO."
+      "description": "Cánh hoa đào rơi nhẹ trên toàn bộ website yp.vn, kèm hai cành đào rủ ở hai góc trên. Không che nội dung, không ảnh hưởng tốc độ và SEO."
     },
     "status": {
       "on": "Đang bật trên yp.vn",
@@ -12,9 +12,9 @@
     "updated": "Đổi lúc {{ at }} bởi {{ by }}",
     "turnOn": "Bật hiệu ứng Tết",
     "turnOff": "Tắt hiệu ứng",
-    "delayNote": "Đã lưu. Website yp.vn sẽ cập nhật trong khoảng 1 phút.",
+    "delayNote": "Đã lưu. Tải lại trang yp.vn là thấy thay đổi.",
     "noPermission": "Bạn chỉ có quyền xem. Cần quyền quản lý Banner để bật/tắt.",
     "preview": "Xem trước",
-    "previewNote": "Người xem có nút nhỏ để tự ẩn hiệu ứng; máy bật chế độ giảm chuyển động thì hoa không rơi."
+    "previewNote": "Khách xem web không tự tắt được, chỉ bật/tắt ở đây. Máy bật chế độ giảm chuyển động thì hoa không rơi, cành đào vẫn hiện. Điện thoại (màn hình dưới 640px) chỉ có hoa rơi, không có cành đào."
   }
 }

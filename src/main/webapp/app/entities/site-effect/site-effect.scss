@@ -153,10 +153,18 @@
 
 .mock-branch {
   position: absolute;
-  top: 44px;
+  top: 0;
   left: 0;
-  width: 170px;
+  width: 150px;
   pointer-events: none;
+  z-index: 1;
+
+  // cành bên phải là bản lật gương, giống website
+  &.right {
+    left: auto;
+    right: 0;
+    transform: scaleX(-1);
+  }
 }
 
 .petal {

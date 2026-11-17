@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -24,7 +24,7 @@ interface PreviewPetal {
 
 /**
  * Sửa tay (2026-11-17): trang "Hiệu ứng Tết": một công tắc bật/tắt hoa đào rơi trên toàn bộ website yp.vn, kèm khung
- * xem trước. Website (Next.js) đọc trạng thái qua GET /api/public/v1/site-settings, thấy thay đổi sau khoảng 1 phút.
+ * xem trước. Website (Next.js) đọc trạng thái qua GET /api/public/v1/site-settings (không cache): tải lại trang là thấy.
  */
 @Component({
   selector: 'jhi-site-effect',
@@ -59,6 +59,18 @@ export class SiteEffect implements OnInit {
   private readonly service = inject(SiteEffectService);
 
   ngOnInit(): void {
+    this.reload();
+  }
+
+  /** Đọc lại trạng thái khi quay lại tab này (có thể đã đổi ở tab hoặc máy khác), tránh bấm theo trạng thái cũ. */
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (!document.hidden && !this.isSaving()) {
+      this.reload();
+    }
+  }
+
+  reload(): void {
     this.service.get().subscribe(effects => this.effects.set(effects));
   }
 

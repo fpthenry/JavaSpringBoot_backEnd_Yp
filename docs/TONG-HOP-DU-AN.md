@@ -2535,7 +2535,7 @@ Trang soạn bài (`entities/blog-post/editor`) có thêm khung **SEO** dưới 
 
 ### 16.8 Hiệu ứng Tết hoa đào trên website (2026-11-17)
 
-Trong trang quản trị, vào **Hiệu ứng Tết** (menu Nội dung) và bấm **Bật hiệu ứng Tết**. Toàn bộ yp.vn sẽ có hoa đào rơi và một cành đào ở góc. Bấm **Tắt hiệu ứng** thì không còn hiện nữa. Website thấy thay đổi sau khoảng 1 phút.
+Trong trang quản trị, vào **Hiệu ứng Tết** (menu Nội dung) và bấm **Bật hiệu ứng Tết**. Toàn bộ yp.vn sẽ có hoa đào rơi và hai cành đào rủ ở hai góc trên. Bấm **Tắt hiệu ứng** thì không còn hiện nữa. Tải lại trang yp.vn là thấy ngay (tab yp.vn đang mở cũng tự đọc lại khi quay lại tab).
 
 **Backend:**
 - Bảng mới `site_setting(setting_key PK, setting_value, updated_at, updated_by)` (Liquibase `20261117120000_site_setting.xml`).
@@ -2543,7 +2543,7 @@ Trong trang quản trị, vào **Hiệu ứng Tết** (menu Nội dung) và bấ
   - Khóa đầu tiên là `tet_effect`. Chưa có dòng nào = tắt.
 - API quản trị `GET /api/site-settings/effects`: trả `{ tetEffect, updatedAt, updatedBy }`. Mọi nhân viên đều xem được.
 - API quản trị `PUT /api/site-settings/effects/tet` với thân `{ "enabled": true|false }`: chỉ **ROLE_ADMIN** và **ROLE_BANNER_EDIT** được gọi. Luật nằm trong `SecurityConfiguration`.
-- API công khai `GET /api/public/v1/site-settings`: trả `{ tetEffect }`, cần `X-API-Key`, có `Cache-Control` 1 phút. API này không trả ra ai đã sửa.
+- API công khai `GET /api/public/v1/site-settings`: trả `{ tetEffect }`, cần `X-API-Key`, `Cache-Control: no-store` (không cache, để bật/tắt có hiệu lực ngay). API này không trả ra ai đã sửa.
 
 **Trang quản trị** (`entities/site-effect`):
 - Một thẻ màu đỏ-vàng có nút bật/tắt lớn, hiện trạng thái và người sửa gần nhất.
@@ -2557,9 +2557,9 @@ Trong trang quản trị, vào **Hiệu ứng Tết** (menu Nội dung) và bấ
   - Chuyển động: rơi chậm, lắc ngang, lật nhẹ, có gió đổi chiều.
   - Số lượng tùy độ rộng màn hình: điện thoại khoảng 12, màn hình rộng tối đa 38.
   - Dừng vẽ khi tab bị ẩn.
-- **Cành đào:** hình SVG ở góc dưới bên trái, chỉ hiện trên màn hình từ 1024px.
-- **Người xem tự ẩn:** có nút "🌸 Ẩn hoa" ở góc dưới bên trái. Ẩn đến hết phiên (`sessionStorage`).
-- Máy bật chế độ **giảm chuyển động** thì hoa không rơi, chỉ còn cành đào.
+- **Cành đào:** hai cành SVG rủ từ hai góc trên (bên phải là bản lật gương), đung đưa nhẹ bằng CSS. Cành nằm đè lên header nhưng `pointer-events: none` nên các nút bên dưới vẫn bấm được. Rộng 150px, từ 1024px là 230px; dưới 640px (điện thoại) thì ẩn để không che logo và menu.
+- **Khách không tự tắt được:** không có nút ẩn, chỉ quản trị viên bật/tắt. Ngày 2026-11-17 đã bỏ nút "Ẩn hoa" theo yêu cầu.
+- Máy bật chế độ **giảm chuyển động** thì hoa không rơi và cành đứng yên, cành đào vẫn hiện.
 
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
