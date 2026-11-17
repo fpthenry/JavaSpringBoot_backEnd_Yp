@@ -96,7 +96,113 @@
         "found": "{{ count }} posts found",
         "clear": "Clear filters",
         "byCategory": "Filter by this category"
-      }
+      },
+      "seo": {
+        "title": "SEO",
+        "focusKeyword": "Focus keyword",
+        "focusKeywordPlaceholder": "e.g. how to register a company",
+        "focusKeywordHint": "The main phrase readers type on Google to find this post. One keyword per post.",
+        "scoreLabel": "SEO score",
+        "level": {
+          "good": "Good",
+          "ok": "Needs improvement",
+          "bad": "Poor"
+        },
+        "summary": "{{ problems }} to improve · {{ passed }} passed",
+        "googlePreview": "Google preview",
+        "descriptionAuto": "No excerpt: Google will use the beginning of the post.",
+        "showPassed": "Show {{ count }} passed checks",
+        "hidePassed": "Hide passed checks",
+        "checks": {
+          "keyword": {
+            "bad": "No focus keyword yet: enter the phrase you want this post to rank for to get a full score."
+          },
+          "kwTitle": {
+            "good": "The title starts with the focus keyword.",
+            "ok": "The title contains the keyword, but not near the beginning.",
+            "bad": "The title does not contain the focus keyword."
+          },
+          "kwSlug": {
+            "good": "The URL contains the focus keyword.",
+            "bad": "The URL does not contain the focus keyword."
+          },
+          "kwDescription": {
+            "good": "The excerpt (Google description) contains the focus keyword.",
+            "bad": "The excerpt (Google description) does not contain the focus keyword."
+          },
+          "kwIntro": {
+            "good": "The keyword appears in the introduction.",
+            "bad": "The introduction does not mention the keyword: use it in the first 1–2 paragraphs."
+          },
+          "kwDensity": {
+            "good": "Keyword density {{ density }}% ({{ count }} times): good.",
+            "ok": "Keyword density {{ density }}% ({{ count }} times): a bit low, aim for 0.5–2.5%.",
+            "bad": "Keyword density {{ density }}% ({{ count }} times): aim for 0.5–2.5%; none is too few, too many is keyword stuffing."
+          },
+          "kwSubheading": {
+            "good": "A subheading (H2/H3) contains the keyword.",
+            "ok": "Use the keyword in at least one subheading (H2/H3)."
+          },
+          "kwImageAlt": {
+            "good": "An image alt text contains the keyword.",
+            "ok": "Use the keyword in the alt text of an image."
+          },
+          "titleLength": {
+            "good": "Title is {{ length }} characters: good ({{ min }}–{{ max }}).",
+            "ok": "Title is {{ length }} characters: aim for {{ min }}–{{ max }}.",
+            "bad": "Title is {{ length }} characters: too short or too long (aim for {{ min }}–{{ max }})."
+          },
+          "descriptionLength": {
+            "good": "Excerpt is {{ length }} characters: good ({{ min }}–{{ max }}).",
+            "ok": "Excerpt is {{ length }} characters: aim for {{ min }}–{{ max }}.",
+            "bad": "Excerpt is {{ length }} characters: write 1–2 sentences of {{ min }}–{{ max }} characters; Google shows it under the title."
+          },
+          "contentLength": {
+            "good": "The post has {{ words }} words: good.",
+            "ok": "The post has {{ words }} words: aim for {{ good }} or more.",
+            "bad": "The post is too short ({{ words }} words): at least {{ min }}."
+          },
+          "subheadings": {
+            "good": "{{ count }} subheadings (H2/H3) structure the post.",
+            "ok": "Use subheadings (H2/H3) as the post grows.",
+            "bad": "Long post without subheadings (H2/H3): split it up."
+          },
+          "paragraphs": {
+            "good": "Paragraph lengths are easy to read.",
+            "ok": "{{ count }} paragraphs are longer than {{ max }} words: split them."
+          },
+          "thumbnail": {
+            "good": "Featured image set (shown when shared on social media).",
+            "bad": "No featured image: shares on social media will have no picture."
+          },
+          "imageAlt": {
+            "good": "All images have alt text.",
+            "ok": "Images: {{ missing }}/{{ total }} without alt text. Add at least one image, each with alt text."
+          },
+          "internalLinks": {
+            "good": "{{ count }} internal links (yp.vn).",
+            "ok": "Link to other posts or pages on yp.vn."
+          },
+          "externalLinks": {
+            "good": "{{ count }} outbound links.",
+            "ok": "Consider linking to a reputable source."
+          },
+          "slug": {
+            "good": "Short URL ({{ length }} characters).",
+            "ok": "URL is {{ length }} characters: keep it under {{ max }}.",
+            "bad": "No URL yet."
+          },
+          "categories": {
+            "good": "Category selected.",
+            "bad": "No category selected."
+          },
+          "tags": {
+            "good": "Tags added.",
+            "ok": "Add a few related tags."
+          }
+        }
+      },
+      "focusKeyword": "Focus keyword"
     }
   }
 }

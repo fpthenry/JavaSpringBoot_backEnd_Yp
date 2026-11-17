@@ -17,6 +17,8 @@ export interface IBlogPost {
   createdAt?: dayjs.Dayjs | null;
   updatedAt?: dayjs.Dayjs | null;
   authorName?: string | null;
+  /** Sửa tay: từ khóa chính để chấm điểm SEO trong trang soạn bài. */
+  focusKeyword?: string | null;
   categories?: Pick<IBlogCategory, 'id' | 'name'>[] | null;
   tags?: Pick<ITag, 'id' | 'name'>[] | null;
 }

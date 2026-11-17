@@ -6,7 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { TranslatePipe } from '@ngx-translate/core';
 import dayjs from 'dayjs/esm';
-import { finalize, map } from 'rxjs';
+import { debounceTime, finalize, map } from 'rxjs';
 
 import { DATE_TIME_FORMAT } from 'app/config/input.constants';
 import { IBlogCategory } from 'app/entities/blog-category/blog-category.model';
@@ -19,6 +19,8 @@ import { extractImageUrls } from 'app/shared/rich-text/html-sanitizer';
 import { RichTextEditor } from 'app/shared/rich-text/rich-text-editor';
 import { IBlogPost, NewBlogPost } from '../blog-post.model';
 import { BlogPostService } from '../service/blog-post.service';
+import { analyzeSeo } from '../seo/seo-analyzer';
+import { SeoPanel } from '../seo/seo-panel';
 
 /** Một danh mục trong cây checkbox, kèm độ sâu để thụt lề. */
 interface CategoryRow {
@@ -46,7 +48,18 @@ export function slugify(text: string | null | undefined): string {
 @Component({
   selector: 'jhi-blog-post-editor',
   templateUrl: './blog-post-editor.html',
-  imports: [ReactiveFormsModule, FormsModule, RouterLink, FontAwesomeModule, TranslatePipe, TranslateDirective, AlertError, RichTextEditor],
+  styleUrl: './blog-post-editor.scss',
+  imports: [
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    FontAwesomeModule,
+    TranslatePipe,
+    TranslateDirective,
+    AlertError,
+    RichTextEditor,
+    SeoPanel,
+  ],
 })
 export class BlogPostEditor {
   readonly isSaving = signal(false);
@@ -67,6 +80,8 @@ export class BlogPostEditor {
     status: new FormControl<string>('draft', { nonNullable: true }),
     publishedAt: new FormControl<string | null>(null),
     authorName: new FormControl<string | null>(null, { validators: [Validators.maxLength(255)] }),
+    /** Sửa tay: từ khóa chính để chấm điểm SEO (kiểu Yoast). */
+    focusKeyword: new FormControl<string | null>(null, { validators: [Validators.maxLength(255)] }),
   });
 
   /** Danh mục dạng cây (cha trước, con thụt lề), lọc theo ô tìm kiếm (giữ cả cha của mục khớp). */
@@ -115,6 +130,26 @@ export class BlogPostEditor {
 
   protected readonly contentValue = toSignal(this.editForm.controls.content.valueChanges, { initialValue: null });
   protected readonly thumbnailValue = toSignal(this.editForm.controls.thumbnail.valueChanges, { initialValue: null });
+  /** Giá trị form, chờ ngừng gõ 250 ms rồi mới chấm lại điểm SEO. */
+  protected readonly formValue = toSignal(this.editForm.valueChanges.pipe(debounceTime(250)), {
+    initialValue: this.editForm.getRawValue(),
+  });
+
+  /** Điểm SEO và danh sách việc cần sửa, tính lại khi sửa bài, danh mục, thẻ. */
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  readonly seo = computed(() => {
+    const value = this.formValue();
+    return analyzeSeo({
+      focusKeyword: value.focusKeyword,
+      title: value.title,
+      slug: value.slug,
+      excerpt: value.excerpt,
+      content: value.content,
+      thumbnail: value.thumbnail,
+      categoryCount: this.selectedCategoryIds().size,
+      tagCount: this.selectedTagIds().size,
+    });
+  });
 
   constructor() {
     inject(ActivatedRoute)
@@ -190,6 +225,7 @@ export class BlogPostEditor {
       status,
       publishedAt,
       authorName: blankToNull(value.authorName),
+      focusKeyword: blankToNull(value.focusKeyword),
       viewCount: this.original?.viewCount ?? 0,
       createdAt: this.original?.createdAt ?? now,
       updatedAt: now,
@@ -217,6 +253,7 @@ export class BlogPostEditor {
       status: post?.status ?? 'draft',
       publishedAt: post?.publishedAt ? post.publishedAt.format(DATE_TIME_FORMAT) : null,
       authorName: post?.authorName ?? null,
+      focusKeyword: post?.focusKeyword ?? null,
     });
     this.selectedCategoryIds.set(new Set((post?.categories ?? []).map(c => c.id)));
     this.selectedTagIds.set(new Set((post?.tags ?? []).map(t => t.id)));

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay (2026-11-17): từ khóa chính của bài viết, để trang soạn bài chấm điểm SEO kiểu Yoast.
+        Cột mới, cho phép null: bài cũ không bị ảnh hưởng.
+    -->
+    <changeSet id="20261117110000-1" author="claude">
+        <addColumn tableName="blog_post">
+            <column name="focus_keyword" type="varchar(255)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

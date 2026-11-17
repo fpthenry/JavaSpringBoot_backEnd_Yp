@@ -54,6 +54,10 @@ public class BlogPostDTO implements Serializable {
     @Schema(description = "Tên tác giả trên WordPress, vd: ADMIN HCM")
     private String authorName;
 
+    @Size(max = 255)
+    @Schema(description = "Từ khóa chính để chấm điểm SEO trong trang soạn bài (chỉ dùng ở trang quản trị)")
+    private String focusKeyword;
+
     private Set<BlogCategoryDTO> categories = new HashSet<>();
 
     private Set<TagDTO> tags = new HashSet<>();
@@ -162,6 +166,14 @@ public class BlogPostDTO implements Serializable {
         this.authorName = authorName;
     }
 
+    public String getFocusKeyword() {
+        return focusKeyword;
+    }
+
+    public void setFocusKeyword(String focusKeyword) {
+        this.focusKeyword = focusKeyword;
+    }
+
     public Set<BlogCategoryDTO> getCategories() {
         return categories;
     }
@@ -216,6 +228,7 @@ public class BlogPostDTO implements Serializable {
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +
             ", authorName='" + getAuthorName() + "'" +
+            ", focusKeyword='" + getFocusKeyword() + "'" +
             ", categories=" + getCategories() +
             ", tags=" + getTags() +
             "}";

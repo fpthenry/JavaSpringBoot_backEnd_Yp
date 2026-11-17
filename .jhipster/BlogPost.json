@@ -68,6 +68,13 @@
       "fieldType": "String",
       "fieldValidateRules": ["maxlength"],
       "fieldValidateRulesMaxlength": "255"
+    },
+    {
+      "documentation": "Từ khóa chính để chấm điểm SEO trong trang soạn bài (chỉ dùng ở trang quản trị)",
+      "fieldName": "focusKeyword",
+      "fieldType": "String",
+      "fieldValidateRules": ["maxlength"],
+      "fieldValidateRulesMaxlength": "255"
     }
   ],
   "incrementalChangelog": false,

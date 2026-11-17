@@ -36,7 +36,16 @@
       <jhi-rich-text-editor formControlName="content" />
 
       <div class="card mt-3">
-        <div class="card-header py-2" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.excerpt">Tóm tắt</div>
+        <div class="card-header py-2 d-flex justify-content-between">
+          <span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.excerpt">Tóm tắt</span>
+          <span
+            class="small"
+            [class.text-success]="seo().snippet.descriptionFromContent === false && (editForm.controls.excerpt.value ?? '').length <= 160"
+            [class.text-body-secondary]="seo().snippet.descriptionFromContent"
+          >
+            {{ (editForm.controls.excerpt.value ?? '').length }}/160
+          </span>
+        </div>
         <div class="card-body p-2">
           <textarea
             class="form-control"
@@ -47,6 +56,30 @@
           ></textarea>
         </div>
       </div>
+
+      <!-- Sửa tay: chấm điểm SEO kiểu Yoast -->
+      <div class="card mt-3" data-cy="seoBox">
+        <div class="card-header py-2 fw-semibold" jhiTranslate="javaSpringBootBackEndApp.blogPost.seo.title">SEO</div>
+        <div class="card-body">
+          <label class="form-label fw-semibold" for="field_focusKeyword" jhiTranslate="javaSpringBootBackEndApp.blogPost.seo.focusKeyword"
+            >Từ khóa chính</label
+          >
+          <input
+            id="field_focusKeyword"
+            type="text"
+            class="form-control mb-1"
+            formControlName="focusKeyword"
+            data-cy="focusKeyword"
+            maxlength="255"
+            autocomplete="off"
+            [placeholder]="'javaSpringBootBackEndApp.blogPost.seo.focusKeywordPlaceholder' | translate"
+          />
+          <div class="form-text mb-3" jhiTranslate="javaSpringBootBackEndApp.blogPost.seo.focusKeywordHint">
+            Cụm từ chính người đọc gõ trên Google để tìm bài này. Mỗi bài một từ khóa.
+          </div>
+          <jhi-seo-panel [result]="seo()" />
+        </div>
+      </div>
     </div>
 
     <!-- Cột phải: xuất bản, danh mục, thẻ, ảnh đại diện -->
@@ -54,6 +87,10 @@
       <div class="card mb-3">
         <div class="card-header py-2 fw-semibold" jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.publishBox">Xuất bản</div>
         <div class="card-body p-2 small">
+          <div class="mb-2 d-flex align-items-center gap-2">
+            <span jhiTranslate="javaSpringBootBackEndApp.blogPost.seo.scoreLabel">Điểm SEO</span>:
+            <span class="badge seo-badge" [attr.data-level]="seo().level">{{ seo().score }}/100</span>
+          </div>
           <div class="mb-2">
             <span jhiTranslate="javaSpringBootBackEndApp.blogPost.editor.status">Trạng thái</span>:
             <strong>{{

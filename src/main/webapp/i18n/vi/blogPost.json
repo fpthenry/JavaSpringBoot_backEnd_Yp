@@ -96,7 +96,113 @@
         "found": "Tìm thấy {{ count }} bài",
         "clear": "Bỏ lọc",
         "byCategory": "Lọc theo danh mục này"
-      }
+      },
+      "seo": {
+        "title": "SEO",
+        "focusKeyword": "Từ khóa chính",
+        "focusKeywordPlaceholder": "Ví dụ: thủ tục thành lập công ty",
+        "focusKeywordHint": "Cụm từ chính người đọc gõ trên Google để tìm bài này. Mỗi bài một từ khóa.",
+        "scoreLabel": "Điểm SEO",
+        "level": {
+          "good": "Tốt",
+          "ok": "Cần cải thiện",
+          "bad": "Kém"
+        },
+        "summary": "{{ problems }} việc nên sửa · {{ passed }} mục đạt",
+        "googlePreview": "Xem trước trên Google",
+        "descriptionAuto": "Chưa có Tóm tắt: Google sẽ tự lấy đoạn đầu bài.",
+        "showPassed": "Xem {{ count }} mục đã đạt",
+        "hidePassed": "Ẩn mục đã đạt",
+        "checks": {
+          "keyword": {
+            "bad": "Chưa nhập từ khóa chính: nhập cụm từ bạn muốn bài lên Google để được chấm đầy đủ."
+          },
+          "kwTitle": {
+            "good": "Tiêu đề có từ khóa chính, ở ngay đầu.",
+            "ok": "Tiêu đề có từ khóa nhưng ở xa đầu: nên đưa lên đầu tiêu đề.",
+            "bad": "Tiêu đề chưa có từ khóa chính."
+          },
+          "kwSlug": {
+            "good": "Đường dẫn có từ khóa chính.",
+            "bad": "Đường dẫn chưa có từ khóa chính (viết không dấu, nối bằng gạch ngang)."
+          },
+          "kwDescription": {
+            "good": "Tóm tắt (mô tả trên Google) có từ khóa chính.",
+            "bad": "Tóm tắt (mô tả trên Google) chưa có từ khóa chính."
+          },
+          "kwIntro": {
+            "good": "Từ khóa xuất hiện ở đoạn mở đầu.",
+            "bad": "Đoạn mở đầu chưa có từ khóa: nên nhắc ngay trong 1–2 đoạn đầu."
+          },
+          "kwDensity": {
+            "good": "Mật độ từ khóa {{ density }}% ({{ count }} lần): vừa phải.",
+            "ok": "Mật độ từ khóa {{ density }}% ({{ count }} lần): hơi thấp, nên nhắc thêm (0,5–2,5%).",
+            "bad": "Mật độ từ khóa {{ density }}% ({{ count }} lần): nên trong khoảng 0,5–2,5%; không có là quá ít, quá nhiều là nhồi từ khóa."
+          },
+          "kwSubheading": {
+            "good": "Có tiêu đề phụ (H2/H3) chứa từ khóa.",
+            "ok": "Nên đặt từ khóa vào ít nhất một tiêu đề phụ (H2/H3)."
+          },
+          "kwImageAlt": {
+            "good": "Có ảnh với mô tả (alt) chứa từ khóa.",
+            "ok": "Nên đặt từ khóa vào mô tả (alt) của một ảnh trong bài."
+          },
+          "titleLength": {
+            "good": "Tiêu đề dài {{ length }} ký tự: vừa đẹp ({{ min }}–{{ max }}).",
+            "ok": "Tiêu đề dài {{ length }} ký tự: nên {{ min }}–{{ max }} ký tự.",
+            "bad": "Tiêu đề dài {{ length }} ký tự: quá ngắn hoặc quá dài, Google sẽ cắt (nên {{ min }}–{{ max }})."
+          },
+          "descriptionLength": {
+            "good": "Tóm tắt dài {{ length }} ký tự: vừa đẹp ({{ min }}–{{ max }}).",
+            "ok": "Tóm tắt dài {{ length }} ký tự: nên {{ min }}–{{ max }} ký tự.",
+            "bad": "Tóm tắt dài {{ length }} ký tự: hãy viết 1–2 câu khoảng {{ min }}–{{ max }} ký tự, đây là đoạn hiện dưới tiêu đề trên Google."
+          },
+          "contentLength": {
+            "good": "Bài dài {{ words }} từ: tốt.",
+            "ok": "Bài dài {{ words }} từ: nên viết từ {{ good }} từ trở lên.",
+            "bad": "Bài quá ngắn ({{ words }} từ): tối thiểu {{ min }} từ."
+          },
+          "subheadings": {
+            "good": "Có {{ count }} tiêu đề phụ (H2/H3) chia bố cục.",
+            "ok": "Nên chia bài bằng tiêu đề phụ (H2/H3) khi viết dài hơn.",
+            "bad": "Bài dài nhưng chưa có tiêu đề phụ (H2/H3): chia nhỏ để dễ đọc."
+          },
+          "paragraphs": {
+            "good": "Các đoạn văn có độ dài dễ đọc.",
+            "ok": "Có {{ count }} đoạn dài hơn {{ max }} từ: nên tách nhỏ."
+          },
+          "thumbnail": {
+            "good": "Đã có ảnh đại diện (hiện khi chia sẻ Facebook, Zalo).",
+            "bad": "Chưa có ảnh đại diện: chia sẻ lên mạng xã hội sẽ không có ảnh."
+          },
+          "imageAlt": {
+            "good": "Mọi ảnh trong bài đều có mô tả (alt).",
+            "ok": "Ảnh: {{ missing }}/{{ total }} ảnh thiếu mô tả (alt). Bài nên có ít nhất 1 ảnh, mỗi ảnh có mô tả."
+          },
+          "internalLinks": {
+            "good": "Có {{ count }} liên kết nội bộ (yp.vn).",
+            "ok": "Nên có liên kết tới bài viết hoặc trang khác trên yp.vn."
+          },
+          "externalLinks": {
+            "good": "Có {{ count }} liên kết ra nguồn bên ngoài.",
+            "ok": "Có thể thêm liên kết tới nguồn tham khảo uy tín."
+          },
+          "slug": {
+            "good": "Đường dẫn ngắn gọn ({{ length }} ký tự).",
+            "ok": "Đường dẫn dài {{ length }} ký tự: nên rút gọn dưới {{ max }}.",
+            "bad": "Chưa có đường dẫn."
+          },
+          "categories": {
+            "good": "Đã chọn danh mục.",
+            "bad": "Chưa chọn danh mục."
+          },
+          "tags": {
+            "good": "Đã gắn thẻ.",
+            "ok": "Nên gắn vài thẻ liên quan."
+          }
+        }
+      },
+      "focusKeyword": "Từ khóa chính"
     }
   }
 }

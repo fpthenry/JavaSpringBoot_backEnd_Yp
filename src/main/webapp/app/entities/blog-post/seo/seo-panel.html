@@ -1,0 +1,64 @@
+@let seo = result();
+<div class="seo-panel">
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <svg class="score-ring" [attr.data-level]="seo.level" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="26" class="track" />
+      <circle
+        cx="32"
+        cy="32"
+        r="26"
+        class="bar"
+        [attr.stroke-dasharray]="circumference"
+        [attr.stroke-dashoffset]="dashOffset()"
+        transform="rotate(-90 32 32)"
+      />
+      <text x="32" y="37" text-anchor="middle">{{ seo.score }}</text>
+    </svg>
+    <div>
+      <div class="fw-semibold level" [attr.data-level]="seo.level">
+        {{ 'javaSpringBootBackEndApp.blogPost.seo.level.' + seo.level | translate }}
+      </div>
+      <div class="small text-body-secondary">
+        {{ 'javaSpringBootBackEndApp.blogPost.seo.summary' | translate: { problems: problems().length, passed: passed().length } }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Xem trước trên Google -->
+  <div class="snippet mb-3">
+    <div class="snippet-label" jhiTranslate="javaSpringBootBackEndApp.blogPost.seo.googlePreview">Xem trước trên Google</div>
+    <div class="snippet-url">{{ seo.snippet.url }}</div>
+    <div class="snippet-title">{{ seo.snippet.title }}</div>
+    <div class="snippet-desc">{{ seo.snippet.description }}</div>
+    @if (seo.snippet.descriptionFromContent) {
+      <div class="small text-warning-emphasis mt-1" jhiTranslate="javaSpringBootBackEndApp.blogPost.seo.descriptionAuto">
+        Chưa có Tóm tắt: Google sẽ tự lấy đoạn đầu bài.
+      </div>
+    }
+  </div>
+
+  <ul class="list-unstyled checks mb-2">
+    @for (check of problems(); track check.id) {
+      <li [attr.data-status]="check.status">
+        <fa-icon [icon]="icon(check.status)" [fixedWidth]="true" />
+        <span>{{ check.message | translate: check.params }}</span>
+      </li>
+    }
+    @if (showPassed()) {
+      @for (check of passed(); track check.id) {
+        <li [attr.data-status]="check.status">
+          <fa-icon [icon]="icon(check.status)" [fixedWidth]="true" />
+          <span>{{ check.message | translate: check.params }}</span>
+        </li>
+      }
+    }
+  </ul>
+  @if (passed().length) {
+    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" (click)="showPassed.set(!showPassed())">
+      {{
+        (showPassed() ? 'javaSpringBootBackEndApp.blogPost.seo.hidePassed' : 'javaSpringBootBackEndApp.blogPost.seo.showPassed')
+          | translate: { count: passed().length }
+      }}
+    </button>
+  }
+</div>

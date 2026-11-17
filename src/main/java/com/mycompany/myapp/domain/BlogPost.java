@@ -208,6 +208,14 @@ public class BlogPost implements Serializable {
     )
     private String authorName;
 
+    /**
+     * Sửa tay (2026-11-17): từ khóa chính để chấm điểm SEO trong trang soạn bài (kiểu Yoast). Chỉ dùng ở trang quản trị.
+     */
+    @Size(max = 255)
+    @Column(name = "focus_keyword", length = 255)
+    @org.springframework.data.elasticsearch.annotations.Field(type = org.springframework.data.elasticsearch.annotations.FieldType.Keyword)
+    private String focusKeyword;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_blog_post__category",
@@ -443,6 +451,19 @@ public class BlogPost implements Serializable {
         this.authorName = authorName;
     }
 
+    public String getFocusKeyword() {
+        return this.focusKeyword;
+    }
+
+    public BlogPost focusKeyword(String focusKeyword) {
+        this.setFocusKeyword(focusKeyword);
+        return this;
+    }
+
+    public void setFocusKeyword(String focusKeyword) {
+        this.focusKeyword = focusKeyword;
+    }
+
     public Set<BlogCategory> getCategories() {
         return this.categories;
     }
@@ -557,6 +578,7 @@ public class BlogPost implements Serializable {
             ", createdAt='" + getCreatedAt() + "'" +
             ", updatedAt='" + getUpdatedAt() + "'" +
             ", authorName='" + getAuthorName() + "'" +
+            ", focusKeyword='" + getFocusKeyword() + "'" +
             "}";
     }
 }

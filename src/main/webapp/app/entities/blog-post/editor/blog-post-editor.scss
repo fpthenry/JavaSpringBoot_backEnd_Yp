@@ -1,0 +1,14 @@
+// Sửa tay: nhãn điểm SEO trong hộp Xuất bản.
+.seo-badge {
+  color: #fff;
+
+  &[data-level='good'] {
+    background: #12b76a;
+  }
+  &[data-level='ok'] {
+    background: #f79009;
+  }
+  &[data-level='bad'] {
+    background: #f04438;
+  }
+}

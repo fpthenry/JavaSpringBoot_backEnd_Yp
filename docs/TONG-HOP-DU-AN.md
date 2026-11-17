@@ -2483,6 +2483,56 @@ Trang `/gallery-image` (menu Banner > Danh sách banner) thay bảng JHipster b�
 - Ô "Banner" trên trang chủ đếm số banner (`/api/gallery-images/count`), không còn đếm số vị trí.
 - **Lưu ý khi sửa form:** sau `addValidators`/`clearValidators` phải gọi `updateValueAndValidity()`. Nếu không, trạng thái hợp lệ vẫn tính theo luật cũ, ví dụ ô bắt buộc để trống vẫn được coi là hợp lệ. Đã sửa lỗi này ở cả form banner và form người dùng.
 
+### 16.7 Chấm điểm SEO khi soạn bài viết (2026-11-17)
+
+Trang soạn bài (`entities/blog-post/editor`) có thêm khung **SEO** dưới phần Tóm tắt, chấm điểm giống Yoast/Rank Math của WordPress. Điểm tính lại sau khi ngừng gõ 250 ms.
+
+**Các thành phần:**
+- **Từ khóa chính**: lưu vào cột mới `blog_post.focus_keyword` (varchar 255, Liquibase `20261117110000_blog_post_focus_keyword.xml`, đã thêm vào `.jhipster/BlogPost.json`). Cột này chỉ dùng ở trang quản trị, API công khai không trả ra.
+- **Điểm 0–100**, gồm 3 mức: Tốt (từ 80), Cần cải thiện (50–79), Kém (dưới 50). Hộp Xuất bản cũng hiện nhãn điểm.
+- **Xem trước trên Google**, dựng giống cách website tạo thẻ meta (`d:\nextyp-v2`, `src/lib/seo/blog-page.ts`):
+  - tiêu đề = tiêu đề bài + " | Trang Vàng Việt Nam";
+  - đường dẫn = `yp.vn/blog/{slug}`;
+  - mô tả = Tóm tắt; nếu bỏ trống thì lấy đoạn đầu bài.
+
+  Vì vậy **không cần sửa Next.js**.
+- **Danh sách việc cần sửa:** mặc định chỉ hiện các mục chưa đạt, các mục đã đạt bấm để xem.
+
+**Tiêu chí chấm** (`seo/seo-analyzer.ts`; hàm thuần, có test):
+
+| Nhóm | Tiêu chí | Trọng số |
+|---|---|---|
+| Từ khóa | Đã nhập từ khóa chính | 4 |
+| Từ khóa | Có trong tiêu đề (ở đầu = tốt) | 3 |
+| Từ khóa | Có trong đường dẫn (so không dấu) | 2 |
+| Từ khóa | Có trong Tóm tắt | 2 |
+| Từ khóa | Có trong 2 đoạn đầu | 2 |
+| Từ khóa | Mật độ 0,5–2,5% (= số lần xuất hiện / số từ) | 2 |
+| Từ khóa | Có trong tiêu đề phụ H2/H3 | 1 |
+| Từ khóa | Có trong alt của một ảnh | 1 |
+| Cơ bản | Tiêu đề 30–60 ký tự | 2 |
+| Cơ bản | Tóm tắt 120–160 ký tự | 2 |
+| Cơ bản | Nội dung ≥ 600 từ (≥ 300 là tạm) | 2 |
+| Cơ bản | Có H2/H3 | 1 |
+| Cơ bản | Không có đoạn nào dài quá 150 từ | 1 |
+| Cơ bản | Có ảnh đại diện | 1 |
+| Cơ bản | Mọi ảnh trong bài có alt | 1 |
+| Cơ bản | Có liên kết nội bộ (đường dẫn tương đối hoặc yp.vn) | 1 |
+| Cơ bản | Có liên kết ra ngoài | 1 |
+| Cơ bản | Đường dẫn ≤ 75 ký tự | 1 |
+| Cơ bản | Có danh mục | 1 |
+| Cơ bản | Có thẻ | 1 |
+
+**Cách tính:**
+- Mỗi mục chấm Đạt = 1, Tạm = 0,5, Chưa đạt = 0.
+- Điểm = tổng (trọng số × điểm mục) / tổng trọng số × 100.
+
+**Lưu ý về tiếng Việt:**
+- Từ khóa được so như một **cụm trọn vẹn**, có dấu, không phân biệt hoa thường (ví dụ "nhà" không khớp với "nhàhàng"). Chỉ đường dẫn được so không dấu.
+- "Từ" ở đây là **tiếng (âm tiết)**, nên ngưỡng 300/600 từ tương đương bài khoảng 1–2 trang A4.
+
+**Muốn đổi ngưỡng:** sửa các hằng `TITLE_RANGE`, `DESCRIPTION_RANGE`, `CONTENT_WORDS`, `DENSITY_RANGE` ở đầu `seo-analyzer.ts`. Câu thông báo nằm ở i18n `blogPost.seo.checks.<mục>.<good|ok|bad>` (vi, en).
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.
