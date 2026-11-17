@@ -125,6 +125,7 @@ public class PublicListingService {
     private final PublicLocationService locationService;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final SearchPinService searchPinService;
 
     public PublicListingService(
         ElasticsearchTemplate elasticsearchTemplate,
@@ -132,7 +133,8 @@ public class PublicListingService {
         PublicCategoryService categoryService,
         PublicLocationService locationService,
         DataSource dataSource,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        SearchPinService searchPinService
     ) {
         this.elasticsearchTemplate = elasticsearchTemplate;
         this.listingRepository = listingRepository;
@@ -140,6 +142,7 @@ public class PublicListingService {
         this.locationService = locationService;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.objectMapper = objectMapper;
+        this.searchPinService = searchPinService;
     }
 
     /**
@@ -155,9 +158,9 @@ public class PublicListingService {
     public PublicPageDTO<PublicListingDTO> listings(String query, String category, String location, Boolean featured, Pageable pageable) {
         Long categoryId = StringUtils.hasText(category) ? categoryId(category) : null;
         Long locationId = StringUtils.hasText(location) ? locationId(location) : null;
-        Query esQuery = Query.of(q ->
+        // Phần khớp chữ (tính điểm liên quan)
+        Query organic = Query.of(q ->
             q.bool(b -> {
-                published(b);
                 List<String> words = VietnameseText.words(StringUtils.hasText(query) ? VietnameseText.normalize(query.trim()) : "");
                 // Mỗi chữ phải có ở ít nhất một field; cả cụm khớp liền trong tên thì lên trước
                 for (String word : words) {
@@ -169,6 +172,24 @@ public class PublicListingService {
                     // slug không dấu: "cong ty thang long" khớp "cong-ty-tnhh-thang-long" (cho xen 1 từ như "tnhh";
                     // 2 thì "cong-ty-tnhh-thang-may-long-khang" cũng khớp)
                     b.should(s -> s.matchPhrase(mp -> mp.field("slug").query(VietnameseText.fold(phrase)).slop(1).boost(8f)));
+                }
+                return b;
+            })
+        );
+        // Sửa tay (2026-11-17): từ khóa có doanh nghiệp ghim (trang quản trị "Ghim kết quả tìm kiếm") thì các doanh nghiệp đó
+        // đứng đầu, đúng thứ tự đã xếp (truy vấn "pinned" của Elasticsearch), kể cả khi tên không chứa đủ chữ của từ khóa.
+        // Chỉ khi sắp theo độ liên quan; người xem chọn sắp xếp khác (mới nhất...) thì bỏ qua ghim.
+        List<String> pinnedIds = pageable.getSort().isUnsorted()
+            ? searchPinService.pinnedListingIds(query).stream().map(String::valueOf).toList()
+            : List.of();
+        Query esQuery = Query.of(q ->
+            q.bool(b -> {
+                // Bộ lọc áp cho cả doanh nghiệp ghim: chưa xuất bản, khác ngành, khác địa phương thì không hiện
+                published(b);
+                if (pinnedIds.isEmpty()) {
+                    b.must(organic);
+                } else {
+                    b.must(m -> m.pinned(p -> p.organic(organic).ids(pinnedIds)));
                 }
                 if (categoryId != null) {
                     b.filter(f -> f.term(t -> t.field("categoryIds").value(categoryId)));
@@ -351,13 +372,28 @@ public class PublicListingService {
             .withSourceFilter(new FetchSourceFilterBuilder().withIncludes("id", "name", "slug").build())
             .withPageable(PageRequest.of(0, Math.clamp(size, 1, MAX_SUGGESTIONS)))
             .build();
-        return elasticsearchTemplate
+        int limit = Math.clamp(size, 1, MAX_SUGGESTIONS);
+        // Sửa tay (2026-11-17): doanh nghiệp ghim cho đúng từ khóa (trang "Ghim kết quả tìm kiếm") đứng đầu gợi ý,
+        // kể cả khi tên không bắt đầu bằng chữ đã gõ ("xo dua" → Công ty Sao Nam Sài Gòn). Chỉ lấy doanh nghiệp đã xuất bản.
+        List<Long> pinnedIds = searchPinService.pinnedListingIds(query);
+        List<PublicListingDTO.Suggestion> pinned = pinnedIds.isEmpty()
+            ? List.of()
+            : loadInOrder(pinnedIds)
+                  .stream()
+                  .filter(l -> PUBLISHED.equals(l.getStatus()) && StringUtils.hasText(l.getSlug()))
+                  .map(l -> new PublicListingDTO.Suggestion(l.getId(), l.getName(), l.getSlug()))
+                  .toList();
+        Set<Long> pinnedSet = pinned.stream().map(PublicListingDTO.Suggestion::id).collect(Collectors.toSet());
+        List<PublicListingDTO.Suggestion> organic = elasticsearchTemplate
             .search(nativeQuery, Listing.class)
             .stream()
             .map(SearchHit::getContent)
-            .filter(l -> StringUtils.hasText(l.getSlug()))
+            .filter(l -> StringUtils.hasText(l.getSlug()) && !pinnedSet.contains(l.getId()))
             .map(l -> new PublicListingDTO.Suggestion(l.getId(), l.getName(), l.getSlug()))
             .toList();
+        List<PublicListingDTO.Suggestion> result = new ArrayList<>(pinned);
+        result.addAll(organic);
+        return List.copyOf(result.subList(0, Math.min(limit, result.size())));
     }
 
     // ---------- Truy vấn ----------

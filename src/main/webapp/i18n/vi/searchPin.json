@@ -1,0 +1,24 @@
+{
+  "searchPin": {
+    "title": "Ghim kết quả tìm kiếm",
+    "intro": "Khách tìm đúng từ khóa trên yp.vn thì các doanh nghiệp ghim hiện đầu tiên, theo thứ tự bên dưới. Không phân biệt dấu và hoa thường: ghim cho \"máy nén khí\" thì tìm \"may nen khi\" cũng ra.",
+    "reload": "Tải lại",
+    "newKeyword": "Thêm từ khóa, vd: máy nén khí",
+    "filter": "Lọc {{ count }} từ khóa",
+    "new": "mới",
+    "noKeyword": "Chưa có từ khóa nào.",
+    "viewOnWebsite": "Xem trên website",
+    "removeKeyword": "Xóa từ khóa",
+    "notPublished": "chưa xuất bản, không hiện trên website",
+    "moveUp": "Lên trên",
+    "moveDown": "Xuống dưới",
+    "unpin": "Bỏ ghim",
+    "emptyKeyword": "Chưa ghim doanh nghiệp nào. Tìm doanh nghiệp bên dưới và bấm Ghim.",
+    "addTitle": "Thêm doanh nghiệp",
+    "listingSearch": "Tìm theo tên, mã số thuế, số điện thoại...",
+    "pinned": "Đã ghim",
+    "pin": "Ghim",
+    "noListing": "Không tìm thấy doanh nghiệp.",
+    "selectHint": "Chọn một từ khóa bên trái hoặc thêm từ khóa mới."
+  }
+}

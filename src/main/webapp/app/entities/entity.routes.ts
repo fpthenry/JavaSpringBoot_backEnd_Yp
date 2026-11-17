@@ -84,6 +84,14 @@ const routes: Routes = [
     canActivate: [userRouteAccessService],
     loadComponent: () => import('./site-effect/site-effect').then(m => m.SiteEffect),
   },
+  {
+    // Sửa tay (2026-11-17): ghim doanh nghiệp lên đầu kết quả tìm kiếm theo từ khóa (đi cùng quyền Doanh nghiệp)
+    path: 'search-pins',
+    title: 'searchPin.title',
+    data: { authorities: canViewAuthorities('listing') },
+    canActivate: [userRouteAccessService],
+    loadComponent: () => import('./search-pin/search-pin').then(m => m.SearchPin),
+  },
   // jhipster-needle-add-entity-route - JHipster will add entity modules routes here
 ];
 

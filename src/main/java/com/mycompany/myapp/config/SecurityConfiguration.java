@@ -77,6 +77,10 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/api/listings/**")
                         .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.LISTING_VIEW, AuthoritiesConstants.LISTING_EDIT)
                     .requestMatchers("/api/listings/**").hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.LISTING_EDIT)
+                    // Sửa tay (2026-11-17): ghim doanh nghiệp lên đầu kết quả tìm kiếm, đi cùng quyền Doanh nghiệp.
+                    .requestMatchers(HttpMethod.GET, "/api/search-pins/**")
+                        .hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.LISTING_VIEW, AuthoritiesConstants.LISTING_EDIT)
+                    .requestMatchers("/api/search-pins/**").hasAnyAuthority(AuthoritiesConstants.ADMIN, AuthoritiesConstants.LISTING_EDIT)
                     .requestMatchers(HttpMethod.GET, "/api/categories/**", "/api/locations/**", "/api/category-index/**", "/api/location-index/**")
                         .hasAnyAuthority(AuthoritiesConstants.STAFF)
                     .requestMatchers("/api/categories/**", "/api/locations/**")

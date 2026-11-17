@@ -2561,6 +2561,61 @@ Trong trang quản trị, vào **Hiệu ứng Tết** (menu Nội dung) và bấ
 - **Khách không tự tắt được:** không có nút ẩn, chỉ quản trị viên bật/tắt. Ngày 2026-11-17 đã bỏ nút "Ẩn hoa" theo yêu cầu.
 - Máy bật chế độ **giảm chuyển động** thì hoa không rơi và cành đứng yên, cành đào vẫn hiện.
 
+### 16.9 Ghim kết quả tìm kiếm (2026-11-17)
+
+Thay chức năng "Custom Search Results" của ElasticPress trên WordPress cũ (post type `ep-pointer`). Với mỗi từ khóa, người quản trị chọn và xếp thứ tự các doanh nghiệp. Khách tìm đúng từ khóa đó trên yp.vn thì các doanh nghiệp này hiện **đầu tiên**, sau đó mới đến kết quả bình thường.
+
+**So khớp từ khóa** dùng `SearchPinService.key()`: bỏ dấu, chữ thường, chỉ giữ chữ và số. Ví dụ "Máy nén khí", "may nen khi", "MÁY NÉN-KHÍ" đều là một từ khóa.
+
+**Backend:**
+- Bảng `search_pin(id, keyword, listing_id → listing, position, created_at, created_by)` (Liquibase `20261117130000_search_pin.xml`, changeset `-1`).
+- API quản trị `/api/search-pins`:
+
+  | Lệnh | Việc |
+  |---|---|
+  | `GET` | Danh sách từ khóa kèm doanh nghiệp đã ghim |
+  | `POST {keyword, listingId}` | Ghim thêm, xếp cuối |
+  | `PUT /order {pinIds}` | Xếp lại thứ tự |
+  | `DELETE /{id}` | Bỏ ghim một doanh nghiệp |
+  | `DELETE ?keyword=` | Xóa cả từ khóa |
+
+  Quyền: xem cần quyền xem Doanh nghiệp; sửa cần ROLE_ADMIN hoặc ROLE_LISTING_EDIT.
+- Mỗi từ khóa ghim tối đa 20 doanh nghiệp.
+- Danh sách ghim được giữ trong bộ nhớ, sửa gì thì nạp lại ngay.
+- **Tìm kiếm** (`PublicListingService.listings`, API `/api/public/v1/listings?q=`):
+  - Nếu từ khóa có ghim và đang sắp theo độ liên quan (không truyền `sort`), truy vấn được bọc bằng `pinned` của Elasticsearch (`ids` = doanh nghiệp ghim theo thứ tự, `organic` = truy vấn chữ như cũ).
+  - Doanh nghiệp ghim luôn đứng đầu, kể cả khi tên không chứa đủ chữ của từ khóa.
+  - Bộ lọc (đã xuất bản, ngành, địa phương) vẫn áp cho doanh nghiệp ghim.
+  - Người xem chọn cách sắp khác (mới nhất, tên…) thì không áp ghim.
+- **Ô gợi ý khi gõ** (`/listings/suggest`, ô tìm kiếm trang chủ): doanh nghiệp ghim (đã xuất bản) đứng đầu gợi ý, rồi mới đến các gợi ý theo tên.
+- **Không làm hỏng tìm kiếm:** `pinnedListingIds` không bao giờ ném lỗi. Nếu đọc bảng ghim bị lỗi (ví dụ chưa có bảng) thì bỏ qua ghim và ghi cảnh báo vào log. Phương thức chạy ngoài giao dịch của tìm kiếm (`Propagation.NOT_SUPPORTED`).
+- **Đã gặp (2026-11-17):** từ khóa có dấu `&` ("giao thông - hệ thống & thiết bị") làm file Liquibase sai cú pháp XML. Hậu quả:
+  - Liquibase bỏ qua cả file, không có bảng `search_pin`;
+  - trang quản trị báo lỗi 500;
+  - tìm kiếm trên website trả rỗng.
+
+  Đã sửa bằng cách escape thành `&amp;`. Khi tự viết SQL trong `<sql>` của Liquibase phải escape `&`, `<`, `>`.
+- **Kết quả kiểm tra trên dev:** tìm "xo dua" ra 2 doanh nghiệp Sao Nam Sài Gòn đứng đầu, sau đó là các doanh nghiệp xơ dừa. Tìm "may nen khi" ra Bảo Tín đứng đầu. Ô gợi ý cho kết quả giống vậy.
+- **Website Next.js không cần sửa**: trang `/listing?q=…` mặc định sắp "Phù hợp nhất" (không gửi `sort`).
+
+**Dữ liệu cũ từ WordPress:** changeset `-2` nhập sẵn khi backend khởi động, ở cả dev và server.
+- **Nguồn:** bản sao DB WordPress ở máy dev (`ypvn_25_db`). Có 43 từ khóa `ep-pointer`, trong đó 13 từ khóa không ghim gì. Meta `pointers` có 59 lượt ghim, ứng với 36 doanh nghiệp.
+- **Cách nối:** doanh nghiệp được nối qua `listing.wp_id`. Các cách viết có dấu và không dấu được gộp làm một (ví dụ "đại phong" và "dai phong").
+- **Kết quả:** 48 lượt ghim cho 25 từ khóa. 7 doanh nghiệp đã bị xóa từ thời WordPress nên không nhập được, vì thế 2 từ khóa không còn doanh nghiệp nào: "băng dán công nghiệp", "luật tư vấn".
+- **Lấy lại từ WordPress khi cần:**
+
+  ```sql
+  SELECT p.ID, p.post_title, m.meta_value FROM wp_posts p JOIN wp_postmeta m ON m.post_id = p.ID AND m.meta_key = 'pointers'
+  WHERE p.post_type = 'ep-pointer' AND p.post_status = 'publish';
+  ```
+
+  `meta_value` là mảng PHP: `a:N:{i:0;a:..:{s:2:"ID";i:<wp_id>;s:5:"order";i:<thứ tự>;...}}`.
+
+**Trang quản trị:** menu **Dữ liệu → Ghim kết quả tìm kiếm** (`entities/search-pin`).
+- Cột trái: danh sách từ khóa (lọc nhanh, thêm từ khóa mới).
+- Cột phải: các doanh nghiệp đã ghim theo thứ tự, có nút lên/xuống/bỏ ghim, nút "Xem trên website" và ô tìm doanh nghiệp (tên, mã số thuế, số điện thoại) để bấm **Ghim**.
+- Doanh nghiệp ghim mà chưa xuất bản thì có nhãn đỏ báo không hiện trên website.
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.

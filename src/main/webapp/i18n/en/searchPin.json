@@ -1,0 +1,24 @@
+{
+  "searchPin": {
+    "title": "Pinned search results",
+    "intro": "When a visitor searches yp.vn for the keyword, the pinned companies appear first, in the order below. Accents and case are ignored.",
+    "reload": "Reload",
+    "newKeyword": "Add a keyword, e.g. air compressor",
+    "filter": "Filter {{ count }} keywords",
+    "new": "new",
+    "noKeyword": "No keywords yet.",
+    "viewOnWebsite": "View on website",
+    "removeKeyword": "Delete keyword",
+    "notPublished": "not published, hidden on the website",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "unpin": "Unpin",
+    "emptyKeyword": "No pinned companies yet. Search below and click Pin.",
+    "addTitle": "Add a company",
+    "listingSearch": "Search by name, tax code, phone...",
+    "pinned": "Pinned",
+    "pin": "Pin",
+    "noListing": "No company found.",
+    "selectHint": "Pick a keyword on the left or add a new one."
+  }
+}

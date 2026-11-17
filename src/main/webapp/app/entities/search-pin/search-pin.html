@@ -1,0 +1,210 @@
+<div class="search-pin">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+    <h2 class="mb-0 me-auto" jhiTranslate="searchPin.title">Ghim kết quả tìm kiếm</h2>
+    <button class="btn btn-outline-secondary" (click)="load()" [disabled]="isLoading()" [title]="'searchPin.reload' | translate">
+      <fa-icon icon="sync" [animation]="isLoading() ? 'spin' : undefined" />
+    </button>
+  </div>
+  <p class="text-body-secondary mb-3" jhiTranslate="searchPin.intro">
+    Khách tìm đúng từ khóa trên yp.vn thì các doanh nghiệp ghim hiện đầu tiên, theo thứ tự bên dưới. Không phân biệt dấu và hoa thường.
+  </p>
+
+  <jhi-alert-error />
+  <jhi-alert />
+
+  <div class="row g-3">
+    <!-- Danh sách từ khóa -->
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          @if (canEdit()) {
+            <form class="input-group mb-2" (ngSubmit)="addKeyword()">
+              <input
+                type="text"
+                class="form-control"
+                name="newKeyword"
+                [ngModel]="newKeyword()"
+                (ngModelChange)="newKeyword.set($event)"
+                [placeholder]="'searchPin.newKeyword' | translate"
+                data-cy="newKeyword"
+              />
+              <button type="submit" class="btn btn-primary" [disabled]="!newKeyword().trim()">
+                <fa-icon icon="plus" />
+              </button>
+            </form>
+          }
+          <input
+            type="search"
+            class="form-control form-control-sm mb-2"
+            [ngModel]="filter()"
+            (ngModelChange)="filter.set($event)"
+            [placeholder]="'searchPin.filter' | translate: { count: groups().length }"
+          />
+          <div class="list-group keyword-list">
+            @if (draft(); as d) {
+              <button type="button" class="list-group-item list-group-item-action active" (click)="select(d.key)">
+                <span class="fw-semibold">{{ d.keyword }}</span>
+                <span class="badge text-bg-light ms-auto" jhiTranslate="searchPin.new">mới</span>
+              </button>
+            }
+            @for (group of visibleGroups(); track group.key) {
+              <button
+                type="button"
+                class="list-group-item list-group-item-action d-flex align-items-center gap-2"
+                [class.active]="selectedKey() === group.key"
+                (click)="select(group.key)"
+              >
+                <fa-icon icon="thumbtack" class="opacity-50" />
+                <span class="text-truncate">{{ group.keyword }}</span>
+                <span
+                  class="badge rounded-pill ms-auto"
+                  [class.text-bg-primary]="selectedKey() !== group.key"
+                  [class.text-bg-light]="selectedKey() === group.key"
+                  >{{ group.items.length }}</span
+                >
+              </button>
+            } @empty {
+              @if (!draft() && !isLoading()) {
+                <div class="text-body-secondary small p-2" jhiTranslate="searchPin.noKeyword">Chưa có từ khóa nào.</div>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Doanh nghiệp ghim của từ khóa đang chọn -->
+    <div class="col-lg-8">
+      @if (selected(); as group) {
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+              <h4 class="mb-0 me-auto"><fa-icon icon="search" class="text-body-tertiary me-1" />“{{ group.keyword }}”</h4>
+              <a class="btn btn-sm btn-outline-secondary" [href]="websiteSearchUrl(group.keyword)" target="_blank" rel="noopener">
+                <fa-icon icon="arrow-up-right-from-square" />&nbsp;<span jhiTranslate="searchPin.viewOnWebsite">Xem trên website</span>
+              </a>
+              @if (canEdit() && group.items.length) {
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeGroup(group)" [disabled]="busy()">
+                  <fa-icon icon="trash-alt" />&nbsp;<span jhiTranslate="searchPin.removeKeyword">Xóa từ khóa</span>
+                </button>
+              }
+            </div>
+
+            @if (group.items.length) {
+              <ol class="list-unstyled pin-list mb-0">
+                @for (item of group.items; track item.id; let i = $index; let first = $first; let last = $last) {
+                  <li class="pin-row" data-cy="pinRow">
+                    <span class="pin-pos">{{ i + 1 }}</span>
+                    <div class="flex-grow-1 min-w-0">
+                      <a class="fw-semibold d-block text-truncate" [routerLink]="['/listing', item.listingId, 'view']">
+                        {{ item.name || '#' + item.listingId }}
+                      </a>
+                      <div class="small text-body-secondary">
+                        @if (item.taxCode) {
+                          <span>MST {{ item.taxCode }}</span> ·
+                        }
+                        <span>{{ item.slug }}</span>
+                        @if (item.status && item.status !== 'publish') {
+                          · <span class="text-danger" jhiTranslate="searchPin.notPublished">chưa xuất bản, không hiện trên website</span>
+                        }
+                      </div>
+                    </div>
+                    @if (canEdit()) {
+                      <div class="btn-group btn-group-sm">
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary"
+                          (click)="move(item, -1)"
+                          [disabled]="first || busy()"
+                          [title]="'searchPin.moveUp' | translate"
+                        >
+                          <fa-icon icon="chevron-up" />
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary"
+                          (click)="move(item, 1)"
+                          [disabled]="last || busy()"
+                          [title]="'searchPin.moveDown' | translate"
+                        >
+                          <fa-icon icon="chevron-down" />
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger"
+                          (click)="unpin(item)"
+                          [disabled]="busy()"
+                          [title]="'searchPin.unpin' | translate"
+                        >
+                          <fa-icon icon="times" />
+                        </button>
+                      </div>
+                    }
+                  </li>
+                }
+              </ol>
+            } @else {
+              <div class="text-body-secondary" jhiTranslate="searchPin.emptyKeyword">
+                Chưa ghim doanh nghiệp nào. Tìm doanh nghiệp bên dưới và bấm Ghim.
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (canEdit()) {
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title" jhiTranslate="searchPin.addTitle">Thêm doanh nghiệp</h5>
+              <form class="input-group mb-2" (ngSubmit)="searchListings()">
+                <input
+                  type="search"
+                  class="form-control"
+                  name="listingQuery"
+                  [ngModel]="listingQuery()"
+                  (ngModelChange)="listingQuery.set($event)"
+                  [placeholder]="'searchPin.listingSearch' | translate"
+                  data-cy="listingQuery"
+                />
+                <button type="submit" class="btn btn-outline-primary" [disabled]="searching() || !listingQuery().trim()">
+                  <fa-icon [icon]="searching() ? 'spinner' : 'search'" [animation]="searching() ? 'spin' : undefined" />
+                </button>
+              </form>
+              @for (listing of listingResults(); track listing.id) {
+                <div class="result-row">
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="fw-semibold text-truncate">{{ listing.name }}</div>
+                    <div class="small text-body-secondary text-truncate">
+                      @if (listing.taxCode) {
+                        MST {{ listing.taxCode }} ·
+                      }
+                      {{ listing.addressNew || listing.slug }}
+                    </div>
+                  </div>
+                  @if (pinnedListingIds().has(listing.id)) {
+                    <span class="badge text-bg-success"
+                      ><fa-icon icon="check" />&nbsp;<span jhiTranslate="searchPin.pinned">Đã ghim</span></span
+                    >
+                  } @else {
+                    <button type="button" class="btn btn-sm btn-primary" (click)="pin(listing)" [disabled]="busy()">
+                      <fa-icon icon="thumbtack" />&nbsp;<span jhiTranslate="searchPin.pin">Ghim</span>
+                    </button>
+                  }
+                </div>
+              } @empty {
+                @if (searched()) {
+                  <div class="text-body-secondary small" jhiTranslate="searchPin.noListing">Không tìm thấy doanh nghiệp.</div>
+                }
+              }
+            </div>
+          </div>
+        }
+      } @else {
+        <div class="card">
+          <div class="card-body text-body-secondary" jhiTranslate="searchPin.selectHint">
+            Chọn một từ khóa bên trái hoặc thêm từ khóa mới.
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

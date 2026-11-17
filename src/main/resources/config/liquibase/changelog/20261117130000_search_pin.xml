@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Viết tay (2026-11-17): ghim doanh nghiệp lên đầu kết quả tìm kiếm theo từ khóa (SearchPin), thay "Custom Search
+        Results" (post type ep-pointer) của ElasticPress trên WordPress cũ.
+    -->
+    <changeSet id="20261117130000-1" author="claude">
+        <createTable tableName="search_pin">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="keyword" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="listing_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_search_pin__listing_id" references="listing(id)" deleteCascade="true"/>
+            </column>
+            <column name="position" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="${datetimeType}"/>
+            <column name="created_by" type="varchar(100)"/>
+        </createTable>
+        <createIndex tableName="search_pin" indexName="idx_search_pin__keyword">
+            <column name="keyword"/>
+        </createIndex>
+    </changeSet>
+
+    <!--
+        Nhập ghim cũ từ WordPress (bản sao DB ypvn_25_db, bảng wp_posts post_type = ep-pointer, meta "pointers"):
+        27 từ khóa có ghim (gộp các cách viết có dấu / không dấu), doanh nghiệp nối theo listing.wp_id.
+        Doanh nghiệp đã bị xóa từ thời WordPress thì không có dòng nào (SELECT rỗng). 13 từ khóa trên WordPress
+        không ghim doanh nghiệp nào nên bỏ qua.
+    -->
+    <changeSet id="20261117130000-2" author="claude">
+        <sql splitStatements="true" stripComments="true">
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'băng dán công nghiệp', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203516;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203604;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 4847559;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 3, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 4841622;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 4, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 989443;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 5, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 5768470;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 6, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6055765;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 7, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 5775134;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 8, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6214892;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 9, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 1059781;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'ngân hàng thương mại', id, 10, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 4924280;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203728;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203729;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 3, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6205589;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 4, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6205591;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 5, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6205593;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 6, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6205596;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 7, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6205598;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 8, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6205600;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 9, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203012;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'van công nghiệp', id, 10, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203735;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'blue sky', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6217150;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'xử lý nước thải', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202834;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'xử lý nước thải', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212965;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'xử lý nước thải', id, 3, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212997;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'băng gai dính', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203429;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'máy tính công nghiệp', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6225766;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'thiết bị giao thông', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6225766;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'hệ thống thiết bị giao thông', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6225766;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'giao thông - hệ thống &amp; thiết bị', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6225766;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NƯỚC - THẦU CẤP - THOÁT NƯỚC', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202834;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NƯỚC - THẦU CẤP - THOÁT NƯỚC', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212965;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'HÀN CÔNG NGHIỆP', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202834;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'HÀN CÔNG NGHIỆP', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212965;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'KHÔNG KHÍ - KHÍ THẢI - THIẾT BỊ KIỂM TRA &amp; XỬ LÝ Ô NHIỄM', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202834;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'KHÔNG KHÍ - KHÍ THẢI - THIẾT BỊ KIỂM TRA &amp; XỬ LÝ Ô NHIỄM', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212965;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NHÀ HÀNG', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202834;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NHÀ HÀNG', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212965;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NƯỚC - THIẾT BỊ LỌC NƯỚC', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202834;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NƯỚC - THIẾT BỊ LỌC NƯỚC', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212965;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NƯỚC -THIẾT BỊ &amp; DỊCH VỤ XỬ LÝ NƯỚC', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202834;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'NƯỚC -THIẾT BỊ &amp; DỊCH VỤ XỬ LÝ NƯỚC', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6212965;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'đo lường đông đô', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6204937;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'luật tư vấn', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203566;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'đại phong', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202822;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'máy nén khí', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203011;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'bảo tín', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203011;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'nồi hơi', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6203400;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'nồi hơi', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 13357488;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'thien cuong', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202654;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'my phong', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 6202654;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'sao nam', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 7436048;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'so dua', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 7436048;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'xo dua', id, 1, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 7436048;
+            INSERT INTO search_pin (keyword, listing_id, position, created_at, created_by) SELECT 'xo dua', id, 2, CURRENT_TIMESTAMP, 'wordpress' FROM listing WHERE wp_id = 13330409;
+        </sql>
+    </changeSet>
+</databaseChangeLog>
