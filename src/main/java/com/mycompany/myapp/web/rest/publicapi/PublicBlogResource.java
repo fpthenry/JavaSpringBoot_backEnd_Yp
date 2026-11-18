@@ -85,6 +85,22 @@ public class PublicBlogResource {
             .body(blogService.posts(category, tag, q, pageable));
     }
 
+    @GetMapping("/blog-posts/{slug}/related")
+    @Operation(
+        summary = "Bài viết liên quan",
+        description = "Bài đã xuất bản, nhiều thẻ chung trước, rồi cùng danh mục, rồi bài mới. Không có content. size 1–12 (mặc định 6). " +
+            "404 nếu không có bài."
+    )
+    public ResponseEntity<List<PublicBlogPostDTO>> getRelated(
+        @PathVariable("slug") String slug,
+        @Parameter(description = "Số bài, 1–12") @RequestParam(name = "size", defaultValue = "6") int size
+    ) {
+        return blogService
+            .related(slug, size)
+            .map(posts -> ResponseEntity.ok().cacheControl(JSON_CACHE).body(posts))
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/blog-posts/{slug}")
     @Operation(
         summary = "Chi tiết bài viết đã xuất bản theo slug",

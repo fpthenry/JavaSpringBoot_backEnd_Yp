@@ -2596,6 +2596,27 @@ Thay chức năng "Custom Search Results" của ElasticPress trên WordPress cũ
 
   Đã sửa bằng cách escape thành `&amp;`. Khi tự viết SQL trong `<sql>` của Liquibase phải escape `&`, `<`, `>`.
 - **Kết quả kiểm tra trên dev:** tìm "xo dua" ra 2 doanh nghiệp Sao Nam Sài Gòn đứng đầu, sau đó là các doanh nghiệp xơ dừa. Tìm "may nen khi" ra Bảo Tín đứng đầu. Ô gợi ý cho kết quả giống vậy.
+- **Ghim chỉ là các dòng có nhãn CR/RD** trên trang ElasticPress. Các dòng không nhãn là kết quả tự nhiên của Elasticsearch cũ, WordPress không lưu nên không nhập được. Ví dụ "nồi hơi" chỉ ghim 2 doanh nghiệp ZUHOW. Các doanh nghiệp khác hiện trong danh sách đó vẫn có ở BE mới; muốn cố định vị trí thì ghim thêm trong trang quản trị.
+- **Đối chiếu dữ liệu (2026-11-17):** 1.855.703 doanh nghiệp đã xuất bản trên WordPress (bản sao ở dev, sửa gần nhất 19/10/2026) đều có trong BE mới, qua `wp_id`, không thiếu dòng nào.
+
+### 16.10 Bài viết liên quan theo thẻ, và hiện trạng thẻ (2026-11-17)
+
+**Bài liên quan:**
+- **Backend:** API mới `GET /api/public/v1/blog-posts/{slug}/related?size=6` (1–12 bài, cache 1 phút), cài trong `PublicBlogService.related` và câu SQL `BlogPublicRepository.findRelatedIds`. Thứ tự xếp:
+  1. bài có **nhiều thẻ chung** nhất;
+  2. rồi bài có nhiều **danh mục chung**;
+  3. rồi bài mới đăng.
+
+  Bài không chung gì vẫn được lấy (xếp sau) để luôn đủ số bài.
+- **Website** (`d:\nextyp-v2`, `src/lib/seo/blog-page.ts`, hàm `loadRelatedPosts`): gọi API trên. Nếu backend chưa có API này (bản cũ trên server) hoặc lỗi thì quay về cách cũ: 6 bài mới nhất cùng danh mục đầu tiên.
+- **Lợi ích SEO:** liên kết nội bộ giữa các bài cùng chủ đề hẹp, giúp Google hiểu cụm chủ đề và giữ người đọc ở lại lâu hơn.
+
+**Hiện trạng thẻ (đối chiếu WordPress cũ):**
+- **WordPress cũ có 54 thẻ `post_tag`.** Đặt tại `/the/{slug}/`. Rank Math để **noindex** và không đưa vào sitemap, tức Google không lập chỉ mục trang thẻ. Thẻ không có mô tả, nhiều thẻ gần trùng nhau (5 thẻ "máy nén khí …" cùng gắn 27 doanh nghiệp).
+- **Trong 387 lượt gắn thẻ, 385 lượt là của 89 doanh nghiệp** (`listing`), chỉ 2 lượt của bài viết.
+- **BE mới đã có đủ 54 thẻ.** Thẻ chỉ gắn được cho bài viết (`rel_blog_post__tag`, 2 liên kết). Doanh nghiệp **chưa có trường thẻ/từ khóa**, nên 385 lượt gắn thẻ doanh nghiệp chưa được chuyển. Đây là việc của phần doanh nghiệp, làm sau.
+- **Website mới:** `/the/:path*` được chuyển hướng 301 về `/blog` (`next.config`). Không làm trang thẻ riêng, vì trang thẻ mỏng và trùng nội dung, có hại cho SEO.
+- **Muốn bài liên quan chính xác:** khi soạn bài, gắn 2–5 thẻ đúng chủ đề hẹp (ví dụ "máy nén khí", "hóa chất xử lý nước").
 - **Website Next.js không cần sửa**: trang `/listing?q=…` mặc định sắp "Phù hợp nhất" (không gửi `sort`).
 
 **Dữ liệu cũ từ WordPress:** changeset `-2` nhập sẵn khi backend khởi động, ở cả dev và server.

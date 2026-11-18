@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -297,6 +298,48 @@ public class PublicBlogService {
             .findFirst()
             .flatMap(post -> blogPostRepository.findOneWithEagerRelationships(post.getId()))
             .map(post -> toDto(post, true));
+    }
+
+    /** Tối đa số bài liên quan một lần gọi. */
+    static final int MAX_RELATED = 12;
+
+    /**
+     * Sửa tay (2026-11-17): bài liên quan của bài {@code slug}: nhiều thẻ chung nhất trước (cùng chủ đề hẹp), rồi cùng danh
+     * mục, rồi bài mới. Tăng liên kết nội bộ giữa các bài cùng chủ đề (tốt cho SEO). Không có bài đó thì rỗng.
+     */
+    public Optional<List<PublicBlogPostDTO>> related(String slug, int size) {
+        if (!StringUtils.hasText(slug)) {
+            return Optional.empty();
+        }
+        return blogPublicRepository
+            .findPublishedBySlug(slug.trim(), PageRequest.of(0, 1))
+            .stream()
+            .findFirst()
+            .flatMap(post -> blogPostRepository.findOneWithEagerRelationships(post.getId()))
+            .map(post -> {
+                List<Long> tagIds = post.getTags().stream().map(Tag::getId).toList();
+                List<Long> categoryIds = post.getCategories().stream().map(BlogCategory::getId).toList();
+                List<Long> ids = blogPublicRepository
+                    .findRelatedIds(
+                        post.getId(),
+                        tagIds.isEmpty() ? List.of(-1L) : tagIds,
+                        categoryIds.isEmpty() ? List.of(-1L) : categoryIds,
+                        Math.clamp(size, 1, MAX_RELATED)
+                    )
+                    .stream()
+                    .map(Number::longValue)
+                    .toList();
+                Map<Long, BlogPost> byId = blogPostRepository
+                    .fetchBagRelationships(blogPostRepository.findAllById(ids))
+                    .stream()
+                    .collect(Collectors.toMap(BlogPost::getId, p -> p, (a, b) -> a));
+                return ids
+                    .stream()
+                    .map(byId::get)
+                    .filter(Objects::nonNull)
+                    .map(p -> toDto(p, false))
+                    .toList();
+            });
     }
 
     static PublicBlogPostDTO toDto(BlogPost post, boolean withContent) {
