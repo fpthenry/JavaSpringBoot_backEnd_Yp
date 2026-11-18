@@ -2670,6 +2670,34 @@ extyp-v2`), backend không đổi (dùng API sẵn có `/blog-categories/{slug}`
 - trong bài, link tới 1–2 bài cùng chủ đề và tới trang ngành / doanh nghiệp liên quan.
 
 
+### 16.12 Thương hiệu yp.vn trên Google (2026-11-18)
+
+**Kiểm tra yp.vn đang chạy (giả Googlebot):** về kỹ thuật đã ổn.
+- Trả 200, `index, follow`, canonical `https://yp.vn`.
+- `www` và `http` chuyển 301 về `https://yp.vn`.
+- robots.txt có khai báo sitemap. Sitemap đủ: trang tĩnh, bài viết, ngành, tỉnh thành, và doanh nghiệp (mỗi file 50.000 URL).
+- Nội dung trả cho Googlebot sạch, không bị chèn gì.
+
+**Vì sao tìm "Những Trang Vàng Việt Nam" chưa ra yp.vn:**
+- Cụm này trùng tên miền đối thủ `trangvangvietnam.com`. Ô địa chỉ "94 P. Lương Yên" trên Google là hồ sơ Google Maps của họ. Trụ sở mình: 809 Giải Phóng.
+- Website mới thay WordPress gần đây, Google còn đang đọc lại khoảng 1,9 triệu URL.
+- Code cũ có lỗi khai báo (đã sửa, bên dưới).
+
+**Đã sửa trong website** (`src/app/layout.tsx`):
+- **Tiêu đề trang chủ:** "Những Trang Vàng Việt Nam (YP.VN) - Danh Bạ Doanh Nghiệp".
+- **JSON-LD `WebSite`:** `name` là "Những Trang Vàng Việt Nam", `alternateName` gồm YP.VN, Yellow Pages Việt Nam, Trang Vàng Việt Nam… Google lấy tên hiện trên kết quả từ hai trường này.
+- **`SearchAction`:** trỏ về `/listing?q=`. Trước đây trỏ `/search?q=`, trang đó trả 404.
+- **JSON-LD `Organization`:** thêm địa chỉ trụ sở, điện thoại, email, `contactPoint`, `@id`. Phải giống hệt trang `/lien-he` và hồ sơ Google Business Profile.
+
+**Việc người quản trị cần làm (không làm bằng code được):**
+1. **Google Search Console:** xác minh tên miền `yp.vn` bằng bản ghi DNS trên Cloudflare, rồi:
+   - gửi `https://yp.vn/sitemap.xml`;
+   - vào mục **Thao tác thủ công** và **Vấn đề bảo mật** để kiểm tra Google có đánh dấu gì không, vì máy chủ 2.38 từng bị xâm nhập;
+   - dùng **Kiểm tra URL → Yêu cầu lập chỉ mục** cho trang chủ, `/nganh-nghe`, `/tinh-thanh`, `/blog`, `/lien-he`.
+2. **Google Business Profile:** tạo hoặc nhận hồ sơ "Những Trang Vàng Việt Nam" ở 809 Giải Phóng, đúng số điện thoại (024) 3655 8888, website `https://yp.vn`, kèm ảnh và giờ làm việc. Đây là ô bản đồ bên trên kết quả.
+3. **Liên kết thương hiệu:** trang Facebook, Zalo OA, YouTube, LinkedIn của công ty đều đặt link `https://yp.vn`, rồi thêm các link đó vào `sameAs` trong `layout.tsx`. Hiện `sameAs` chỉ có `facebook.com/thangkhuyenmaihanoi.vn`, cần xem lại có đúng trang của công ty không.
+4. **Kết quả có các link phụ** (như ảnh chụp đối thủ, gọi là sitelinks): Google tự tạo khi site được tin cậy cho tìm kiếm tên thương hiệu. Không bật được bằng code, chỉ cần menu rõ ràng (đã có) và thời gian.
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.
