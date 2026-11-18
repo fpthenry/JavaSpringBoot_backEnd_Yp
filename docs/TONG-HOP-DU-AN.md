@@ -2598,25 +2598,6 @@ Thay chức năng "Custom Search Results" của ElasticPress trên WordPress cũ
 - **Kết quả kiểm tra trên dev:** tìm "xo dua" ra 2 doanh nghiệp Sao Nam Sài Gòn đứng đầu, sau đó là các doanh nghiệp xơ dừa. Tìm "may nen khi" ra Bảo Tín đứng đầu. Ô gợi ý cho kết quả giống vậy.
 - **Ghim chỉ là các dòng có nhãn CR/RD** trên trang ElasticPress. Các dòng không nhãn là kết quả tự nhiên của Elasticsearch cũ, WordPress không lưu nên không nhập được. Ví dụ "nồi hơi" chỉ ghim 2 doanh nghiệp ZUHOW. Các doanh nghiệp khác hiện trong danh sách đó vẫn có ở BE mới; muốn cố định vị trí thì ghim thêm trong trang quản trị.
 - **Đối chiếu dữ liệu (2026-11-17):** 1.855.703 doanh nghiệp đã xuất bản trên WordPress (bản sao ở dev, sửa gần nhất 19/10/2026) đều có trong BE mới, qua `wp_id`, không thiếu dòng nào.
-
-### 16.10 Bài viết liên quan theo thẻ, và hiện trạng thẻ (2026-11-17)
-
-**Bài liên quan:**
-- **Backend:** API mới `GET /api/public/v1/blog-posts/{slug}/related?size=6` (1–12 bài, cache 1 phút), cài trong `PublicBlogService.related` và câu SQL `BlogPublicRepository.findRelatedIds`. Thứ tự xếp:
-  1. bài có **nhiều thẻ chung** nhất;
-  2. rồi bài có nhiều **danh mục chung**;
-  3. rồi bài mới đăng.
-
-  Bài không chung gì vẫn được lấy (xếp sau) để luôn đủ số bài.
-- **Website** (`d:\nextyp-v2`, `src/lib/seo/blog-page.ts`, hàm `loadRelatedPosts`): gọi API trên. Nếu backend chưa có API này (bản cũ trên server) hoặc lỗi thì quay về cách cũ: 6 bài mới nhất cùng danh mục đầu tiên.
-- **Lợi ích SEO:** liên kết nội bộ giữa các bài cùng chủ đề hẹp, giúp Google hiểu cụm chủ đề và giữ người đọc ở lại lâu hơn.
-
-**Hiện trạng thẻ (đối chiếu WordPress cũ):**
-- **WordPress cũ có 54 thẻ `post_tag`.** Đặt tại `/the/{slug}/`. Rank Math để **noindex** và không đưa vào sitemap, tức Google không lập chỉ mục trang thẻ. Thẻ không có mô tả, nhiều thẻ gần trùng nhau (5 thẻ "máy nén khí …" cùng gắn 27 doanh nghiệp).
-- **Trong 387 lượt gắn thẻ, 385 lượt là của 89 doanh nghiệp** (`listing`), chỉ 2 lượt của bài viết.
-- **BE mới đã có đủ 54 thẻ.** Thẻ chỉ gắn được cho bài viết (`rel_blog_post__tag`, 2 liên kết). Doanh nghiệp **chưa có trường thẻ/từ khóa**, nên 385 lượt gắn thẻ doanh nghiệp chưa được chuyển. Đây là việc của phần doanh nghiệp, làm sau.
-- **Website mới:** `/the/:path*` được chuyển hướng 301 về `/blog` (`next.config`). Không làm trang thẻ riêng, vì trang thẻ mỏng và trùng nội dung, có hại cho SEO.
-- **Muốn bài liên quan chính xác:** khi soạn bài, gắn 2–5 thẻ đúng chủ đề hẹp (ví dụ "máy nén khí", "hóa chất xử lý nước").
 - **Website Next.js không cần sửa**: trang `/listing?q=…` mặc định sắp "Phù hợp nhất" (không gửi `sort`).
 
 **Dữ liệu cũ từ WordPress:** changeset `-2` nhập sẵn khi backend khởi động, ở cả dev và server.
@@ -2636,6 +2617,58 @@ Thay chức năng "Custom Search Results" của ElasticPress trên WordPress cũ
 - Cột trái: danh sách từ khóa (lọc nhanh, thêm từ khóa mới).
 - Cột phải: các doanh nghiệp đã ghim theo thứ tự, có nút lên/xuống/bỏ ghim, nút "Xem trên website" và ô tìm doanh nghiệp (tên, mã số thuế, số điện thoại) để bấm **Ghim**.
 - Doanh nghiệp ghim mà chưa xuất bản thì có nhãn đỏ báo không hiện trên website.
+
+### 16.10 Bài viết liên quan theo thẻ, và hiện trạng thẻ (2026-11-17)
+
+**Bài liên quan:**
+- **Backend:** API mới `GET /api/public/v1/blog-posts/{slug}/related?size=6` (1–12 bài, cache 1 phút), cài trong `PublicBlogService.related` và câu SQL `BlogPublicRepository.findRelatedIds`. Thứ tự xếp:
+  1. bài có **nhiều thẻ chung** nhất;
+  2. rồi bài có nhiều **danh mục chung**;
+  3. rồi bài mới đăng.
+
+  Bài không chung gì vẫn được lấy (xếp sau) để luôn đủ số bài.
+- **Website** (`d:\nextyp-v2`, `src/lib/seo/blog-page.ts`, hàm `loadRelatedPosts`): gọi API trên. Nếu backend chưa có API này (bản cũ trên server) hoặc lỗi thì quay về cách cũ: 6 bài mới nhất cùng danh mục đầu tiên.
+- **Lợi ích SEO:** liên kết nội bộ giữa các bài cùng chủ đề hẹp, giúp Google hiểu cụm chủ đề và giữ người đọc ở lại lâu hơn.
+
+**Hiện trạng thẻ (đối chiếu WordPress cũ):**
+- **WordPress cũ có 54 thẻ `post_tag`.** Đặt tại `/the/{slug}/`. Rank Math để **noindex** và không đưa vào sitemap, tức Google không lập chỉ mục trang thẻ. Thẻ không có mô tả, nhiều thẻ gần trùng nhau (5 thẻ "máy nén khí …" cùng gắn 27 doanh nghiệp).
+- **Trong 387 lượt gắn thẻ, 385 lượt là của 89 doanh nghiệp** (`listing`), chỉ 2 lượt của bài viết.
+- **BE mới đã có đủ 54 thẻ.** Thẻ chỉ gắn được cho bài viết (`rel_blog_post__tag`, 2 liên kết). Doanh nghiệp **chưa có trường thẻ/từ khóa**, nên 385 lượt gắn thẻ doanh nghiệp chưa được chuyển. Đây là việc của phần doanh nghiệp, làm sau.
+- **Website mới:** `/the/:path*` được chuyển hướng 301 về `/blog` (`next.config`). Không làm trang thẻ riêng, vì trang thẻ mỏng và trùng nội dung, có hại cho SEO.
+- **Muốn bài liên quan chính xác:** khi soạn bài, gắn 2–5 thẻ đúng chủ đề hẹp (ví dụ "máy nén khí", "hóa chất xử lý nước").
+
+### 16.11 SEO trang danh mục bài viết, trang /blog, ảnh và tiêu đề bài (2026-11-18)
+
+Chỉ sửa website (`d:
+extyp-v2`), backend không đổi (dùng API sẵn có `/blog-categories/{slug}`, `/blog-posts?category=`).
+
+**Trang danh mục `/category/{slug}` dựng ở máy chủ** (`src/app/category/[slug]/page.tsx`, `src/lib/seo/blog-category-page.ts`):
+- **Trước:** trang chạy hẳn ở trình duyệt. Tên danh mục lấy từ `?name=` trên URL, không có tiêu đề/mô tả riêng, không canonical, slug sai vẫn trả 200, không có trong sitemap.
+- **Bây giờ:**
+  - tiêu đề "Hóa chất công nghiệp: tin tức, bài viết" (danh mục tên chung như "Tin tức" thì "Tin tức mới nhất"), chữ đầu viết hoa;
+  - mô tả: lấy **mô tả danh mục nhập trong trang quản trị**; chưa nhập thì tự sinh từ tên và số bài. Hiện tại cả 49 danh mục đều chưa có mô tả, nên nhập mô tả riêng (2–3 câu, có từ khóa) cho các danh mục lớn sẽ tốt hơn;
+  - canonical `/category/{slug}` (bỏ `?name=`), trang 2 trở đi `?page=N` có canonical riêng;
+  - H1, breadcrumb, danh mục con, 12 bài đầu có sẵn trong HTML; JSON-LD `CollectionPage` (kèm `ItemList` các bài) và `BreadcrumbList`;
+  - nút "Tải thêm" là link thật tới `?page=N+1`: Google đi theo được, người xem bấm thì vẫn tải thêm tại chỗ. Trang 2 trở đi có "Trang trước";
+  - danh mục không có hoặc trang vượt quá số bài → 404 thật.
+- Chưa dùng backend mới (`NEXT_PUBLIC_API_SOURCE_BLOG` khác `new`) → dùng bản cũ chạy ở trình duyệt (`CategoryPageClient.tsx`).
+- **Link tới danh mục** ở mọi nơi (trang /blog, thanh bên danh sách danh mục, khung tin trang chủ, lưới danh mục) dùng chung `categoryHref` (`src/lib/seo/category-link.ts`): backend mới thì URL gọn, không sinh bản trùng `?name=`.
+- **Sitemap:** `/sitemap/posts.xml` có thêm 49 danh mục có bài.
+
+**Trang `/blog`:** đọc sẵn 12 bài đầu ở máy chủ (`page.tsx` truyền `initial` cho `PageClient`), nên link bài có trong HTML. Trước đây HTML máy chủ không có link bài nào.
+
+**Trang bài viết `/blog/{slug}`:**
+- **Tiêu đề thiếu đuôi "| Trang Vàng Việt Nam":** do `src/app/blog/layout.tsx` khai báo `title` dạng chuỗi, làm mất mẫu tiêu đề của layout gốc cho các trang con. Đã bỏ metadata ở layout này.
+- **Ảnh trong nội dung** (`BlogPostView.tsx`, `fixImg`):
+  - ảnh WordPress có `alt=""` → lấy tiêu đề bài làm alt;
+  - gộp `class` (trước bị hai thuộc tính `class`, trình duyệt bỏ cái sau nên ảnh không nhận kiểu dáng), bỏ `loading`/`decoding` trùng.
+
+**Việc của người soạn bài để SEO tốt nhất** (trang quản trị đã có chấm điểm SEO, mục 16.7):
+- từ khóa chính có trong tiêu đề, đoạn đầu, một tiêu đề phụ, và alt của ít nhất một ảnh;
+- tóm tắt (excerpt) 120–160 ký tự: dùng làm mô tả trên Google;
+- gắn 1 danh mục đúng nhất và 2–5 thẻ chủ đề hẹp (bài liên quan dựa vào thẻ, mục 16.10);
+- trong bài, link tới 1–2 bài cùng chủ đề và tới trang ngành / doanh nghiệp liên quan.
+
 
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
