@@ -2698,6 +2698,35 @@ extyp-v2`), backend không đổi (dùng API sẵn có `/blog-categories/{slug}`
 3. **Liên kết thương hiệu:** trang Facebook, Zalo OA, YouTube, LinkedIn của công ty đều đặt link `https://yp.vn`, rồi thêm các link đó vào `sameAs` trong `layout.tsx`. Hiện `sameAs` chỉ có `facebook.com/thangkhuyenmaihanoi.vn`, cần xem lại có đúng trang của công ty không.
 4. **Kết quả có các link phụ** (như ảnh chụp đối thủ, gọi là sitelinks): Google tự tạo khi site được tin cậy cho tìm kiếm tên thương hiệu. Không bật được bằng code, chỉ cần menu rõ ràng (đã có) và thời gian.
 
+### 16.13 Khung "Ngành nghề" trang chủ theo VSIC 2025; trang doanh nghiệp trên Google (2026-11-18)
+
+**Khung "Ngành nghề" (trang chủ, cột phải):**
+- **Trước:** 12 ô ghi cứng trỏ tới danh mục **bài viết** (`/category/...`).
+  - Số "852+ bài viết"… là số bịa, ví dụ danh mục bảo hộ lao động thực tế chỉ có 52 bài.
+  - 5/12 ô trỏ danh mục không tồn tại (du-lich, do-dung-gia-dinh, suc-khoe-lam-dep, quang-cao-truyen-thong, dich-vu-tu-van), nay ra 404.
+  - Tên ô là 14 ngành chính cũ của WordPress (category id 1–14), nhưng các ngành này không có ngành VSIC tương ứng và đã chuyển hướng về `/nganh-nghe`.
+- **Bây giờ:** mỗi ô trỏ tới trang ngành **VSIC 2025** sát nghĩa nhất, kèm **số doanh nghiệp thật**. Danh sách ở `src/lib/industry/home-industries.ts`; số đọc ở máy chủ trong `src/lib/seo/home-data.ts` (`industries`, từ `/categories/all`).
+
+  | Ô | Mã VSIC | Ô | Mã VSIC |
+  |---|---|---|---|
+  | Xây dựng | F | Đồ dùng gia đình | 464 |
+  | Máy móc, thiết bị | 465 | Ẩm thực - Ăn uống | 56 |
+  | Cơ khí - Kim loại | 25 | Du lịch - Lữ hành | 79 |
+  | Bao bì | 1702 | Sức khỏe & Làm đẹp | 4772 |
+  | May mặc | 14 | Quảng cáo & Truyền thông | 73 |
+  | Tư vấn quản lý | 70 | Công nghệ - Phần mềm | 62 |
+
+  "An toàn - bảo hộ lao động" không có ngành VSIC nào (mã gần nhất, 80, là dịch vụ bảo vệ), nên thay bằng "Công nghệ - Phần mềm" (một trong các ngành chính cũ). Ô này chưa có ảnh nên tạm dùng biểu tượng.
+- Cả 12 ô đều có trong HTML (trang thứ hai ẩn bằng CSS) để Google thấy đủ link ngành. Tiêu đề khung là `<h2>`, có link `/nganh-nghe`.
+
+**Trang doanh nghiệp `/listing/{slug}` trên Google** (kiểm tra yp.vn 2026-11-18): đã đủ.
+- tiêu đề là tên công ty kèm "| Trang Vàng Việt Nam";
+- mô tả gồm địa chỉ, điện thoại, ngành;
+- canonical, H1;
+- JSON-LD `LocalBusiness` (tên, điện thoại, địa chỉ) và `BreadcrumbList` (Trang chủ › Doanh nghiệp › ngành › công ty).
+
+Google sẽ hiện: tiêu đề, dòng đường dẫn "yp.vn › Doanh nghiệp › {ngành}", và mô tả. Kết quả thường không có sao đánh giá, vì Google không hiện sao cho đánh giá do chính site tự đặt. Thứ hạng phụ thuộc Google đã lập chỉ mục chưa và độ tin cậy của tên miền (mục 16.12), không phụ thuộc thêm code.
+
 ## 17. Nhập doanh nghiệp từ nguồn ngoài (clone dữ liệu)
 
 > Làm 2026-10-26. Nhập doanh nghiệp từ **file Excel/CSV** hoặc **API của bên thứ ba**, kiểm tra trùng với 1,86 triệu doanh nghiệp đang có, đánh dấu nguồn trong DB. Code: `service/listingimport/`, REST `ListingImportResource`, changelog `20261026090000_listing_import.xml`.
